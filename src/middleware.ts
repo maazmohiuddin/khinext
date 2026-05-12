@@ -6,7 +6,8 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
+  // Skip static assets, API routes, and auth callback (handles itself).
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|fonts/|brand/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ttf|woff|woff2)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/|auth/callback|fonts/|brand/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ttf|woff|woff2)$).*)",
   ],
 };
