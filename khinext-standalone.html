@@ -1,0 +1,3038 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Khinext '26 — AI Summit &amp; Gaming Experience</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin></script>
+  <style>
+/* ============================================================
+   Khinext Design System — Colors & Type
+   AI Summit '26 brand. Glass-morphic, low-key futuristic.
+   ============================================================ */
+
+/* ── Fonts ──────────────────────────────────────────────── */
+
+
+
+
+/* Helvetica Now Display — display family.
+   The Extra Bold Italic is the brand's signature accent face. */
+
+
+
+
+
+
+
+
+/* Extra Black for super-heavy hero treatments */
+
+
+
+:root {
+  /* ── Brand colors ──────────────────────────────────────── */
+  --khi-blue:        #316BFF;   /* signature electric blue */
+  --khi-blue-deep:   #003ACE;   /* shadowed/pressed blue   */
+  --khi-blue-bright: #4579FF;   /* hover/glow blue         */
+  --khi-blue-soft:   #8FAFFF;   /* soft accent / glow rim  */
+  --khi-blue-haze:   rgba(49, 107, 255, 0.18);  /* glow / aura */
+  --khi-blue-glass:  rgba(49, 107, 255, 0.08);  /* glass tint  */
+
+  --khi-ink:         #040B1C;   /* deep brand black (not pure) */
+  --khi-ink-soft:    #02040A;   /* near-pure black for full-bleed */
+  --khi-white:       #FFFFFF;
+
+  /* ── Domain accents (Innovation Zones) ────────────────────
+     One vivid hue per domain. Used on dark surfaces with
+     a matching halo. NEVER mix more than two in one frame. */
+  --khi-zone-health:    #51FFD5;   /* mint    — Health & Pharma */
+  --khi-zone-cities:    #00EAEE;   /* cyan    — Smart Cities    */
+  --khi-zone-creative:  #BF00FF;   /* purple  — Creativity      */
+  --khi-zone-fintech:   #FFB800;   /* amber   — Fintech Future  */
+  --khi-zone-devzone:   #D4FF00;   /* lime    — DevZone         */
+  --khi-zone-culture:   #FF4D00;   /* orange  — Culture         */
+  --khi-zone-lifestyle: #FF0F4B;   /* magenta — Lifestyle       */
+  --khi-zone-investor:  #E2E2E2;   /* silver  — Investor Arena  */
+
+  /* ── Foreground (text) on dark ─────────────────────────── */
+  --fg-1: rgba(255, 255, 255, 1.00);  /* primary copy / headings */
+  --fg-2: rgba(255, 255, 255, 0.70);  /* body                    */
+  --fg-3: rgba(255, 255, 255, 0.45);  /* secondary / meta        */
+  --fg-4: rgba(255, 255, 255, 0.30);  /* eyebrow / labels        */
+  --fg-5: rgba(255, 255, 255, 0.15);  /* watermarks / hairlines  */
+
+  /* ── Surfaces & borders ────────────────────────────────── */
+  --bg:           var(--khi-ink);
+  --bg-elevated:  #0A1226;            /* card on ink */
+  --surface-1:    rgba(255, 255, 255, 0.04);  /* glass card    */
+  --surface-2:    rgba(255, 255, 255, 0.06);  /* glass hover   */
+  --surface-3:    rgba(255, 255, 255, 0.02);  /* faintest      */
+  --border:       rgba(255, 255, 255, 0.08);
+  --border-strong:rgba(255, 255, 255, 0.16);
+  --border-blue:  rgba(49, 107, 255, 0.30);
+  --border-blue-strong: rgba(49, 107, 255, 0.55);
+
+  /* ── Type families ─────────────────────────────────────── */
+  --font-body:    "Manrope", "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Manrope", "Helvetica Neue", Arial, sans-serif;
+
+  /* ── Type scale ────────────────────────────────────────── */
+  --t-eyebrow:    11px;   /* uppercase, tracked */
+  --t-meta:       13px;
+  --t-body:       16px;
+  --t-body-lg:    18px;
+  --t-h6:         20px;
+  --t-h5:         24px;
+  --t-h4:         32px;
+  --t-h3:         44px;
+  --t-h2:         64px;
+  --t-h1:         96px;
+  --t-display:    140px;
+  --t-mega:       220px;  /* "Khinext" wordmark / hero brand */
+
+  /* ── Spacing ───────────────────────────────────────────── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 96px;
+
+  /* ── Radii ─────────────────────────────────────────────── */
+  --r-1: 6px;
+  --r-2: 10px;
+  --r-3: 14px;
+  --r-4: 20px;     /* default card */
+  --r-5: 24px;     /* large card   */
+  --r-pill: 999px; /* buttons, chips */
+
+  /* ── Shadows & glows ───────────────────────────────────── */
+  --shadow-card: 0 18px 60px -20px rgba(0, 0, 10, 0.55);
+  --shadow-stamp: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);  /* the
+       baked-in 4px drop the figma ships on logo marks. */
+  --glow-blue-sm: 0 0 0 1px rgba(49,107,255,0.24),
+                  0 0 22px rgba(49,107,255,0.24);
+  --glow-blue-md: 0 0 0 1px rgba(49,107,255,0.42),
+                  0 0 34px rgba(49,107,255,0.52);
+  --glow-blue-cta: 0 0 28px 2px rgba(74,143,255,0.35),
+                   0 6px 28px rgba(49,107,255,0.35);
+
+  /* ── Easing ────────────────────────────────────────────── */
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-snap: cubic-bezier(0.4,  0, 0.2,  1);
+  --dur-quick: 0.18s;
+  --dur-base:  0.28s;
+  --dur-slow:  0.55s;
+}
+
+/* ── Semantic element styles ──────────────────────────────── */
+
+html, body {
+  background: var(--bg);
+  color: var(--fg-1);
+  font-family: var(--font-body);
+  font-size: var(--t-body);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Display headings — Helvetica Now Display, tight, negative tracking */
+.h-mega,
+.h-display,
+.h-1, h1,
+.h-2, h2,
+.h-3, h3,
+.h-4, h4 {
+  font-family: var(--font-display);
+  color: var(--fg-1);
+  letter-spacing: -0.04em;
+  line-height: 0.96;
+  font-weight: 700;
+}
+
+.h-mega    { font-size: var(--t-mega);    line-height: 0.88; font-weight: 800; }
+.h-display { font-size: var(--t-display); line-height: 0.92; font-weight: 800; }
+.h-1, h1   { font-size: var(--t-h1);      line-height: 0.96; font-weight: 800; }
+.h-2, h2   { font-size: var(--t-h2);      line-height: 1.00; font-weight: 800; letter-spacing: -0.035em; }
+.h-3, h3   { font-size: var(--t-h3);      line-height: 1.05; font-weight: 700; letter-spacing: -0.03em;  }
+.h-4, h4   { font-size: var(--t-h4);      line-height: 1.15; font-weight: 700; letter-spacing: -0.02em;  }
+
+/* The brand's signature accent — italicized highlight word.
+   Use sparingly: one highlight per headline. */
+.accent {
+  color: var(--khi-blue);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;     /* Extra Bold Italic — the spec face */
+}
+
+/* Body */
+p, .body { font-family: var(--font-body); font-size: var(--t-body);    line-height: 1.7; color: var(--fg-2); font-weight: 400; }
+.body-lg { font-family: var(--font-body); font-size: var(--t-body-lg); line-height: 1.7; color: var(--fg-2); }
+.body-sm { font-family: var(--font-body); font-size: var(--t-meta);    line-height: 1.6; color: var(--fg-3); }
+
+/* Eyebrow / section tag — uppercase, tracked, blue */
+.eyebrow {
+  font-family: var(--font-body);
+  font-size: var(--t-eyebrow);
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--khi-blue);
+}
+
+/* Mono — used very sparingly for ticker / metadata. */
+.mono {
+  font-family: ui-monospace, "Space Mono", "JetBrains Mono", Menlo, monospace;
+  font-size: var(--t-meta);
+  letter-spacing: 0.05em;
+}
+
+/* Hairline divider used between dates/stats. */
+.hairline {
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+/* ============================================================
+   Khinext '26 prototype — page styles
+   Inherits tokens from ../colors_and_type.css
+   ============================================================ */
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--fg-1);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; }
+
+/* ─── reusable bits lifted from the UI kit ──────────────── */
+
+.kx-accent {
+  color: var(--khi-blue);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  position: relative;
+  display: inline-block;
+  isolation: isolate;
+}
+.kx-accent::after {
+  content: '';
+  position: absolute;
+  inset: 18% -10% 18% -10%;
+  background: radial-gradient(ellipse at center,
+    rgba(143,175,255,0.7) 0%,
+    rgba(49,107,255,0.42) 42%,
+    rgba(49,107,255,0.2) 70%,
+    transparent 100%);
+  filter: blur(12px);
+  opacity: 0.62;
+  z-index: -1;
+  animation: kxAura 3.2s ease-in-out infinite;
+}
+@keyframes kxAura {
+  0%,100% { opacity: 0.46; filter: blur(8px);  transform: scaleX(0.92); }
+  50%     { opacity: 0.9;  filter: blur(13px); transform: scaleX(1.08); }
+}
+
+.kx-eyebrow {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-size: 12px; font-weight: 700;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--khi-blue); margin-bottom: 18px;
+}
+.kx-eyebrow::before {
+  content: ''; width: 24px; height: 2px;
+  background: var(--khi-blue);
+}
+
+.kx-btn-primary {
+  background: var(--khi-blue);
+  color: #fff;
+  padding: 14px 28px; border-radius: 999px;
+  font-size: 14px; font-weight: 500;
+  border: 0; line-height: 1;
+  transition: all .22s var(--ease-soft);
+  box-shadow: 0 6px 22px rgba(49,107,255,0.32);
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.kx-btn-primary:hover {
+  background: var(--khi-blue-bright);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 36px rgba(49,107,255,0.5);
+}
+.kx-btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.kx-btn-outline {
+  background: transparent;
+  color: var(--fg-2);
+  padding: 13px 26px; border-radius: 999px;
+  font-size: 14px; font-weight: 500; line-height: 1;
+  border: 1px solid var(--border);
+  transition: all .22s var(--ease-soft);
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.kx-btn-outline:hover { border-color: var(--border-blue); color: #fff; }
+.kx-btn-danger {
+  background: rgba(255,15,75,0.12);
+  color: #FF6B8E;
+  padding: 9px 18px; border-radius: 999px;
+  font-size: 12px; font-weight: 500; line-height: 1;
+  border: 1px solid rgba(255,15,75,0.32);
+  transition: all .2s;
+}
+.kx-btn-danger:hover { background: rgba(255,15,75,0.2); color: #fff; }
+
+/* ─── Nav ───────────────────────────────────────────────── */
+.kx-nav {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 56px;
+  background: rgba(4,11,28,0.78);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid var(--border);
+}
+.kx-lockup { display: flex; align-items: center; gap: 12px; }
+.kx-mark {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: linear-gradient(135deg, #003ACE 0%, #316BFF 100%);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0px 4px 4px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.18);
+  transition: transform .4s var(--ease-soft);
+}
+.kx-lockup:hover .kx-mark { transform: rotate(-6deg) scale(1.05); }
+.kx-mark svg { width: 18px; height: 18px; }
+.kx-word {
+  font-family: var(--font-display);
+  font-weight: 700; font-size: 20px;
+  letter-spacing: -0.025em; color: #fff;
+}
+.kx-word em { color: var(--khi-blue); font-style: italic; font-weight: 800; }
+.kx-nav-links { list-style: none; display: flex; gap: 30px; margin: 0; padding: 0; align-items: center; }
+.kx-nav-links a {
+  font-size: 14px; color: var(--fg-3);
+  transition: color .25s var(--ease-soft);
+  position: relative;
+}
+.kx-nav-links a.active { color: #fff; }
+.kx-nav-links a:hover { color: #fff; }
+.kx-nav-links a::after {
+  content: ''; position: absolute; left: 0; bottom: -5px;
+  width: 0; height: 1px;
+  background: linear-gradient(90deg, var(--khi-blue-bright), transparent);
+  transition: width .3s var(--ease-soft);
+}
+.kx-nav-links a:hover::after,
+.kx-nav-links a.active::after { width: 100%; }
+.kx-nav-cta {
+  background: var(--khi-blue);
+  color: #fff !important;
+  padding: 10px 22px;
+  border-radius: 999px;
+  font-size: 13px; font-weight: 500;
+  transition: background .2s var(--ease-soft);
+}
+.kx-nav-cta:hover { background: var(--khi-blue-bright); }
+.kx-nav-cta::after { display: none !important; }
+
+/* ─── Page shell ────────────────────────────────────────── */
+.kx-page { min-height: calc(100vh - 76px); }
+.kx-section { padding: 110px 56px; max-width: 1200px; margin: 0 auto; }
+.kx-section.flush { max-width: none; }
+.kx-section.subtle { background: rgba(255,255,255,0.012); }
+.kx-section.tight { padding: 64px 56px; }
+
+.kx-section-head { max-width: 720px; }
+.kx-section-head.center { margin: 0 auto; text-align: center; }
+.kx-section-head h2 {
+  font-family: var(--font-display);
+  font-size: clamp(40px, 5vw, 64px);
+  font-weight: 800; line-height: 1.04;
+  letter-spacing: -0.035em;
+  color: #fff; margin: 0 0 20px;
+}
+.kx-section-head p {
+  font-size: 16px; color: var(--fg-3);
+  line-height: 1.75; max-width: 560px;
+}
+.kx-section-head.center p { margin-left: auto; margin-right: auto; }
+.kx-section-head.center .kx-eyebrow { margin-left: auto; margin-right: auto; }
+
+/* ─── Page hero (sub-pages, not the home hero) ──────────── */
+.kx-pagehero {
+  position: relative;
+  padding: 130px 56px 70px;
+  background: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(49,107,255,0.22) 0%, transparent 60%), #02040A;
+  text-align: center;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border);
+  isolation: isolate;
+}
+.kx-pagehero .grid-bg {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(49,107,255,0.14) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(49,107,255,0.14) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 30%, #000 0%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 30%, #000 0%, transparent 80%);
+  animation: kxGridDrift 24s linear infinite;
+  z-index: 0;
+}
+@keyframes kxGridDrift {
+  0%   { background-position: 0 0, 0 0; }
+  100% { background-position: 56px 56px, 56px 56px; }
+}
+.kx-pagehero > * { position: relative; z-index: 1; }
+.kx-pagehero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(48px, 7vw, 96px);
+  font-weight: 800; line-height: 0.98;
+  letter-spacing: -0.045em;
+  margin: 18px 0 18px; color: #fff;
+}
+.kx-pagehero p.lead {
+  font-size: clamp(15px, 1.3vw, 17px);
+  color: var(--fg-2);
+  max-width: 640px;
+  margin: 0 auto;
+  line-height: 1.7;
+}
+
+/* ─── Home hero ─────────────────────────────────────────── */
+.home-hero {
+  position: relative;
+  min-height: calc(100vh - 76px);
+  padding: 100px 40px 80px;
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center;
+  overflow: hidden;
+  isolation: isolate;
+  background: #02040A;
+}
+.home-hero-bg {
+  position: absolute; inset: 0; z-index: 0;
+  background: url('../assets/glass-hands.png') center / cover no-repeat;
+  opacity: 0.72;
+  mask-image: radial-gradient(ellipse 90% 100% at 50% 60%, #000 30%, transparent 95%);
+  -webkit-mask-image: radial-gradient(ellipse 90% 100% at 50% 60%, #000 30%, transparent 95%);
+}
+.home-hero-mesh {
+  position: absolute; inset: -10%; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(closest-side at 88% 30%, rgba(60,40,140,0.35) 0%, transparent 55%),
+    radial-gradient(closest-side at 8% 70%, rgba(30,50,120,0.32) 0%, transparent 50%);
+  filter: blur(70px);
+  mix-blend-mode: soft-light;
+  opacity: 0.6;
+  animation: heroMesh 22s ease-in-out infinite;
+}
+@keyframes heroMesh {
+  0%,100% { background-position: 75% 25%, 20% 75%; }
+  50%     { background-position: 92% 40%, 8% 60%; }
+}
+.home-hero-grid {
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(49,107,255,0.16) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(49,107,255,0.16) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 85% 65% at 50% 42%, #000 0%, transparent 82%);
+  -webkit-mask-image: radial-gradient(ellipse 85% 65% at 50% 42%, #000 0%, transparent 82%);
+  opacity: 0.16;
+  animation: kxGridDrift 24s linear infinite;
+}
+.home-hero-glow {
+  position: absolute; top: 6%; left: 50%; transform: translateX(-50%);
+  width: 740px; height: 420px;
+  background: radial-gradient(ellipse, rgba(49,107,255,0.30) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+  animation: heroFloat 9s ease-in-out infinite;
+}
+@keyframes heroFloat {
+  0%,100% { transform: translate(-50%, 0); }
+  50%     { transform: translate(-50%, -28px); }
+}
+.home-hero .badge {
+  position: relative; z-index: 1;
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 8px 18px;
+  background: rgba(49,107,255,0.10);
+  border: 1px solid var(--border-blue);
+  border-radius: 999px;
+  font-size: 12px; font-weight: 500;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--khi-blue-soft);
+  margin-bottom: 32px;
+}
+.home-hero .badge .dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--khi-blue-bright);
+  box-shadow: 0 0 12px var(--khi-blue-bright);
+  animation: dotPulse 2s ease-in-out infinite;
+}
+@keyframes dotPulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50%     { opacity: 0.45; transform: scale(0.78); }
+}
+.home-hero h1 {
+  position: relative; z-index: 1;
+  font-family: var(--font-display);
+  font-size: clamp(56px, 8.5vw, 112px);
+  font-weight: 800; line-height: 0.96;
+  letter-spacing: -0.045em;
+  color: #fff; margin: 0 0 12px; max-width: 1100px;
+}
+.home-hero .year {
+  display: inline-block;
+  background: linear-gradient(120deg, #003ACE 0%, #316BFF 40%, #8FAFFF 50%, #316BFF 60%, #003ACE 100%);
+  background-size: 220% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: yearShimmer 5s ease-in-out infinite;
+}
+@keyframes yearShimmer {
+  0%,100% { background-position: 0% 40%; }
+  50%     { background-position: 100% 60%; }
+}
+.home-hero .tagline {
+  position: relative; z-index: 1;
+  font-size: clamp(14px, 1.5vw, 18px);
+  color: var(--fg-3);
+  letter-spacing: 0.36em; text-transform: uppercase;
+  margin: 4px 0 30px;
+}
+.home-hero .sub {
+  position: relative; z-index: 1;
+  font-size: clamp(15px, 1.4vw, 17px);
+  color: var(--fg-3);
+  max-width: 580px; margin: 0 0 42px;
+  line-height: 1.7;
+}
+.home-hero .actions {
+  position: relative; z-index: 1;
+  display: flex; gap: 14px; flex-wrap: wrap; justify-content: center;
+  margin-bottom: 62px;
+}
+.home-hero .date-bar {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; gap: 26px;
+  flex-wrap: wrap; justify-content: center;
+}
+.date-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.date-label { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg-4); }
+.date-value { font-family: var(--font-display); font-size: 15px; font-weight: 700; color: #fff; }
+.date-sep { color: var(--fg-5); font-size: 18px; }
+
+/* ─── Pillar cards (AI Expo / Gaming Arena on Home) ─────── */
+.pillars {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 22px; max-width: 1200px; margin: 0 auto;
+}
+.pillar {
+  position: relative;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 44px 40px;
+  overflow: hidden;
+  transition: all .35s var(--ease-soft);
+  isolation: isolate;
+}
+.pillar::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 80% 0%, rgba(49,107,255,0.18) 0%, transparent 60%);
+  z-index: -1; opacity: 0.6;
+  transition: opacity .35s var(--ease-soft);
+}
+.pillar:hover { border-color: var(--border-blue); transform: translateY(-4px); }
+.pillar:hover::before { opacity: 1; }
+.pillar .num {
+  font-family: var(--font-display);
+  font-size: 14px; font-weight: 800;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--khi-blue); margin-bottom: 20px;
+}
+.pillar h3 {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 3.5vw, 44px);
+  font-weight: 800; line-height: 1.02;
+  letter-spacing: -0.035em;
+  margin: 0 0 16px; color: #fff;
+}
+.pillar p { color: var(--fg-2); line-height: 1.7; margin: 0 0 24px; max-width: 460px; }
+.pillar .meta {
+  display: flex; gap: 16px; flex-wrap: wrap;
+  padding-top: 22px; border-top: 1px solid var(--border);
+  margin-top: 22px;
+}
+.pillar .meta div {
+  display: flex; flex-direction: column; gap: 2px;
+}
+.pillar .meta .k { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--fg-4); }
+.pillar .meta .v { font-family: var(--font-display); font-weight: 700; font-size: 18px; color: #fff; letter-spacing: -0.01em; }
+.pillar .more {
+  margin-top: 24px; display: inline-flex; gap: 6px;
+  color: var(--khi-blue-bright); font-size: 14px; font-weight: 500;
+}
+.pillar .more::after { content: '→'; transition: transform .2s; }
+.pillar:hover .more::after { transform: translateX(4px); }
+
+/* ─── Stats strip ───────────────────────────────────────── */
+.stats-strip {
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 50px 56px;
+  display: grid; grid-template-columns: repeat(4, 1fr);
+}
+.stat { text-align: center; padding: 0 20px; border-right: 1px solid var(--border); }
+.stat:last-child { border-right: 0; }
+.stat .num {
+  font-family: var(--font-display);
+  font-size: clamp(40px, 5.5vw, 60px);
+  font-weight: 800; line-height: 1;
+  letter-spacing: -0.04em; color: #fff;
+}
+.stat .num .acc { color: var(--khi-blue); }
+.stat .lbl { font-size: 13px; color: var(--fg-3); margin-top: 8px; letter-spacing: .06em; }
+
+/* ─── Generic cards ────────────────────────────────────── */
+.card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px 26px;
+  transition: all .25s var(--ease-soft);
+}
+.card:hover { border-color: var(--border-blue); }
+
+.cards-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.cards-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+
+/* ─── Gaming station cards ─────────────────────────────── */
+.station {
+  position: relative;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 32px 28px;
+  overflow: hidden;
+  transition: all .3s var(--ease-soft);
+}
+.station::before {
+  content: ''; position: absolute;
+  top: -40%; right: -20%;
+  width: 320px; height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--zone-color, rgba(49,107,255,0.18)) 0%, transparent 70%);
+  filter: blur(40px);
+  pointer-events: none;
+  opacity: 0.45;
+  transition: opacity .3s;
+}
+.station:hover { transform: translateY(-4px); border-color: var(--border-blue); }
+.station:hover::before { opacity: 0.85; }
+.station .tag {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 11px; font-weight: 800;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--khi-blue);
+  margin-bottom: 18px;
+}
+.station .count {
+  font-family: var(--font-display);
+  font-size: 64px; font-weight: 800;
+  letter-spacing: -0.05em; line-height: 1;
+  color: #fff; margin: 0;
+}
+.station .count .unit {
+  font-size: 14px; color: var(--fg-3);
+  margin-left: 8px; letter-spacing: 0.12em;
+  text-transform: uppercase; font-weight: 700;
+  display: inline-block; vertical-align: 4px;
+}
+.station h4 {
+  font-family: var(--font-display);
+  font-size: 22px; font-weight: 700;
+  margin: 14px 0 16px; color: #fff;
+  letter-spacing: -0.02em;
+}
+.station ul {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: 9px;
+}
+.station ul li {
+  font-size: 13px; color: var(--fg-2);
+  padding-left: 14px; position: relative;
+  line-height: 1.5;
+}
+.station ul li::before {
+  content: ''; position: absolute; left: 0; top: 7px;
+  width: 6px; height: 1px; background: var(--khi-blue);
+}
+
+/* ─── Form ─────────────────────────────────────────────── */
+.form { display: flex; flex-direction: column; gap: 18px; max-width: 640px; margin: 0 auto; }
+.form .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label {
+  font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--fg-4); font-weight: 700;
+}
+.field input,
+.field textarea,
+.field select {
+  font-family: var(--font-body);
+  font-size: 15px; color: #fff;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  outline: 0;
+  transition: all .2s var(--ease-soft);
+}
+.field textarea { resize: vertical; min-height: 130px; line-height: 1.6; }
+.field input:focus,
+.field textarea:focus,
+.field select:focus {
+  border-color: var(--border-blue-strong);
+  background: rgba(49,107,255,0.06);
+  box-shadow: 0 0 0 4px rgba(49,107,255,0.12);
+}
+.field input::placeholder,
+.field textarea::placeholder { color: var(--fg-4); }
+
+.dropzone {
+  border: 1px dashed var(--border-strong);
+  border-radius: 14px;
+  padding: 36px 20px;
+  text-align: center;
+  background: var(--surface-3);
+  transition: all .2s var(--ease-soft);
+  cursor: pointer;
+}
+.dropzone:hover, .dropzone.drag {
+  border-color: var(--khi-blue);
+  background: rgba(49,107,255,0.05);
+}
+.dropzone .big {
+  font-family: var(--font-display);
+  font-size: 16px; font-weight: 700; color: #fff;
+  margin-bottom: 6px;
+}
+.dropzone .small { font-size: 12px; color: var(--fg-3); }
+.dropzone .picked {
+  display: inline-flex; align-items: center; gap: 10px;
+  margin-top: 12px;
+  background: rgba(49,107,255,0.10);
+  border: 1px solid var(--border-blue);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 12px; color: var(--khi-blue-soft);
+}
+.dropzone input[type=file] { display: none; }
+
+/* Categories radio row */
+.chip-radio {
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.chip-radio label {
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  font-size: 12px; color: var(--fg-2);
+  cursor: pointer;
+  transition: all .2s var(--ease-soft);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.chip-radio label:hover { border-color: var(--border-blue); }
+.chip-radio input[type=radio] { display: none; }
+.chip-radio input[type=radio]:checked + span {
+  display: inline-block;
+}
+.chip-radio label.on {
+  background: rgba(49,107,255,0.14);
+  border-color: var(--border-blue-strong);
+  color: var(--khi-blue-soft);
+}
+
+/* Submit success state */
+.success {
+  background: var(--surface-1);
+  border: 1px solid var(--border-blue);
+  border-radius: 24px;
+  padding: 48px 44px;
+  text-align: center;
+  max-width: 640px; margin: 0 auto;
+}
+.success .check {
+  width: 64px; height: 64px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  background: rgba(49,107,255,0.18);
+  border: 1px solid var(--border-blue);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--khi-blue-bright);
+  font-size: 28px;
+  box-shadow: 0 0 32px rgba(49,107,255,0.32);
+  animation: checkPop 0.6s var(--ease-soft);
+}
+@keyframes checkPop {
+  from { transform: scale(0.4); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+.success h2 {
+  font-family: var(--font-display);
+  font-size: 32px; font-weight: 800;
+  letter-spacing: -0.03em; margin: 0 0 14px; color: #fff;
+}
+.success p { color: var(--fg-2); margin: 0 0 24px; line-height: 1.6; }
+.success .id-chip {
+  display: inline-block;
+  background: rgba(49,107,255,0.10);
+  border: 1px solid var(--border-blue);
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 12px;
+  color: var(--khi-blue-soft);
+  letter-spacing: 0.08em;
+}
+
+/* ─── Admin ─────────────────────────────────────────────── */
+.admin-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 28px;
+}
+.admin-tabs {
+  display: flex; gap: 4px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px;
+}
+.admin-tabs button {
+  padding: 10px 22px;
+  border: 0; background: transparent;
+  border-radius: 999px;
+  color: var(--fg-3);
+  font-size: 13px; font-weight: 500;
+  transition: all .2s;
+}
+.admin-tabs button.active { background: var(--khi-blue); color: #fff; }
+
+.admin-table {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  overflow: hidden;
+}
+.admin-row {
+  display: grid; grid-template-columns: 90px 1.4fr 1.6fr 130px 200px;
+  padding: 18px 22px; align-items: center; gap: 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+.admin-row:last-child { border-bottom: 0; }
+.admin-row.head {
+  background: rgba(255,255,255,0.02);
+  font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--fg-4); font-weight: 700;
+}
+.admin-row .id { font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: var(--fg-3); }
+.admin-row .who { display: flex; flex-direction: column; gap: 2px; }
+.admin-row .who .nm { color: #fff; font-weight: 500; }
+.admin-row .who .em { font-size: 12px; color: var(--fg-3); }
+.admin-row .body { color: var(--fg-2); }
+.admin-row .body .pj { color: #fff; font-weight: 500; }
+.admin-row .body .cat {
+  display: inline-block;
+  font-size: 11px; padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(49,107,255,0.10);
+  border: 1px solid var(--border-blue);
+  color: var(--khi-blue-soft);
+  margin-top: 6px;
+}
+.admin-row .status {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; padding: 5px 11px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  color: var(--fg-2);
+  justify-self: start;
+}
+.admin-row .status.pending  { background: rgba(255,184,0,0.10); border-color: rgba(255,184,0,0.32); color: #FFD06B; }
+.admin-row .status.approved { background: rgba(81,255,213,0.10); border-color: rgba(81,255,213,0.32); color: #51FFD5; }
+.admin-row .status.rejected { background: rgba(255,15,75,0.10); border-color: rgba(255,15,75,0.32); color: #FF6B8E; }
+.admin-row .actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+.admin-empty {
+  padding: 70px 30px; text-align: center;
+  color: var(--fg-3);
+  border: 1px dashed var(--border);
+  border-radius: 18px;
+}
+
+.admin-gate {
+  max-width: 380px; margin: 80px auto;
+  text-align: center;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 40px 36px;
+}
+.admin-gate h2 {
+  font-family: var(--font-display); font-size: 28px;
+  font-weight: 800; margin: 0 0 8px; letter-spacing: -0.03em;
+}
+.admin-gate p { color: var(--fg-3); margin: 0 0 24px; }
+.admin-gate .field { margin-bottom: 16px; text-align: left; }
+.admin-gate .hint {
+  margin-top: 16px; font-size: 11px; color: var(--fg-4);
+  letter-spacing: 0.08em;
+}
+
+/* ─── Modal & Email preview ────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(2,4,10,0.78);
+  backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 40px 20px;
+  animation: fadeIn .25s var(--ease-soft);
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.modal {
+  background: var(--bg);
+  border: 1px solid var(--border-blue);
+  border-radius: 20px;
+  max-width: 680px; width: 100%;
+  max-height: 90vh;
+  overflow: auto;
+  box-shadow: 0 30px 100px rgba(0,0,0,0.5), 0 0 60px rgba(49,107,255,0.15);
+  animation: popIn .35s var(--ease-soft);
+}
+@keyframes popIn {
+  from { transform: translateY(20px) scale(0.96); opacity: 0; }
+  to   { transform: translateY(0) scale(1); opacity: 1; }
+}
+.modal .head {
+  padding: 22px 28px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+.modal .head .ttl {
+  font-family: var(--font-display); font-size: 17px; font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.modal .head .x {
+  background: transparent; border: 0; color: var(--fg-3);
+  width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .2s;
+}
+.modal .head .x:hover { background: var(--surface-2); color: #fff; }
+
+/* The actual approval email — fixed 600px frame so the design
+   matches what'd render in Gmail / Outlook etc. */
+.email-frame {
+  margin: 26px auto;
+  width: min(600px, 100%);
+  background: #FFFFFF;
+  color: #0F1626;
+  border-radius: 14px;
+  overflow: hidden;
+  font-family: "Helvetica", "Arial", sans-serif;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+}
+.email-frame .top {
+  position: relative;
+  background: #040B1C;
+  padding: 36px 36px 56px;
+  color: #fff;
+  overflow: hidden;
+  isolation: isolate;
+}
+.email-frame .top::before {
+  content: ''; position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 60% 80% at 80% 0%, rgba(49,107,255,0.5) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 80% at 20% 100%, rgba(49,107,255,0.32) 0%, transparent 60%);
+  z-index: -1;
+}
+.email-frame .lockup {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 22px;
+}
+.email-frame .lockup-mark {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: linear-gradient(135deg, #003ACE 0%, #316BFF 100%);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+.email-frame .lockup-mark svg { width: 18px; height: 18px; }
+.email-frame .lockup-word {
+  font-family: "Helvetica", Arial, sans-serif;
+  font-weight: 700; font-size: 20px;
+}
+.email-frame .lockup-word em { color: #4A8FFF; font-style: italic; font-weight: 800; }
+.email-frame .top-eyebrow {
+  font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase;
+  color: #8FAFFF; margin-bottom: 14px; font-weight: 700;
+}
+.email-frame .top h1 {
+  font-size: 36px; line-height: 1.05; letter-spacing: -0.025em;
+  font-weight: 800; margin: 0; color: #fff;
+}
+.email-frame .top h1 em {
+  color: #4A8FFF; font-style: italic; font-weight: 800;
+}
+.email-frame .body { padding: 36px; line-height: 1.7; font-size: 15px; color: #2A3245; }
+.email-frame .body p { margin: 0 0 16px; }
+.email-frame .body p:last-child { margin-bottom: 0; }
+.email-frame .body strong { color: #040B1C; font-weight: 700; }
+.email-frame .ticket {
+  margin: 22px 0;
+  background: #F4F7FE;
+  border: 1px solid #DEE6FA;
+  border-radius: 12px;
+  padding: 22px 24px;
+}
+.email-frame .ticket .kv {
+  display: flex; justify-content: space-between; padding: 8px 0;
+  border-bottom: 1px dashed #DEE6FA;
+  font-size: 13px;
+}
+.email-frame .ticket .kv:last-child { border-bottom: 0; }
+.email-frame .ticket .kv .k { color: #6C7894; }
+.email-frame .ticket .kv .v { color: #040B1C; font-weight: 700; }
+.email-frame .cta-row { margin: 20px 0 6px; }
+.email-frame .cta-btn {
+  display: inline-block;
+  background: #316BFF;
+  color: #fff !important; text-decoration: none;
+  padding: 14px 28px; border-radius: 999px;
+  font-weight: 500; font-size: 14px;
+}
+.email-frame .foot {
+  background: #F4F7FE;
+  padding: 22px 36px;
+  font-size: 12px; color: #6C7894;
+  text-align: center; line-height: 1.6;
+}
+.email-frame .foot a { color: #316BFF; }
+.email-frame .signature {
+  margin-top: 6px;
+  padding-top: 18px;
+  border-top: 1px solid #E4EAF6;
+  font-size: 13px; color: #6C7894;
+}
+.email-frame .signature strong { color: #040B1C; }
+
+/* "Sent" toast */
+.toast {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+  background: rgba(4,11,28,0.92);
+  border: 1px solid var(--border-blue-strong);
+  color: #fff;
+  padding: 14px 22px;
+  border-radius: 999px;
+  font-size: 13px;
+  box-shadow: 0 14px 40px rgba(0,0,0,0.4), 0 0 26px rgba(49,107,255,0.32);
+  z-index: 1100;
+  display: flex; align-items: center; gap: 10px;
+  animation: toastIn .45s var(--ease-soft);
+}
+@keyframes toastIn {
+  from { transform: translate(-50%, 20px); opacity: 0; }
+  to   { transform: translate(-50%, 0); opacity: 1; }
+}
+.toast .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--khi-blue-bright); box-shadow: 0 0 12px var(--khi-blue-bright); }
+
+/* ─── Sponsorship tier mini cards on home ──────────────── */
+.tier {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 24px 22px;
+  position: relative;
+  overflow: hidden;
+  transition: transform .2s var(--ease-soft);
+}
+.tier:hover { transform: translateY(-4px); }
+.tier.featured { background: rgba(49,107,255,0.08); border-color: var(--border-blue-strong); }
+.tier.featured::before {
+  content: 'Title'; position: absolute; top: 14px; right: -32px;
+  background: var(--khi-blue); color: #fff;
+  font-size: 9px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase;
+  padding: 4px 36px; transform: rotate(45deg);
+}
+.tier .nm { font-family: var(--font-display); font-size: 13px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 6px; }
+.tier .nm.platinum { color: #C5D0FF; }
+.tier .nm.gold     { color: #FFD06B; }
+.tier .nm.title    { color: var(--khi-blue-bright); }
+.tier .feats { list-style: none; padding: 0; margin: 14px 0 0; display: flex; flex-direction: column; gap: 7px; }
+.tier .feats li {
+  font-size: 12px; color: var(--fg-2); padding-left: 16px;
+  position: relative; line-height: 1.4;
+}
+.tier .feats li::before {
+  content: '✓'; position: absolute; left: 0; top: 0;
+  color: var(--khi-blue-bright); font-size: 12px;
+}
+
+/* ─── Footer ────────────────────────────────────────────── */
+.kx-footer {
+  border-top: 1px solid var(--border);
+  padding: 50px 56px 56px;
+  display: grid; grid-template-columns: 1fr 1.5fr 1fr;
+  gap: 32px; align-items: center;
+  background: rgba(255,255,255,0.012);
+}
+.kx-footer-logo img { height: 26px; }
+.kx-footer-copy { text-align: center; font-size: 13px; color: var(--fg-3); line-height: 1.5; }
+.kx-footer-copy em { color: var(--khi-blue-bright); font-style: italic; font-weight: 700; }
+.kx-footer-links { display: flex; gap: 18px; justify-content: flex-end; }
+.kx-footer-links a { font-size: 13px; color: var(--fg-3); transition: color .2s; }
+.kx-footer-links a:hover { color: var(--khi-blue-bright); }
+
+/* ─── Scroll fade-in observer state ─────────────────────── */
+.fade-up { opacity: 0; transform: translateY(22px); transition: opacity .8s var(--ease-soft), transform .8s var(--ease-soft); }
+.fade-up.in { opacity: 1; transform: none; }
+
+/* ─── Responsive ───────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .kx-nav { padding: 14px 22px; }
+  .kx-nav-links { gap: 18px; }
+  .kx-nav-links a { font-size: 13px; }
+  .kx-section { padding: 80px 22px; }
+  .pillars { grid-template-columns: 1fr; }
+  .cards-3 { grid-template-columns: 1fr 1fr; }
+  .cards-2 { grid-template-columns: 1fr; }
+  .stats-strip { grid-template-columns: repeat(2, 1fr); padding: 30px 22px; }
+  .stat { padding: 14px 8px; }
+  .stat:nth-child(2) { border-right: 0; }
+  .admin-row { grid-template-columns: 1fr; gap: 8px; padding: 16px; }
+  .admin-row.head { display: none; }
+  .form .row { grid-template-columns: 1fr; }
+  .kx-footer { grid-template-columns: 1fr; text-align: center; gap: 20px; }
+  .kx-footer-logo, .kx-footer-links { justify-content: center; display: flex; }
+}
+
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+// Khinext prototype — localStorage helpers + a tiny pub-sub so the admin
+// page re-renders when submissions / registrations change in another tab.
+
+const SUBS_KEY = "khinext.submissions.v1";
+const REGS_KEY = "khinext.registrations.v1";
+
+const _listeners = new Set();
+function _emit() { _listeners.forEach(fn => fn()); }
+function useStore(key) {
+  const [tick, setTick] = React.useState(0);
+  React.useEffect(() => {
+    const fn = () => setTick(t => t + 1);
+    _listeners.add(fn);
+    const onStorage = (e) => { if (e.key === key) fn(); };
+    window.addEventListener("storage", onStorage);
+    return () => { _listeners.delete(fn); window.removeEventListener("storage", onStorage); };
+  }, [key]);
+  return tick;
+}
+
+function readJSON(key, fallback) {
+  try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }
+  catch { return fallback; }
+}
+function writeJSON(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); _emit(); } catch (e) { console.warn(e); }
+}
+
+// ── Submissions ────────────────────────────────────────────────
+function getSubmissions() { return readJSON(SUBS_KEY, []); }
+function addSubmission(sub) {
+  const subs = getSubmissions();
+  const id = "S-" + Math.random().toString(36).slice(2, 8).toUpperCase();
+  const entry = { id, status: "pending", createdAt: Date.now(), ...sub };
+  subs.unshift(entry);
+  writeJSON(SUBS_KEY, subs);
+  return entry;
+}
+function updateSubmission(id, patch) {
+  const subs = getSubmissions();
+  const idx = subs.findIndex(s => s.id === id);
+  if (idx < 0) return null;
+  subs[idx] = { ...subs[idx], ...patch };
+  writeJSON(SUBS_KEY, subs);
+  return subs[idx];
+}
+function clearSubmissions() { writeJSON(SUBS_KEY, []); }
+
+// ── Registrations ──────────────────────────────────────────────
+function getRegistrations() { return readJSON(REGS_KEY, []); }
+function addRegistration(reg) {
+  const regs = getRegistrations();
+  const id = "R-" + Math.random().toString(36).slice(2, 8).toUpperCase();
+  const entry = { id, status: "confirmed", createdAt: Date.now(), ...reg };
+  regs.unshift(entry);
+  writeJSON(REGS_KEY, regs);
+  return entry;
+}
+function clearRegistrations() { writeJSON(REGS_KEY, []); }
+
+// ── File reading ───────────────────────────────────────────────
+// Read a file input into a data URL. Cap at 2.5MB so we don't blow the
+// localStorage 5MB quota with one entry.
+function fileToDataURL(file, maxBytes = 2_500_000) {
+  return new Promise((resolve, reject) => {
+    if (file.size > maxBytes) {
+      reject(new Error("File is too large — keep it under 2.5 MB for this demo."));
+      return;
+    }
+    const r = new FileReader();
+    r.onload = () => resolve({ name: file.name, type: file.type, size: file.size, dataUrl: r.result });
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(file);
+  });
+}
+
+// ── Demo seed (only run once if both stores are empty) ─────────
+function seedDemoData() {
+  if (getSubmissions().length || getRegistrations().length) return;
+  addSubmission({
+    fullName: "Ayesha Khan", email: "ayesha.k@example.com",
+    project: "MediScan AI — radiology triage",
+    category: "Health & Pharma",
+    description: "An on-device model that flags critical findings in chest X-rays in under 2 seconds, built for low-bandwidth clinics in Sindh.",
+    teamSize: "3",
+    file: null,
+  });
+  addSubmission({
+    fullName: "Bilal Rauf", email: "bilal@startup.pk",
+    project: "PakRupee — fintech sandbox",
+    category: "Fintech Future",
+    description: "Open API sandbox letting fintech startups prototype against synthetic SBP-compliant data.",
+    teamSize: "4",
+    file: null,
+  });
+  addRegistration({
+    fullName: "Maham Siddiqui", email: "maham@example.com",
+    role: "Student / Developer", track: "AI Expo + Gaming",
+  });
+}
+
+// Expose globals
+Object.assign(window, {
+  useStore, SUBS_KEY, REGS_KEY,
+  getSubmissions, addSubmission, updateSubmission, clearSubmissions,
+  getRegistrations, addRegistration, clearRegistrations,
+  fileToDataURL, seedDemoData,
+});
+
+
+// Chrome.jsx — Nav, Footer, and the K-mark logo SVG
+
+function KxMark({ size = 36 }) {
+  return (
+    <div className="kx-mark" style={{ width: size, height: size, borderRadius: size * 0.28 }}>
+      <svg width={size * 0.5} height={size * 0.5} viewBox="0 0 18 18" fill="none">
+        <path d="M3 2.5L3 15.5M3 9.5L9.5 3.5M3 9.5L10.5 15.5" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M12 6L15.5 9.5L12 13" stroke="#8FAFFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    </div>
+  );
+}
+
+function Nav({ page, setPage }) {
+  const links = [
+    { label: "Home",        key: "home" },
+    { label: "AI Expo",     key: "ai-expo" },
+    { label: "Gaming Arena",key: "gaming" },
+    { label: "Submit",      key: "submit" },
+    { label: "Register",    key: "register" },
+    { label: "Admin",       key: "admin" },
+  ];
+
+  return (
+    <nav className="kx-nav">
+      <a
+        className="kx-lockup"
+        href="#"
+        onClick={e => { e.preventDefault(); setPage("home"); }}
+        style={{ textDecoration: "none" }}
+      >
+        <KxMark size={36} />
+        <span className="kx-word">Khi<em>next</em></span>
+      </a>
+      <ul className="kx-nav-links">
+        {links.slice(0, 4).map(l => (
+          <li key={l.key}>
+            <a
+              href="#"
+              className={page === l.key ? "active" : ""}
+              onClick={e => { e.preventDefault(); setPage(l.key); }}
+            >
+              {l.label}
+            </a>
+          </li>
+        ))}
+        <li>
+          <a
+            href="#"
+            className={"kx-nav-cta" + (page === "register" ? " active" : "")}
+            onClick={e => { e.preventDefault(); setPage("register"); }}
+          >
+            Register Now
+          </a>
+        </li>
+      </ul>
+    </nav>
+  );
+}
+
+function Footer({ setPage }) {
+  return (
+    <footer className="kx-footer">
+      <div className="kx-footer-logo">
+        <img src="https://placehold.co/160x36/040B1C/FFFFFF?text=Khinext" alt="Khinext" style={{ height: 28 }} />
+      </div>
+      <div className="kx-footer-copy">
+        <em>KHINEXT '26</em> — Pakistan's first multi-domain AI Summit.<br />
+        Karachi · 2026 · <span style={{ color: "var(--fg-4)" }}>INNOVATE · INSPIRE · IMPACT</span>
+      </div>
+      <div className="kx-footer-links">
+        <a href="#" onClick={e => { e.preventDefault(); setPage("ai-expo"); }}>AI Expo</a>
+        <a href="#" onClick={e => { e.preventDefault(); setPage("gaming"); }}>Gaming</a>
+        <a href="#" onClick={e => { e.preventDefault(); setPage("submit"); }}>Submit</a>
+        <a href="#" onClick={e => { e.preventDefault(); setPage("register"); }}>Register</a>
+      </div>
+    </footer>
+  );
+}
+
+window.KxMark = KxMark;
+window.Nav = Nav;
+window.Footer = Footer;
+
+
+// HomePage.jsx — Khinext '26 landing page
+
+function HomePage({ setPage }) {
+  const { useEffect } = React;
+
+  useEffect(() => {
+    const els = document.querySelectorAll(".fade-up");
+    const obs = new IntersectionObserver(
+      entries => entries.forEach(e => e.isIntersecting && e.target.classList.add("in")),
+      { threshold: 0.12 }
+    );
+    els.forEach(el => obs.observe(el));
+    return () => obs.disconnect();
+  }, []);
+
+  return (
+    <div className="kx-page">
+      {/* ── Hero ── */}
+      <section className="home-hero">
+        <div className="home-hero-bg" />
+        <div className="home-hero-mesh" />
+        <div className="home-hero-grid" />
+        <div className="home-hero-glow" />
+
+        <div className="badge" style={{ position: "relative", zIndex: 1 }}>
+          <span className="dot" />
+          Karachi · 2026 · AI Expo + Gaming
+        </div>
+
+        <h1>
+          Pakistan's first<br />
+          <span className="kx-accent">AI Summit</span><br />
+          is here.
+        </h1>
+        <p className="tagline">AI IN EVERYTHING · FUTURE STARTS HERE</p>
+        <p className="sub">
+          10,000+ attendees. 100+ speakers. 8 innovation zones.<br />
+          Two days that will define South Asia's tech decade.
+        </p>
+        <div className="actions">
+          <button className="kx-btn-primary" onClick={() => setPage("register")}>
+            Register Now →
+          </button>
+          <button className="kx-btn-outline" onClick={() => setPage("submit")}>
+            Submit AI Project
+          </button>
+        </div>
+        <div className="date-bar">
+          <div className="date-item">
+            <span className="date-label">Event</span>
+            <span className="date-value">KHINEXT '26</span>
+          </div>
+          <span className="date-sep">·</span>
+          <div className="date-item">
+            <span className="date-label">Location</span>
+            <span className="date-value">Karachi, Pakistan</span>
+          </div>
+          <span className="date-sep">·</span>
+          <div className="date-item">
+            <span className="date-label">Scale</span>
+            <span className="date-value">10K+ Attendees</span>
+          </div>
+          <span className="date-sep">·</span>
+          <div className="date-item">
+            <span className="date-label">Duration</span>
+            <span className="date-value">2 Days</span>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Stats strip ── */}
+      <div className="stats-strip fade-up">
+        {[
+          { num: "10K", acc: "+", lbl: "Attendees" },
+          { num: "100", acc: "+", lbl: "Speakers" },
+          { num: "8",   acc: "",  lbl: "Innovation Zones" },
+          { num: "50",  acc: "+", lbl: "Sessions" },
+        ].map(s => (
+          <div className="stat" key={s.lbl}>
+            <div className="num">{s.num}<span className="acc">{s.acc}</span></div>
+            <div className="lbl">{s.lbl}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Two pillars ── */}
+      <section className="kx-section fade-up">
+        <div className="kx-section-head" style={{ marginBottom: 44 }}>
+          <div className="kx-eyebrow">Experience Tracks</div>
+          <h2>Two flagship <span className="kx-accent">experiences</span></h2>
+          <p>Khinext '26 runs two parallel world-class tracks under one roof — a cutting-edge AI exposition and Pakistan's largest gaming arena.</p>
+        </div>
+        <div className="pillars">
+          {/* AI Expo pillar */}
+          <div className="pillar" onClick={() => setPage("ai-expo")} style={{ cursor: "pointer" }}>
+            <div className="num">01 · AI EXPO '26</div>
+            <h3>Artificial<br />Intelligence<br /><span className="kx-accent">Expo</span></h3>
+            <p>Pakistan's most significant AI showcase. Startups, researchers and multinationals present breakthroughs across 7 innovation domains — from Health to Fintech to Smart Cities.</p>
+            <div className="meta">
+              <div><span className="k">Projects</span><span className="v">50+</span></div>
+              <div><span className="k">Speakers</span><span className="v">60+</span></div>
+              <div><span className="k">Domains</span><span className="v">7</span></div>
+            </div>
+            <div className="more">Explore AI Expo</div>
+          </div>
+
+          {/* Gaming Arena pillar */}
+          <div className="pillar" onClick={() => setPage("gaming")} style={{ cursor: "pointer", background: "rgba(255,255,255,0.03)" }}>
+            <div className="num" style={{ color: "#D4FF00" }}>02 · GAMING ARENA</div>
+            <h3>Gaming<br />Arena <span className="kx-accent">Dilkusha</span></h3>
+            <p>Pakistan's largest live gaming event. PS5 tournaments, high-performance PC battle stations, and VR experiences at Dilkusha Hall — brought to life by the country's biggest gaming community.</p>
+            <div className="meta">
+              <div><span className="k">PS5 Stations</span><span className="v">30+</span></div>
+              <div><span className="k">PC Rigs</span><span className="v">50+</span></div>
+              <div><span className="k">VR Pods</span><span className="v">10</span></div>
+            </div>
+            <div className="more" style={{ color: "#D4FF00" }}>Explore Gaming Arena</div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── What to Expect ── */}
+      <section className="kx-section subtle fade-up">
+        <div className="kx-section-head center" style={{ marginBottom: 48 }}>
+          <div className="kx-eyebrow">At Khinext '26</div>
+          <h2>What to <span className="kx-accent">expect</span></h2>
+        </div>
+        <div className="cards-3">
+          {[
+            { title: "AI Project Showcase", body: "50+ AI projects live-demoing across 7 innovation domains. Vote for your favourite, talk directly to builders." },
+            { title: "Keynotes & Panels", body: "100+ speakers including AI researchers, founders, government leaders and global innovators — across 50+ sessions." },
+            { title: "Hackathon", body: "48-hour build sprint with real problems from industry partners. PKR 10M+ in prizes. Open to all skill levels." },
+            { title: "Gaming Tournaments", body: "Bracket-style PS5 and PC tournaments with live streaming, pro commentary and massive prize pools." },
+            { title: "Investor Arena", body: "Curated demo slots in front of 40+ active investors. Warm intros facilitated by the Khinext team." },
+            { title: "Networking Lounges", body: "Domain-specific lounges across all 8 zones. AI-matched meeting system pairs attendees before the event." },
+          ].map(c => (
+            <div className="card" key={c.title}>
+              <h4 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: "#fff", margin: "0 0 10px", letterSpacing: "-0.01em" }}>{c.title}</h4>
+              <p style={{ margin: 0, fontSize: 14, color: "var(--fg-3)", lineHeight: 1.6 }}>{c.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Innovation Zones ── */}
+      <section className="kx-section fade-up">
+        <div className="kx-section-head" style={{ marginBottom: 44 }}>
+          <div className="kx-eyebrow">Innovation Zones</div>
+          <h2>7 domains,<br />one <span className="kx-accent">stage</span></h2>
+        </div>
+        <div className="cards-3" style={{ gap: 14 }}>
+          {[
+            { color: "#51FFD5", label: "Health & Pharma" },
+            { color: "#00EAEE", label: "Smart Cities" },
+            { color: "#BF00FF", label: "Creative AI" },
+            { color: "#FFB800", label: "Fintech Future" },
+            { color: "#D4FF00", label: "DevZone" },
+            { color: "#FF0F4B", label: "Lifestyle Innovation" },
+            { color: "#E2E2E2", label: "Investor Arena" },
+          ].map(z => (
+            <div
+              key={z.label}
+              className="card"
+              style={{ display: "flex", alignItems: "center", gap: 14, padding: "18px 20px", cursor: "pointer" }}
+              onClick={() => setPage("ai-expo")}
+            >
+              <div style={{ width: 10, height: 10, borderRadius: 3, background: z.color, boxShadow: `0 0 10px ${z.color}66`, flexShrink: 0 }} />
+              <span style={{ fontSize: 14, color: "var(--fg-2)", fontWeight: 500 }}>{z.label}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Sponsorship tiers ── */}
+      <section className="kx-section subtle fade-up">
+        <div className="kx-section-head center" style={{ marginBottom: 48 }}>
+          <div className="kx-eyebrow">Sponsorship</div>
+          <h2>Choose your <span className="kx-accent">tier</span></h2>
+          <p>Join Pakistan's most prestigious tech summit as a partner. Limited slots per tier. Early partners get dedicated zone naming rights.</p>
+        </div>
+        <div className="cards-3">
+          <div className="tier">
+            <div className="nm platinum">Platinum</div>
+            <p style={{ fontSize: 13, color: "var(--fg-3)", margin: "8px 0 0", lineHeight: 1.5 }}>Premium visibility across all event surfaces and digital channels.</p>
+            <ul className="feats">
+              <li>Stage banner + podium branding</li>
+              <li>30-min keynote slot</li>
+              <li>Logo on all print + digital</li>
+              <li>10 delegate passes</li>
+            </ul>
+          </div>
+          <div className="tier featured">
+            <div className="nm title">Title Sponsor</div>
+            <p style={{ fontSize: 13, color: "var(--fg-3)", margin: "8px 0 0", lineHeight: 1.5 }}>The summit bears your name. Total brand ownership across the event.</p>
+            <ul className="feats">
+              <li>Event naming rights</li>
+              <li>Exclusive opening ceremony</li>
+              <li>Zone naming + activation</li>
+              <li>Priority media coverage</li>
+              <li>25 delegate passes</li>
+            </ul>
+          </div>
+          <div className="tier">
+            <div className="nm gold">Gold</div>
+            <p style={{ fontSize: 13, color: "var(--fg-3)", margin: "8px 0 0", lineHeight: 1.5 }}>Strong presence in select zones and sessions.</p>
+            <ul className="feats">
+              <li>Zone banner + branding</li>
+              <li>Panel session speaking slot</li>
+              <li>Logo on website + app</li>
+              <li>5 delegate passes</li>
+            </ul>
+          </div>
+        </div>
+        <div style={{ textAlign: "center", marginTop: 36 }}>
+          <button className="kx-btn-primary" onClick={() => setPage("register")}>
+            Become a Partner →
+          </button>
+        </div>
+      </section>
+
+      {/* ── Final CTA ── */}
+      <section className="kx-section fade-up" style={{ textAlign: "center" }}>
+        <div className="kx-eyebrow" style={{ justifyContent: "center", display: "flex", marginBottom: 20 }}>The Stage Is Set</div>
+        <h2 style={{ maxWidth: 700, margin: "0 auto 20px", color: "#fff", fontFamily: "var(--font-display)", fontSize: "clamp(40px,5vw,64px)", fontWeight: 800, letterSpacing: "-0.035em", lineHeight: 1.04 }}>
+          Be part of<br /><span className="kx-accent">history</span>
+        </h2>
+        <p style={{ color: "var(--fg-3)", maxWidth: 480, margin: "0 auto 36px", lineHeight: 1.7 }}>
+          Khinext '26 is Pakistan's flagship AI summit — two days in Karachi that will set the direction for South Asia's next decade of technology.
+        </p>
+        <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
+          <button className="kx-btn-primary" onClick={() => setPage("register")}>Register for Khinext '26</button>
+          <button className="kx-btn-outline" onClick={() => setPage("submit")}>Submit Your AI Project</button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+window.HomePage = HomePage;
+
+
+// AIExpoPage.jsx — AI Expo '26 showcase page
+
+function AIExpoPage({ setPage }) {
+  const { useEffect } = React;
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    const els = document.querySelectorAll(".fade-up");
+    const obs = new IntersectionObserver(
+      entries => entries.forEach(e => e.isIntersecting && e.target.classList.add("in")),
+      { threshold: 0.1 }
+    );
+    els.forEach(el => obs.observe(el));
+    return () => obs.disconnect();
+  }, []);
+
+  const zones = [
+    {
+      color: "#51FFD5",
+      name: "Health & Pharma",
+      desc: "AI-assisted diagnostics, drug discovery, telemedicine platforms and on-device clinical models for low-bandwidth environments.",
+      count: "12 projects",
+    },
+    {
+      color: "#00EAEE",
+      name: "Smart Cities",
+      desc: "Urban mobility, energy grids, waste management and civic infrastructure powered by real-time AI inference.",
+      count: "8 projects",
+    },
+    {
+      color: "#BF00FF",
+      name: "Creative AI",
+      desc: "Generative art, music, writing tools and cultural heritage preservation through AI — built for South Asian contexts.",
+      count: "9 projects",
+    },
+    {
+      color: "#FFB800",
+      name: "Fintech Future",
+      desc: "Open finance APIs, fraud detection, SBP-compliant sandboxes and micro-lending models for the unbanked.",
+      count: "11 projects",
+    },
+    {
+      color: "#D4FF00",
+      name: "DevZone",
+      desc: "Developer tooling, code generation, MLOps pipelines and open-source contributions from Pakistan's engineering community.",
+      count: "7 projects",
+    },
+    {
+      color: "#FF0F4B",
+      name: "Lifestyle Innovation",
+      desc: "AI in fashion, food, sports and personal wellness — consumer-facing products built for the next billion users.",
+      count: "6 projects",
+    },
+    {
+      color: "#E2E2E2",
+      name: "Investor Arena",
+      desc: "Curated investment-ready startups presenting to 40+ active investors. Warm intros and deal room access included.",
+      count: "Invite-only",
+    },
+  ];
+
+  const speakers = [
+    { name: "Invited Speaker", role: "AI Research Lead", org: "Global Tech", tag: "Keynote" },
+    { name: "Invited Speaker", role: "Founder & CEO",   org: "Pakistan Startup", tag: "Panel" },
+    { name: "Invited Speaker", role: "Director, Policy", org: "Government of Pakistan", tag: "Roundtable" },
+    { name: "Invited Speaker", role: "VP Engineering",  org: "MENA Unicorn", tag: "Workshop" },
+    { name: "Invited Speaker", role: "AI Ethics Lead",  org: "University Research", tag: "Keynote" },
+    { name: "Invited Speaker", role: "CTO",             org: "Deep-tech Fund", tag: "Panel" },
+  ];
+
+  const schedule = [
+    { time: "09:00", title: "Opening Ceremony — The Stage Is Set", type: "keynote" },
+    { time: "10:00", title: "Keynote: AI in Pakistan — Where We Stand", type: "keynote" },
+    { time: "11:30", title: "Zone Demos Open — All 7 Innovation Domains", type: "demo" },
+    { time: "13:00", title: "Lunch Break + Networking Lounges", type: "break" },
+    { time: "14:00", title: "Panel: Future of Fintech in South Asia", type: "panel" },
+    { time: "15:30", title: "Investor Arena Pitch Sessions", type: "investor" },
+    { time: "17:00", title: "Hackathon Kickoff — 48-Hour Sprint Begins", type: "hack" },
+    { time: "18:30", title: "Closing Keynote Day 1 + Networking", type: "keynote" },
+  ];
+
+  const typeColors = {
+    keynote: "#316BFF",
+    panel: "#BF00FF",
+    demo: "#51FFD5",
+    break: "var(--fg-4)",
+    investor: "#FFB800",
+    hack: "#D4FF00",
+  };
+
+  return (
+    <div className="kx-page">
+      {/* ── Page hero ── */}
+      <div className="kx-pagehero">
+        <div className="grid-bg" />
+        <div className="kx-eyebrow">Track 01</div>
+        <h1>AI <span className="kx-accent">Expo</span> '26</h1>
+        <p className="lead">
+          Pakistan's most significant AI exposition. 50+ live projects across 7 innovation domains,
+          60+ speakers, hackathon, and investor access — all in one venue.
+        </p>
+        <div style={{ display: "flex", gap: 14, justifyContent: "center", marginTop: 32 }}>
+          <button className="kx-btn-primary" onClick={() => setPage("submit")}>
+            Submit Your Project →
+          </button>
+          <button className="kx-btn-outline" onClick={() => setPage("register")}>
+            Register to Attend
+          </button>
+        </div>
+      </div>
+
+      {/* ── Stats ── */}
+      <div className="stats-strip fade-up">
+        {[
+          { num: "50", acc: "+", lbl: "AI Projects" },
+          { num: "60", acc: "+", lbl: "Speakers" },
+          { num: "7",  acc: "",  lbl: "Innovation Domains" },
+          { num: "40", acc: "+", lbl: "Investors" },
+        ].map(s => (
+          <div className="stat" key={s.lbl}>
+            <div className="num">{s.num}<span className="acc">{s.acc}</span></div>
+            <div className="lbl">{s.lbl}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Innovation Zones ── */}
+      <section className="kx-section fade-up">
+        <div className="kx-section-head" style={{ marginBottom: 44 }}>
+          <div className="kx-eyebrow">Innovation Zones</div>
+          <h2>7 domains of <span className="kx-accent">tomorrow</span></h2>
+          <p>Each domain is a self-contained zone with live demos, roundtables, networking lounges and dedicated speaker sessions.</p>
+        </div>
+        <div className="cards-2" style={{ gap: 18 }}>
+          {zones.map(z => (
+            <div key={z.name} className="card" style={{ padding: "30px 28px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14 }}>
+                <div style={{
+                  width: 48, height: 48, borderRadius: 14,
+                  background: z.color + "22",
+                  border: `1px solid ${z.color}44`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  boxShadow: `0 0 18px ${z.color}33`,
+                }}>
+                  <div style={{ width: 16, height: 16, borderRadius: 4, background: z.color }} />
+                </div>
+                <div>
+                  <div style={{ color: "#fff", fontWeight: 600, fontSize: 16, fontFamily: "var(--font-display)", letterSpacing: "-0.01em" }}>{z.name}</div>
+                  <div style={{ fontSize: 11, color: z.color, letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700, marginTop: 2 }}>{z.count}</div>
+                </div>
+              </div>
+              <p style={{ margin: 0, fontSize: 14, color: "var(--fg-3)", lineHeight: 1.65 }}>{z.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Speakers ── */}
+      <section className="kx-section subtle fade-up">
+        <div className="kx-section-head center" style={{ marginBottom: 44 }}>
+          <div className="kx-eyebrow">Speakers</div>
+          <h2>100+ voices,<br />one <span className="kx-accent">stage</span></h2>
+          <p>Keynotes, panels, workshops and roundtables from the sharpest minds in AI, tech and policy. Full lineup announced closer to the event.</p>
+        </div>
+        <div className="cards-3">
+          {speakers.map((s, i) => (
+            <div key={i} className="card" style={{ padding: "22px 20px" }}>
+              <div style={{
+                width: 56, height: 56, borderRadius: 16,
+                background: "rgba(49,107,255,0.12)",
+                border: "1px solid var(--border-blue)",
+                marginBottom: 14,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "var(--khi-blue-soft)", fontSize: 22, fontWeight: 800,
+                fontFamily: "var(--font-display)",
+              }}>
+                {String.fromCharCode(65 + i)}
+              </div>
+              <div style={{ fontSize: 11, color: "var(--khi-blue)", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 700, marginBottom: 6 }}>{s.tag}</div>
+              <div style={{ color: "#fff", fontWeight: 600, fontSize: 15, marginBottom: 4 }}>{s.name}</div>
+              <div style={{ fontSize: 13, color: "var(--fg-3)" }}>{s.role} · {s.org}</div>
+            </div>
+          ))}
+        </div>
+        <p style={{ textAlign: "center", color: "var(--fg-4)", marginTop: 28, fontSize: 13 }}>
+          Full speaker lineup announced 60 days before the event.
+        </p>
+      </section>
+
+      {/* ── Schedule (Day 1 sample) ── */}
+      <section className="kx-section fade-up">
+        <div className="kx-section-head" style={{ marginBottom: 44 }}>
+          <div className="kx-eyebrow">Programme</div>
+          <h2>Day 1 <span className="kx-accent">schedule</span></h2>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 0, maxWidth: 760 }}>
+          {schedule.map((item, i) => (
+            <div key={i} style={{
+              display: "flex", alignItems: "flex-start", gap: 24,
+              padding: "18px 0",
+              borderBottom: i < schedule.length - 1 ? "1px solid var(--border)" : "none",
+            }}>
+              <div style={{ minWidth: 52, fontFamily: "ui-monospace, monospace", fontSize: 13, color: "var(--fg-4)", paddingTop: 2 }}>{item.time}</div>
+              <div style={{
+                width: 4, height: 4, borderRadius: 2,
+                background: typeColors[item.type] || "var(--border)",
+                marginTop: 10, flexShrink: 0,
+                boxShadow: `0 0 8px ${typeColors[item.type] || "transparent"}`,
+              }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ color: "#fff", fontSize: 15, fontWeight: 500 }}>{item.title}</div>
+              </div>
+              <div style={{
+                fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase",
+                fontWeight: 700, color: typeColors[item.type],
+                paddingTop: 3,
+              }}>{item.type}</div>
+            </div>
+          ))}
+        </div>
+        <p style={{ color: "var(--fg-4)", marginTop: 20, fontSize: 13 }}>Full programme published 30 days before the event. Day 2 follows same format.</p>
+      </section>
+
+      {/* ── Submit CTA ── */}
+      <section className="kx-section subtle fade-up" style={{ textAlign: "center" }}>
+        <div className="kx-eyebrow" style={{ justifyContent: "center", display: "flex", marginBottom: 20 }}>AI Expo Submissions</div>
+        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(36px,4.5vw,56px)", fontWeight: 800, letterSpacing: "-0.035em", color: "#fff", margin: "0 auto 20px", maxWidth: 600, lineHeight: 1.06 }}>
+          Ready to <span className="kx-accent">showcase</span> your AI?
+        </h2>
+        <p style={{ color: "var(--fg-3)", maxWidth: 480, margin: "0 auto 32px", lineHeight: 1.7 }}>
+          Applications are open for all 7 domains. Individual innovators, student teams and companies are welcome. The top 50 entries get a live demo booth at the event.
+        </p>
+        <button className="kx-btn-primary" onClick={() => setPage("submit")}>
+          Submit Your AI Project →
+        </button>
+      </section>
+    </div>
+  );
+}
+
+window.AIExpoPage = AIExpoPage;
+
+
+// GamingPage.jsx — Gaming Arena at Dilkusha Hall
+
+function GamingPage({ setPage }) {
+  const { useEffect } = React;
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    const els = document.querySelectorAll(".fade-up");
+    const obs = new IntersectionObserver(
+      entries => entries.forEach(e => e.isIntersecting && e.target.classList.add("in")),
+      { threshold: 0.1 }
+    );
+    els.forEach(el => obs.observe(el));
+    return () => obs.disconnect();
+  }, []);
+
+  const stations = [
+    {
+      tag: "Console Gaming",
+      count: "30",
+      unit: "Stations",
+      name: "PS5 Tournament Zone",
+      items: [
+        "30 Sony PS5 consoles with 4K monitors",
+        "FIFA, COD, NBA 2K bracket tournaments",
+        "Live commentary and streaming setup",
+        "Custom Khinext controller skins",
+        "PKR 500K+ prize pool",
+      ],
+      zoneColor: "rgba(49,107,255,0.20)",
+    },
+    {
+      tag: "PC Gaming",
+      count: "50",
+      unit: "Rigs",
+      name: "PC Battle Station Arena",
+      items: [
+        "50 high-performance rigs (RTX 4090, 360Hz)",
+        "Valorant, CS2, PUBG PC, Dota 2 tournaments",
+        "Sponsored peripherals by top gaming brands",
+        "Open scrimmage slots for attendees",
+        "PKR 750K+ prize pool",
+      ],
+      zoneColor: "rgba(212,255,0,0.12)",
+    },
+    {
+      tag: "Immersive Tech",
+      count: "10",
+      unit: "VR Pods",
+      name: "VR Experience Zone",
+      items: [
+        "Meta Quest 3 + Valve Index headsets",
+        "AI-generated immersive environments",
+        "VR shooter and puzzle league",
+        "Beat Saber time-attack tournament",
+        "First-time VR guided experiences",
+      ],
+      zoneColor: "rgba(191,0,255,0.12)",
+    },
+  ];
+
+  const brackets = [
+    { game: "FIFA '25", platform: "PS5", format: "1v1 Knockout", prizePool: "PKR 150K", slots: 64 },
+    { game: "Call of Duty",platform: "PS5", format: "4v4 Team",   prizePool: "PKR 200K", slots: 32 },
+    { game: "Valorant",   platform: "PC",  format: "5v5 Team",    prizePool: "PKR 300K", slots: 16 },
+    { game: "CS2",        platform: "PC",  format: "5v5 Team",    prizePool: "PKR 250K", slots: 16 },
+    { game: "PUBG PC",    platform: "PC",  format: "Squad (4)",   prizePool: "PKR 200K", slots: 20 },
+    { game: "Beat Saber", platform: "VR",  format: "Solo Sprint",  prizePool: "PKR 50K",  slots: 32 },
+  ];
+
+  return (
+    <div className="kx-page">
+      {/* ── Page hero ── */}
+      <div className="kx-pagehero" style={{ background: "radial-gradient(ellipse 60% 50% at 50% 0%, rgba(212,255,0,0.14) 0%, transparent 60%), #02040A" }}>
+        <div className="grid-bg" style={{ backgroundImage: "linear-gradient(rgba(212,255,0,0.10) 1px, transparent 1px), linear-gradient(90deg, rgba(212,255,0,0.10) 1px, transparent 1px)" }} />
+        <div className="kx-eyebrow" style={{ color: "#D4FF00" }}>
+          <span style={{ background: "#D4FF00" }} />
+          Track 02
+        </div>
+        <h1>Gaming <span className="kx-accent">Arena</span></h1>
+        <p className="lead">
+          Pakistan's largest live gaming event — PS5 tournaments, high-performance PC battle stations and VR experiences at Dilkusha Hall. Brought to life by the country's biggest gaming community.
+        </p>
+        <div style={{ display: "flex", gap: 14, justifyContent: "center", marginTop: 32 }}>
+          <button className="kx-btn-primary" style={{ background: "#D4FF00", color: "#040B1C", boxShadow: "0 6px 22px rgba(212,255,0,0.32)" }}
+            onClick={() => setPage("register")}>
+            Register to Play →
+          </button>
+          <button className="kx-btn-outline" onClick={() => setPage("register")}>
+            Spectator Pass
+          </button>
+        </div>
+      </div>
+
+      {/* ── Stats ── */}
+      <div className="stats-strip fade-up">
+        {[
+          { num: "30",   acc: "+", lbl: "PS5 Stations" },
+          { num: "50",   acc: "+", lbl: "PC Rigs" },
+          { num: "10",   acc: "",  lbl: "VR Pods" },
+          { num: "1.4",  acc: "M+",lbl: "Prize Pool (PKR)" },
+        ].map(s => (
+          <div className="stat" key={s.lbl}>
+            <div className="num">{s.num}<span className="acc">{s.acc}</span></div>
+            <div className="lbl">{s.lbl}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Gaming Stations ── */}
+      <section className="kx-section fade-up">
+        <div className="kx-section-head" style={{ marginBottom: 44 }}>
+          <div className="kx-eyebrow">Dilkusha Hall</div>
+          <h2>Three <span className="kx-accent">arenas</span>,<br />one hall</h2>
+          <p>Dilkusha Hall is split into three fully-equipped competitive zones. Each runs its own bracket, prize pool and live stream.</p>
+        </div>
+        <div className="cards-3">
+          {stations.map(s => (
+            <div
+              key={s.name}
+              className="station"
+              style={{ "--zone-color": s.zoneColor }}
+            >
+              <div className="tag">{s.tag}</div>
+              <div className="count">{s.count}<span className="unit">{s.unit}</span></div>
+              <h4>{s.name}</h4>
+              <ul>
+                {s.items.map(item => <li key={item}>{item}</li>)}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Tournament Brackets ── */}
+      <section className="kx-section subtle fade-up">
+        <div className="kx-section-head" style={{ marginBottom: 44 }}>
+          <div className="kx-eyebrow">Tournaments</div>
+          <h2>Compete for<br /><span className="kx-accent">PKR 1.4M+</span></h2>
+          <p>Six official tournament brackets across console, PC and VR. Registration opens 30 days before the event. All slots are first-come, first-served.</p>
+        </div>
+        <div style={{ background: "var(--surface-1)", border: "1px solid var(--border)", borderRadius: 18, overflow: "hidden" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1.2fr 1.2fr 80px", padding: "14px 22px", borderBottom: "1px solid var(--border)", fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--fg-4)", fontWeight: 700 }}>
+            <span>Game</span>
+            <span>Platform</span>
+            <span>Format</span>
+            <span>Prize Pool</span>
+            <span>Slots</span>
+          </div>
+          {brackets.map((b, i) => (
+            <div key={b.game} style={{
+              display: "grid", gridTemplateColumns: "2fr 1fr 1.2fr 1.2fr 80px",
+              padding: "18px 22px", alignItems: "center",
+              borderBottom: i < brackets.length - 1 ? "1px solid var(--border)" : "none",
+              fontSize: 14,
+              transition: "background .2s",
+            }}
+              onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.02)"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            >
+              <span style={{ color: "#fff", fontWeight: 600 }}>{b.game}</span>
+              <span style={{
+                display: "inline-block", fontSize: 11, padding: "4px 10px",
+                borderRadius: 999, background: b.platform === "PS5" ? "rgba(49,107,255,0.12)" : b.platform === "VR" ? "rgba(191,0,255,0.12)" : "rgba(212,255,0,0.10)",
+                border: `1px solid ${b.platform === "PS5" ? "rgba(49,107,255,0.32)" : b.platform === "VR" ? "rgba(191,0,255,0.32)" : "rgba(212,255,0,0.24)"}`,
+                color: b.platform === "PS5" ? "var(--khi-blue-soft)" : b.platform === "VR" ? "#D48FFF" : "#D4FF00",
+                fontWeight: 700, letterSpacing: "0.08em",
+              }}>{b.platform}</span>
+              <span style={{ color: "var(--fg-2)" }}>{b.format}</span>
+              <span style={{ color: "#fff", fontFamily: "var(--font-display)", fontWeight: 700 }}>{b.prizePool}</span>
+              <span style={{ color: "var(--fg-3)" }}>{b.slots} teams</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Venue ── */}
+      <section className="kx-section fade-up">
+        <div className="kx-section-head" style={{ marginBottom: 44 }}>
+          <div className="kx-eyebrow">Venue</div>
+          <h2>Dilkusha Hall,<br /><span className="kx-accent">Karachi</span></h2>
+        </div>
+        <div className="cards-2">
+          {[
+            { label: "Capacity", value: "5,000+ concurrent gamers and spectators" },
+            { label: "Location", value: "Dilkusha Hall, Karachi — central venue, easily accessible" },
+            { label: "Streaming", value: "Full broadcast setup with multiple camera angles, live commentary in Urdu + English" },
+            { label: "Food & Gaming Lounges", value: "Dedicated F&B zones, merchandise stalls and sponsor activations throughout" },
+          ].map(item => (
+            <div key={item.label} className="card">
+              <div style={{ fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--fg-4)", fontWeight: 700, marginBottom: 8 }}>{item.label}</div>
+              <div style={{ color: "var(--fg-2)", lineHeight: 1.6 }}>{item.value}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── CTA ── */}
+      <section className="kx-section subtle fade-up" style={{ textAlign: "center" }}>
+        <div className="kx-eyebrow" style={{ justifyContent: "center", display: "flex", marginBottom: 20, color: "#D4FF00" }}>Gaming Arena</div>
+        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(36px,4.5vw,56px)", fontWeight: 800, letterSpacing: "-0.035em", color: "#fff", margin: "0 auto 20px", maxWidth: 600, lineHeight: 1.06 }}>
+          Show up.<br /><span className="kx-accent">Level up.</span>
+        </h2>
+        <p style={{ color: "var(--fg-3)", maxWidth: 460, margin: "0 auto 32px", lineHeight: 1.7 }}>
+          Compete, spectate or just soak in Pakistan's biggest gaming atmosphere. All ticket types get access to both the AI Expo and the Gaming Arena.
+        </p>
+        <button className="kx-btn-primary" style={{ background: "#D4FF00", color: "#040B1C", boxShadow: "0 6px 22px rgba(212,255,0,0.32)" }}
+          onClick={() => setPage("register")}>
+          Register Now →
+        </button>
+      </section>
+    </div>
+  );
+}
+
+window.GamingPage = GamingPage;
+
+
+// SubmitPage.jsx — AI Expo project submission form
+
+function SubmitPage({ setPage }) {
+  const { useState, useEffect, useRef } = React;
+
+  const categories = [
+    "Health & Pharma",
+    "Smart Cities",
+    "Creative AI",
+    "Fintech Future",
+    "DevZone",
+    "Lifestyle Innovation",
+    "Investor Arena",
+  ];
+
+  const [form, setForm] = useState({
+    fullName: "",
+    email: "",
+    project: "",
+    category: "",
+    description: "",
+    teamSize: "1",
+  });
+  const [file, setFile] = useState(null);
+  const [fileError, setFileError] = useState("");
+  const [drag, setDrag] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(null);
+  const fileInputRef = useRef();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
+  function set(key, val) { setForm(f => ({ ...f, [key]: val })); }
+
+  async function handleFile(f) {
+    if (!f) return;
+    setFileError("");
+    try {
+      const data = await window.fileToDataURL(f);
+      setFile(data);
+    } catch (e) {
+      setFileError(e.message);
+      setFile(null);
+    }
+  }
+
+  function onDrop(e) {
+    e.preventDefault();
+    setDrag(false);
+    const f = e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  }
+
+  async function submit(e) {
+    e.preventDefault();
+    if (!form.fullName || !form.email || !form.project || !form.category) return;
+    setSubmitting(true);
+    await new Promise(r => setTimeout(r, 900));
+    const entry = window.addSubmission({ ...form, file });
+    setSubmitted(entry);
+    setSubmitting(false);
+  }
+
+  if (submitted) {
+    return (
+      <div className="kx-page">
+        <div className="kx-pagehero">
+          <div className="grid-bg" />
+          <div className="kx-eyebrow">AI Expo Submissions</div>
+          <h1>Submit Your <span className="kx-accent">Project</span></h1>
+        </div>
+        <section className="kx-section">
+          <div className="success">
+            <div className="check">✓</div>
+            <h2>Application <span className="kx-accent">Received</span></h2>
+            <p>
+              Thank you, <strong style={{ color: "#fff" }}>{submitted.fullName}</strong>! Your AI project has been submitted for Khinext '26 AI Expo review.
+              The team will review your submission and notify you via email within 7–10 working days.
+            </p>
+            <p style={{ fontSize: 13, color: "var(--fg-4)" }}>Your submission ID</p>
+            <div className="id-chip">{submitted.id}</div>
+            <div style={{ marginTop: 28, display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+              <button className="kx-btn-primary" onClick={() => { setSubmitted(null); setForm({ fullName:"",email:"",project:"",category:"",description:"",teamSize:"1" }); setFile(null); }}>
+                Submit Another Project
+              </button>
+              <button className="kx-btn-outline" onClick={() => setPage("home")}>
+                Back to Home
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  return (
+    <div className="kx-page">
+      {/* ── Page hero ── */}
+      <div className="kx-pagehero">
+        <div className="grid-bg" />
+        <div className="kx-eyebrow">AI Expo Submissions</div>
+        <h1>Submit Your <span className="kx-accent">Project</span></h1>
+        <p className="lead">
+          Open to individuals, student teams and companies. The top 50 selected entries get a live demo booth at the event. Applications close 45 days before Khinext '26.
+        </p>
+      </div>
+
+      {/* ── Info strip ── */}
+      <div className="stats-strip" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+        {[
+          { num: "50",   acc: "",  lbl: "Booth Slots Available" },
+          { num: "7",    acc: "",  lbl: "Innovation Domains" },
+          { num: "Free", acc: "",  lbl: "to Apply" },
+        ].map(s => (
+          <div className="stat" key={s.lbl}>
+            <div className="num">{s.num}<span className="acc">{s.acc}</span></div>
+            <div className="lbl">{s.lbl}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Form ── */}
+      <section className="kx-section">
+        <div className="kx-section-head center" style={{ marginBottom: 44 }}>
+          <div className="kx-eyebrow">Application Form</div>
+          <h2>Tell us about your <span className="kx-accent">AI</span></h2>
+        </div>
+
+        <form className="form" onSubmit={submit}>
+          <div className="row">
+            <div className="field">
+              <label>Full Name *</label>
+              <input
+                type="text" placeholder="Ahmed Raza"
+                value={form.fullName}
+                onChange={e => set("fullName", e.target.value)}
+                required
+              />
+            </div>
+            <div className="field">
+              <label>Email Address *</label>
+              <input
+                type="email" placeholder="you@example.com"
+                value={form.email}
+                onChange={e => set("email", e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="field">
+            <label>Project Name *</label>
+            <input
+              type="text" placeholder="MediScan AI — radiology triage"
+              value={form.project}
+              onChange={e => set("project", e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="field">
+            <label>Innovation Domain *</label>
+            <div className="chip-radio">
+              {categories.map(cat => (
+                <label key={cat} className={form.category === cat ? "on" : ""}>
+                  <input
+                    type="radio" name="category" value={cat}
+                    onChange={() => set("category", cat)}
+                  />
+                  {cat}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="field">
+            <label>Project Description *</label>
+            <textarea
+              placeholder="Describe your AI project in 2–4 sentences. What problem does it solve? What is the technology? What is the impact?"
+              value={form.description}
+              onChange={e => set("description", e.target.value)}
+            />
+          </div>
+
+          <div className="row">
+            <div className="field">
+              <label>Team Size</label>
+              <select value={form.teamSize} onChange={e => set("teamSize", e.target.value)}
+                style={{ color: "#fff", background: "var(--surface-1)", border: "1px solid var(--border)", borderRadius: 12, padding: "14px 16px", fontFamily: "var(--font-body)", fontSize: 15 }}>
+                {["1", "2", "3", "4", "5", "6+"].map(n => <option key={n} value={n}>{n} {n === "1" ? "person (solo)" : "people"}</option>)}
+              </select>
+            </div>
+            <div className="field">
+              <label>Supporting File (optional)</label>
+              <div
+                className={"dropzone" + (drag ? " drag" : "")}
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={e => { e.preventDefault(); setDrag(true); }}
+                onDragLeave={() => setDrag(false)}
+                onDrop={onDrop}
+              >
+                <div className="big">{file ? "File attached" : "Drop file or click to browse"}</div>
+                <div className="small">PDF, PPT, ZIP — max 2.5 MB</div>
+                {file && (
+                  <div className="picked">
+                    <span>📎</span>
+                    <span>{file.name}</span>
+                    <button
+                      type="button"
+                      onClick={e => { e.stopPropagation(); setFile(null); }}
+                      style={{ background: "none", border: "none", color: "var(--fg-3)", cursor: "pointer", fontSize: 12, padding: 0 }}
+                    >✕</button>
+                  </div>
+                )}
+                {fileError && <div style={{ marginTop: 8, fontSize: 12, color: "#FF6B8E" }}>{fileError}</div>}
+                <input
+                  type="file" ref={fileInputRef}
+                  accept=".pdf,.ppt,.pptx,.zip,.doc,.docx"
+                  onChange={e => handleFile(e.target.files[0])}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div style={{ borderTop: "1px solid var(--border)", paddingTop: 22 }}>
+            <button
+              type="submit"
+              className="kx-btn-primary"
+              disabled={submitting || !form.fullName || !form.email || !form.project || !form.category}
+              style={{ width: "100%", justifyContent: "center", padding: "16px 28px", fontSize: 15 }}
+            >
+              {submitting ? "Submitting…" : "Submit AI Project →"}
+            </button>
+            <p style={{ textAlign: "center", fontSize: 12, color: "var(--fg-4)", marginTop: 14 }}>
+              By submitting you agree to Khinext's submission guidelines. Applications are reviewed within 7–10 working days.
+            </p>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
+}
+
+window.SubmitPage = SubmitPage;
+
+
+// RegisterPage.jsx — Event registration form
+
+function RegisterPage({ setPage }) {
+  const { useState, useEffect } = React;
+
+  const [form, setForm] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    role: "",
+    org: "",
+    track: "AI Expo + Gaming",
+    how: "",
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [registered, setRegistered] = useState(null);
+
+  const roles = [
+    "Student / Developer",
+    "Founder / Entrepreneur",
+    "Investor / VC",
+    "Corporate / Enterprise",
+    "Researcher / Academic",
+    "Government / Policy",
+    "Media / Press",
+    "Other",
+  ];
+
+  const tracks = [
+    "AI Expo Only",
+    "Gaming Arena Only",
+    "AI Expo + Gaming",
+    "VIP / Sponsor",
+  ];
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
+  function set(key, val) { setForm(f => ({ ...f, [key]: val })); }
+
+  async function submit(e) {
+    e.preventDefault();
+    if (!form.fullName || !form.email || !form.role) return;
+    setSubmitting(true);
+    await new Promise(r => setTimeout(r, 900));
+    const entry = window.addRegistration({ ...form });
+    setRegistered(entry);
+    setSubmitting(false);
+  }
+
+  if (registered) {
+    return (
+      <div className="kx-page">
+        <div className="kx-pagehero">
+          <div className="grid-bg" />
+          <div className="kx-eyebrow">Khinext '26</div>
+          <h1>Register for the <span className="kx-accent">Event</span></h1>
+        </div>
+        <section className="kx-section">
+          <div className="success">
+            <div className="check">✓</div>
+            <h2>You're <span className="kx-accent">Registered</span></h2>
+            <p>
+              Welcome aboard, <strong style={{ color: "#fff" }}>{registered.fullName}</strong>! Your registration for Khinext '26 is confirmed.
+              A confirmation email has been sent to <strong style={{ color: "#fff" }}>{registered.email}</strong> with your details.
+            </p>
+            <p style={{ fontSize: 13, color: "var(--fg-4)" }}>Your registration ID</p>
+            <div className="id-chip">{registered.id}</div>
+
+            <div style={{ margin: "22px 0", background: "rgba(49,107,255,0.06)", border: "1px solid var(--border-blue)", borderRadius: 14, padding: "20px 22px", textAlign: "left" }}>
+              {[
+                { k: "Name",  v: registered.fullName },
+                { k: "Email", v: registered.email },
+                { k: "Track", v: registered.track },
+                { k: "Role",  v: registered.role },
+              ].map(row => (
+                <div key={row.k} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px dashed var(--border)", fontSize: 13 }}>
+                  <span style={{ color: "var(--fg-3)" }}>{row.k}</span>
+                  <span style={{ color: "#fff", fontWeight: 600 }}>{row.v}</span>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ marginTop: 8, display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+              <button className="kx-btn-primary" onClick={() => setPage("submit")}>
+                Also Submit an AI Project →
+              </button>
+              <button className="kx-btn-outline" onClick={() => setPage("home")}>
+                Back to Home
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  return (
+    <div className="kx-page">
+      {/* ── Page hero ── */}
+      <div className="kx-pagehero">
+        <div className="grid-bg" />
+        <div className="kx-eyebrow">Khinext '26</div>
+        <h1>Register for the <span className="kx-accent">Event</span></h1>
+        <p className="lead">
+          Secure your place at Pakistan's first multi-domain AI Summit. Select your track, tell us who you are, and we'll handle the rest.
+        </p>
+      </div>
+
+      {/* ── Ticket types ── */}
+      <section className="kx-section tight fade-up" style={{ paddingBottom: 0 }}>
+        <div className="cards-2" style={{ maxWidth: 900, margin: "0 auto" }}>
+          {[
+            {
+              name: "General Admission",
+              price: "Free",
+              color: "var(--khi-blue)",
+              perks: ["AI Expo access — all 7 zones", "Gaming Arena spectator access", "Keynote & panel sessions", "Networking lounges"],
+            },
+            {
+              name: "VIP / Sponsor Pass",
+              price: "By invitation",
+              color: "#FFB800",
+              perks: ["All General Admission perks", "Investor Arena access", "VIP networking dinner", "Priority seating, exclusive lounge"],
+            },
+          ].map(t => (
+            <div key={t.name} className="card" style={{ padding: "26px 24px" }}>
+              <div style={{ fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: t.color, fontWeight: 700, marginBottom: 8 }}>{t.name}</div>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 800, color: "#fff", letterSpacing: "-0.025em", marginBottom: 16 }}>{t.price}</div>
+              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 7 }}>
+                {t.perks.map(p => (
+                  <li key={p} style={{ fontSize: 13, color: "var(--fg-2)", paddingLeft: 18, position: "relative", lineHeight: 1.5 }}>
+                    <span style={{ position: "absolute", left: 0, color: t.color }}>✓</span>
+                    {p}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Form ── */}
+      <section className="kx-section">
+        <div className="kx-section-head center" style={{ marginBottom: 44 }}>
+          <div className="kx-eyebrow">Registration Form</div>
+          <h2>Secure your <span className="kx-accent">spot</span></h2>
+        </div>
+        <form className="form" onSubmit={submit}>
+          <div className="row">
+            <div className="field">
+              <label>Full Name *</label>
+              <input
+                type="text" placeholder="Ahmed Raza"
+                value={form.fullName}
+                onChange={e => set("fullName", e.target.value)}
+                required
+              />
+            </div>
+            <div className="field">
+              <label>Email Address *</label>
+              <input
+                type="email" placeholder="you@example.com"
+                value={form.email}
+                onChange={e => set("email", e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="row">
+            <div className="field">
+              <label>Phone (optional)</label>
+              <input
+                type="tel" placeholder="+92 300 0000000"
+                value={form.phone}
+                onChange={e => set("phone", e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label>Organisation (optional)</label>
+              <input
+                type="text" placeholder="Company / University"
+                value={form.org}
+                onChange={e => set("org", e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="field">
+            <label>I am a *</label>
+            <div className="chip-radio">
+              {roles.map(r => (
+                <label key={r} className={form.role === r ? "on" : ""}>
+                  <input
+                    type="radio" name="role" value={r}
+                    onChange={() => set("role", r)}
+                  />
+                  {r}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="field">
+            <label>Track</label>
+            <div className="chip-radio">
+              {tracks.map(t => (
+                <label key={t} className={form.track === t ? "on" : ""}>
+                  <input
+                    type="radio" name="track" value={t}
+                    onChange={() => set("track", t)}
+                  />
+                  {t}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="field">
+            <label>How did you hear about Khinext?</label>
+            <input
+              type="text" placeholder="Social media, a friend, news article…"
+              value={form.how}
+              onChange={e => set("how", e.target.value)}
+            />
+          </div>
+
+          <div style={{ borderTop: "1px solid var(--border)", paddingTop: 22 }}>
+            <button
+              type="submit"
+              className="kx-btn-primary"
+              disabled={submitting || !form.fullName || !form.email || !form.role}
+              style={{ width: "100%", justifyContent: "center", padding: "16px 28px", fontSize: 15 }}
+            >
+              {submitting ? "Registering…" : "Register for Khinext '26 →"}
+            </button>
+            <p style={{ textAlign: "center", fontSize: 12, color: "var(--fg-4)", marginTop: 14 }}>
+              Free to attend. Your information is used only for event logistics. Unsubscribe any time.
+            </p>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
+}
+
+window.RegisterPage = RegisterPage;
+
+
+// EmailPreview.jsx — Approval email modal + send simulation
+
+function EmailPreview({ submission, onClose, onSent }) {
+  const { useState } = React;
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  async function handleSend() {
+    setSending(true);
+    await new Promise(r => setTimeout(r, 1200));
+    window.updateSubmission(submission.id, { status: "approved", emailSentAt: Date.now() });
+    setSending(false);
+    setSent(true);
+    setTimeout(() => {
+      onSent();
+      onClose();
+    }, 1400);
+  }
+
+  const initials = submission.fullName
+    .split(" ")
+    .slice(0, 2)
+    .map(w => w[0])
+    .join("")
+    .toUpperCase();
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal">
+        <div className="head">
+          <span className="ttl">Approval Email Preview</span>
+          <button className="x" onClick={onClose}>✕</button>
+        </div>
+
+        {/* Email meta strip */}
+        <div style={{ padding: "14px 28px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border)", fontSize: 13 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <span style={{ color: "var(--fg-3)" }}>To: <strong style={{ color: "#fff" }}>{submission.fullName}</strong> &lt;{submission.email}&gt;</span>
+            <span style={{ color: "var(--fg-3)" }}>Subject: <strong style={{ color: "#fff" }}>You've been approved — Khinext '26 AI Expo</strong></span>
+          </div>
+          <div style={{ fontSize: 11, color: "var(--fg-4)", letterSpacing: "0.1em" }}>PREVIEW</div>
+        </div>
+
+        {/* The email itself */}
+        <div style={{ padding: "0 28px 28px" }}>
+          <div className="email-frame">
+            {/* Header */}
+            <div className="top">
+              <div className="lockup">
+                <div className="lockup-mark">
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                    <path d="M3 2.5L3 15.5M3 9.5L9.5 3.5M3 9.5L10.5 15.5" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M12 6L15.5 9.5L12 13" stroke="#8FAFFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <span className="lockup-word">Khi<em>next</em></span>
+              </div>
+              <div className="top-eyebrow">AI Expo '26 · Application Update</div>
+              <h1>You've been <em>approved</em>.</h1>
+            </div>
+
+            {/* Body */}
+            <div className="body">
+              <p>Hi <strong>{submission.fullName}</strong>,</p>
+              <p>
+                We're thrilled to let you know that your submission to the <strong>Khinext '26 AI Expo</strong> has been <strong>reviewed and approved</strong> by our curation team.
+              </p>
+              <p>
+                Your project, <strong>"{submission.project}"</strong>, has been selected for a <strong>live demo booth</strong> at the event in Karachi. You are among the top 50 entries across all 7 innovation domains.
+              </p>
+
+              <div className="ticket">
+                {[
+                  { k: "Submission ID", v: submission.id },
+                  { k: "Project",       v: submission.project },
+                  { k: "Domain",        v: submission.category },
+                  { k: "Status",        v: "✓ Approved" },
+                  { k: "Event",         v: "Khinext '26, Karachi" },
+                ].map(row => (
+                  <div key={row.k} className="kv">
+                    <span className="k">{row.k}</span>
+                    <span className="v">{row.v}</span>
+                  </div>
+                ))}
+              </div>
+
+              <p>
+                Our team will be in touch with next steps — including booth setup details, load-in times, and exhibitor guidelines — at least 30 days before the event. In the meantime, if you have any questions, reply to this email or reach out at <strong>expo@khinext.pk</strong>.
+              </p>
+
+              <div className="cta-row">
+                <a className="cta-btn" href="#" onClick={e => e.preventDefault()}>
+                  View Your Submission →
+                </a>
+              </div>
+
+              <div className="signature">
+                <p style={{ margin: 0, marginBottom: 4 }}>
+                  With excitement,<br />
+                  <strong>The Khinext '26 Team</strong>
+                </p>
+                <p style={{ margin: 0, fontSize: 12 }}>
+                  Pakistan's first multi-domain AI Summit · Karachi, 2026
+                </p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="foot">
+              <p style={{ margin: "0 0 6px" }}>
+                © 2026 Khinext. Pakistan's first multi-domain AI Summit.<br />
+                <a href="#">Unsubscribe</a> · <a href="#">Privacy Policy</a> · <a href="#">khinext.pk</a>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Action bar */}
+        <div style={{ padding: "16px 28px 22px", display: "flex", gap: 12, justifyContent: "flex-end", borderTop: "1px solid var(--border)" }}>
+          <button className="kx-btn-outline" onClick={onClose} disabled={sending || sent}>
+            Cancel
+          </button>
+          <button
+            className="kx-btn-primary"
+            onClick={handleSend}
+            disabled={sending || sent}
+            style={{ minWidth: 140, justifyContent: "center" }}
+          >
+            {sent ? "✓ Sent!" : sending ? "Sending…" : "Send Approval Email →"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+window.EmailPreview = EmailPreview;
+
+
+// AdminPage.jsx — Admin panel: submissions + registrations, approval flow
+
+const ADMIN_PASSWORD = "admin2026";
+
+function AdminPage() {
+  const { useState, useEffect } = React;
+
+  const [authed, setAuthed] = useState(false);
+  const [pw, setPw] = useState("");
+  const [pwError, setPwError] = useState("");
+  const [tab, setTab] = useState("submissions");
+  const [filter, setFilter] = useState("all");
+  const [emailTarget, setEmailTarget] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  // re-render when store changes
+  window.useStore(window.SUBS_KEY);
+  window.useStore(window.REGS_KEY);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.seedDemoData();
+  }, []);
+
+  function showToast(msg) {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3200);
+  }
+
+  function login(e) {
+    e.preventDefault();
+    if (pw === ADMIN_PASSWORD) {
+      setAuthed(true);
+      setPwError("");
+    } else {
+      setPwError("Incorrect password. Try: admin2026");
+    }
+  }
+
+  function approve(sub) {
+    setEmailTarget(sub);
+  }
+
+  function reject(id) {
+    window.updateSubmission(id, { status: "rejected" });
+    showToast("Submission rejected.");
+  }
+
+  function onEmailSent() {
+    showToast("Approval email sent! ✓");
+  }
+
+  // ── Login gate ──
+  if (!authed) {
+    return (
+      <div className="kx-page">
+        <div className="kx-pagehero">
+          <div className="grid-bg" />
+          <div className="kx-eyebrow">Admin</div>
+          <h1>Admin <span className="kx-accent">Panel</span></h1>
+          <p className="lead">Manage submissions, review registrations and send approval emails to accepted AI Expo entries.</p>
+        </div>
+        <section className="kx-section">
+          <form className="admin-gate" onSubmit={login}>
+            <h2>Sign In</h2>
+            <p>Enter the admin password to access the dashboard.</p>
+            <div className="field">
+              <label>Password</label>
+              <input
+                type="password"
+                placeholder="Admin password"
+                value={pw}
+                onChange={e => { setPw(e.target.value); setPwError(""); }}
+                autoFocus
+              />
+              {pwError && <div style={{ marginTop: 6, fontSize: 12, color: "#FF6B8E" }}>{pwError}</div>}
+            </div>
+            <button type="submit" className="kx-btn-primary" style={{ width: "100%", justifyContent: "center" }}>
+              Sign In →
+            </button>
+            <div className="hint">Hint: admin2026</div>
+          </form>
+        </section>
+      </div>
+    );
+  }
+
+  const submissions = window.getSubmissions();
+  const registrations = window.getRegistrations();
+
+  const filteredSubs = filter === "all"
+    ? submissions
+    : submissions.filter(s => s.status === filter);
+
+  const statusCounts = {
+    all: submissions.length,
+    pending: submissions.filter(s => s.status === "pending").length,
+    approved: submissions.filter(s => s.status === "approved").length,
+    rejected: submissions.filter(s => s.status === "rejected").length,
+  };
+
+  // ── Dashboard ──
+  return (
+    <div className="kx-page">
+      <div className="kx-pagehero" style={{ paddingBottom: 40 }}>
+        <div className="grid-bg" />
+        <div className="kx-eyebrow">Admin Dashboard</div>
+        <h1>Khinext <span className="kx-accent">'26</span> Admin</h1>
+        <p className="lead">Review AI Expo submissions, manage registrations, and send approval emails.</p>
+      </div>
+
+      <section className="kx-section tight" style={{ paddingTop: 44 }}>
+
+        {/* Summary cards */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 32 }}>
+          {[
+            { label: "Total Submissions", val: submissions.length, color: "var(--khi-blue)" },
+            { label: "Pending Review",    val: statusCounts.pending,  color: "#FFD06B" },
+            { label: "Approved",          val: statusCounts.approved, color: "#51FFD5" },
+            { label: "Registrations",     val: registrations.length,  color: "var(--fg-2)" },
+          ].map(c => (
+            <div key={c.label} className="card" style={{ padding: "18px 20px" }}>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: 36, fontWeight: 800, color: c.color, letterSpacing: "-0.03em", lineHeight: 1 }}>{c.val}</div>
+              <div style={{ fontSize: 12, color: "var(--fg-3)", marginTop: 8, letterSpacing: "0.04em" }}>{c.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Tabs */}
+        <div className="admin-header">
+          <div className="admin-tabs">
+            <button className={tab === "submissions" ? "active" : ""} onClick={() => setTab("submissions")}>
+              AI Expo Submissions ({submissions.length})
+            </button>
+            <button className={tab === "registrations" ? "active" : ""} onClick={() => setTab("registrations")}>
+              Registrations ({registrations.length})
+            </button>
+          </div>
+          {tab === "submissions" && (
+            <div style={{ display: "flex", gap: 8 }}>
+              {["all","pending","approved","rejected"].map(f => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  style={{
+                    padding: "8px 16px", borderRadius: 999,
+                    background: filter === f ? "rgba(49,107,255,0.14)" : "transparent",
+                    border: filter === f ? "1px solid var(--border-blue-strong)" : "1px solid var(--border)",
+                    color: filter === f ? "var(--khi-blue-soft)" : "var(--fg-3)",
+                    fontSize: 12, fontWeight: 600, cursor: "pointer",
+                    letterSpacing: "0.06em", textTransform: "capitalize",
+                    transition: "all .2s",
+                  }}
+                >
+                  {f} {f !== "all" && `(${statusCounts[f]})`}
+                </button>
+              ))}
+              <button
+                onClick={() => { if (window.confirm("Clear all submissions?")) { window.clearSubmissions(); } }}
+                className="kx-btn-danger"
+                style={{ fontSize: 11, padding: "8px 14px" }}
+              >
+                Clear All
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* ── Submissions table ── */}
+        {tab === "submissions" && (
+          filteredSubs.length === 0 ? (
+            <div className="admin-empty">
+              No submissions {filter !== "all" ? `with status "${filter}"` : "yet"}.
+            </div>
+          ) : (
+            <div className="admin-table">
+              <div className="admin-row head">
+                <span>ID</span>
+                <span>Applicant</span>
+                <span>Project</span>
+                <span>Status</span>
+                <span style={{ textAlign: "right" }}>Actions</span>
+              </div>
+              {filteredSubs.map(sub => (
+                <div className="admin-row" key={sub.id}>
+                  <span className="id">{sub.id}</span>
+                  <div className="who">
+                    <span className="nm">{sub.fullName}</span>
+                    <span className="em">{sub.email}</span>
+                  </div>
+                  <div className="body">
+                    <div className="pj">{sub.project}</div>
+                    <div className="cat">{sub.category}</div>
+                  </div>
+                  <div>
+                    <span className={"status " + sub.status}>
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "currentColor", display: "inline-block" }} />
+                      {sub.status}
+                    </span>
+                  </div>
+                  <div className="actions">
+                    {sub.status === "pending" && (
+                      <>
+                        <button
+                          className="kx-btn-primary"
+                          style={{ padding: "8px 16px", fontSize: 12 }}
+                          onClick={() => approve(sub)}
+                        >
+                          Approve
+                        </button>
+                        <button
+                          className="kx-btn-danger"
+                          onClick={() => reject(sub.id)}
+                        >
+                          Reject
+                        </button>
+                      </>
+                    )}
+                    {sub.status === "approved" && (
+                      <button
+                        className="kx-btn-outline"
+                        style={{ padding: "8px 16px", fontSize: 12 }}
+                        onClick={() => setEmailTarget(sub)}
+                      >
+                        Resend Email
+                      </button>
+                    )}
+                    {sub.status === "rejected" && (
+                      <button
+                        className="kx-btn-outline"
+                        style={{ padding: "8px 16px", fontSize: 12 }}
+                        onClick={() => { window.updateSubmission(sub.id, { status: "pending" }); showToast("Moved back to pending."); }}
+                      >
+                        Undo
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+        )}
+
+        {/* ── Registrations table ── */}
+        {tab === "registrations" && (
+          registrations.length === 0 ? (
+            <div className="admin-empty">No registrations yet.</div>
+          ) : (
+            <div className="admin-table">
+              <div className="admin-row head" style={{ gridTemplateColumns: "90px 1.4fr 1.6fr 130px 160px" }}>
+                <span>ID</span>
+                <span>Name</span>
+                <span>Email</span>
+                <span>Role</span>
+                <span>Track</span>
+              </div>
+              {registrations.map(reg => (
+                <div className="admin-row" key={reg.id} style={{ gridTemplateColumns: "90px 1.4fr 1.6fr 130px 160px" }}>
+                  <span className="id">{reg.id}</span>
+                  <span style={{ color: "#fff", fontWeight: 500 }}>{reg.fullName}</span>
+                  <span style={{ color: "var(--fg-3)", fontSize: 13 }}>{reg.email}</span>
+                  <span style={{ color: "var(--fg-2)", fontSize: 13 }}>{reg.role}</span>
+                  <span>
+                    <span className="status approved">
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "currentColor", display: "inline-block" }} />
+                      confirmed
+                    </span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )
+        )}
+
+        {/* Clear registrations */}
+        {tab === "registrations" && registrations.length > 0 && (
+          <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
+            <button
+              className="kx-btn-danger"
+              onClick={() => { if (window.confirm("Clear all registrations?")) window.clearRegistrations(); }}
+            >
+              Clear All Registrations
+            </button>
+          </div>
+        )}
+      </section>
+
+      {/* Email preview modal */}
+      {emailTarget && (
+        <EmailPreview
+          submission={emailTarget}
+          onClose={() => setEmailTarget(null)}
+          onSent={onEmailSent}
+        />
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <div className="toast">
+          <span className="dot" />
+          {toast}
+        </div>
+      )}
+    </div>
+  );
+}
+
+window.AdminPage = AdminPage;
+
+
+// App.jsx — root component, client-side routing, ReactDOM bootstrap
+
+function App() {
+  const { useState, useEffect } = React;
+  const [page, setPage] = useState("home");
+
+  // seed demo data once on first load
+  useEffect(() => {
+    window.seedDemoData();
+  }, []);
+
+  // scroll to top on page change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [page]);
+
+  function renderPage() {
+    switch (page) {
+      case "home":     return <HomePage     setPage={setPage} />;
+      case "ai-expo":  return <AIExpoPage   setPage={setPage} />;
+      case "gaming":   return <GamingPage   setPage={setPage} />;
+      case "submit":   return <SubmitPage   setPage={setPage} />;
+      case "register": return <RegisterPage setPage={setPage} />;
+      case "admin":    return <AdminPage />;
+      default:         return <HomePage     setPage={setPage} />;
+    }
+  }
+
+  return (
+    <div>
+      <Nav page={page} setPage={setPage} />
+      {renderPage()}
+      <Footer setPage={setPage} />
+    </div>
+  );
+}
+
+// Bootstrap
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+
+  </script>
+</body>
+</html>
