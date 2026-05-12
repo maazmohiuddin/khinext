@@ -1,0 +1,23 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<title>Khinext — Blue Ramp</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;background:var(--bg);color:var(--fg-1);}
+  body{padding:28px 32px;}
+  .row { display:grid; grid-template-columns: repeat(5,1fr); gap:10px; }
+  .sw { aspect-ratio: 1 / 1; border-radius:14px; display:flex; flex-direction:column; justify-content:flex-end; padding:14px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);}
+  .sw .n { font-family:var(--font-display); font-weight:700; font-size:13px; color:#fff; letter-spacing:-0.01em;}
+  .sw .h { font-family:ui-monospace,Menlo,monospace; font-size:10px; color:rgba(255,255,255,.7); margin-top:2px;}
+  .legend { font-family:var(--font-body); font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--fg-4); margin-bottom:14px; }
+</style></head>
+<body>
+  <div class="legend">Blue ramp · deep → soft</div>
+  <div class="row">
+    <div class="sw" style="background:#003ACE"><div class="n">Deep</div><div class="h">#003ACE</div></div>
+    <div class="sw" style="background:#316BFF"><div class="n">Brand</div><div class="h">#316BFF</div></div>
+    <div class="sw" style="background:#4579FF"><div class="n">Bright</div><div class="h">#4579FF</div></div>
+    <div class="sw" style="background:#7599F3"><div class="n">Mid</div><div class="h">#7599F3</div></div>
+    <div class="sw" style="background:#8FAFFF"><div class="n">Soft</div><div class="h">#8FAFFF</div></div>
+  </div>
+</body></html>

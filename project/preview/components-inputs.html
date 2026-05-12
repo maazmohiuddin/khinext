@@ -1,0 +1,26 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<title>Khinext — Inputs</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;background:var(--bg);color:var(--fg-1);}
+  body{padding:28px 30px; display:flex; flex-direction:column; gap:16px;}
+  .field{display:flex; flex-direction:column; gap:6px;}
+  .label{font-family:var(--font-body); font-size:11px; color:var(--fg-4); letter-spacing:.14em; text-transform:uppercase;}
+  .input{
+    font-family:var(--font-body); font-size:14px; color:#fff;
+    background: var(--surface-1); border:1px solid var(--border); border-radius:12px;
+    padding:13px 16px; outline:0; transition: all .2s var(--ease-soft);
+  }
+  .input:focus{border-color:var(--border-blue-strong); background:rgba(49,107,255,.06); box-shadow:0 0 0 4px rgba(49,107,255,.12);}
+  .input.focused{border-color:var(--border-blue-strong); background:rgba(49,107,255,.06); box-shadow:0 0 0 4px rgba(49,107,255,.12);}
+  .row{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .submit{font-family:var(--font-body); font-size:13px; align-self:flex-start; padding:11px 22px; background:var(--khi-blue); color:#fff; border:0; border-radius:999px;}
+</style></head>
+<body>
+  <div class="row">
+    <div class="field"><span class="label">Full name</span><input class="input" placeholder="Ayesha Khan" value="Ayesha Khan"></div>
+    <div class="field"><span class="label">Email</span><input class="input focused" placeholder="you@company.com" value="ayesha@khinext.io"></div>
+  </div>
+  <div class="field"><span class="label">Domain of interest</span><input class="input" placeholder="Fintech, Health, Devzone…"></div>
+</body></html>

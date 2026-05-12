@@ -1,0 +1,26 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<title>Khinext — Borders</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;background:var(--bg);color:var(--fg-1);}
+  body{padding:28px 32px;}
+  .legend{font-family:var(--font-body);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--fg-4);margin-bottom:16px;}
+  .row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+  .card{aspect-ratio:1/.8;border-radius:18px;background:var(--surface-1);padding:14px;display:flex;flex-direction:column;justify-content:flex-end;}
+  .n{font-family:var(--font-display);font-size:13px;font-weight:700;}
+  .v{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:var(--fg-3);margin-top:3px;}
+  .b1{border:1px solid var(--border);}
+  .b2{border:1px solid var(--border-strong);}
+  .b3{border:1px solid var(--border-blue);}
+  .b4{border:1px solid var(--border-blue-strong);background:rgba(49,107,255,0.08);}
+</style></head>
+<body>
+  <div class="legend">Hairline borders · default → strong → blue → blue strong</div>
+  <div class="row">
+    <div class="card b1"><div class="n">Default</div><div class="v">white / 0.08</div></div>
+    <div class="card b2"><div class="n">Strong</div><div class="v">white / 0.16</div></div>
+    <div class="card b3"><div class="n">Blue</div><div class="v">blue / 0.30</div></div>
+    <div class="card b4"><div class="n">Active</div><div class="v">blue / 0.55</div></div>
+  </div>
+</body></html>

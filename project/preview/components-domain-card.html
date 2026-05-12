@@ -1,0 +1,34 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<title>Khinext — Domain Card</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;background:var(--bg);color:var(--fg-1);}
+  body{padding:28px 28px; display:grid; grid-template-columns:repeat(3,1fr); gap:14px;}
+  .card{background:var(--surface-1); border:1px solid var(--border); border-radius:20px; padding:24px 22px; position:relative; overflow:hidden;}
+  .card.hover{background:rgba(49,107,255,0.06); border-color:var(--border-blue);}
+  .card.hover::after{content:''; position:absolute; left:0; right:0; bottom:0; height:2px; background:linear-gradient(90deg, var(--khi-blue) 0%, var(--khi-blue-bright) 100%);}
+  .icon{--c:#FFB800; width:54px; height:54px; border-radius:14px; background:var(--c); display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 1px color-mix(in oklab, var(--c) 30%, transparent), 0 0 22px color-mix(in oklab, var(--c) 35%, transparent); margin-bottom:18px;}
+  .card.zh .icon{--c:#51FFD5;}
+  .card.zc .icon{--c:#BF00FF;}
+  .name{font-family:var(--font-display); font-size:18px; font-weight:700; letter-spacing:-0.02em; margin-bottom:8px;}
+  .desc{font-family:var(--font-body); font-size:13px; color:var(--fg-3); line-height:1.6;}
+  svg{width:32px; height:32px;}
+</style></head>
+<body>
+  <div class="card zh">
+    <div class="icon"><svg viewBox="0 0 208 209" xmlns="http://www.w3.org/2000/svg"><path d="M74.6 103.5c0 15.3 12.4 27.6 27.7 27.6V75.9c-15.3 0-27.7 12.4-27.7 27.6z" fill="#040B1C"/><path d="M102.3 103.5c0 15.3 12.4 27.6 27.6 27.6V75.9c-15.3 0-27.6 12.4-27.6 27.6z" fill="#040B1C"/></svg></div>
+    <div class="name">Health &amp; Pharma</div>
+    <div class="desc">AI-driven diagnostics, digital health, and biotech innovation.</div>
+  </div>
+  <div class="card hover">
+    <div class="icon"><svg viewBox="0 0 208 211" xmlns="http://www.w3.org/2000/svg"><path d="M132.6 135.9h-28.7c-15.8 0-28.6-12.8-28.6-28.7h28.6c-15.8 0-28.6-12.8-28.6-28.6h28.6c15.8 0 28.7 12.8 28.7 28.6h-28.7c15.8 0 28.7 12.8 28.7 28.7z" fill="#040B1C"/></svg></div>
+    <div class="name">Fintech Future</div>
+    <div class="desc">The evolution of finance through AI and automation.</div>
+  </div>
+  <div class="card zc">
+    <div class="icon"><svg viewBox="0 0 208 208" xmlns="http://www.w3.org/2000/svg"><path d="M104.1 86.8L87.4 103.5 70.7 86.8 87.4 70.1l16.7 16.7zm33.4 0L120.8 70.1l-16.7 16.7 16.7 16.7 16.7-16.7zm-66.8 33.4l16.7 16.7 16.7-16.7L87.4 103.5l-16.7 16.7zm33.4 0l16.7 16.7 16.7-16.7-16.7-16.7-16.7 16.7z" fill="#040B1C"/></svg></div>
+    <div class="name">Creativity &amp; Media</div>
+    <div class="desc">Design, storytelling, and generative AI converge.</div>
+  </div>
+</body></html>

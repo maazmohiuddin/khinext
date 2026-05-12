@@ -1,0 +1,33 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<title>Khinext — Chips & Badges</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;background:var(--bg);color:var(--fg-1);}
+  body{padding:30px 32px; display:flex; flex-direction:column; gap:22px;}
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+  .label{font-family:var(--font-body); font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--fg-4); min-width:80px;}
+  .chip{font-family:var(--font-body); font-size:13px; padding:7px 16px; border-radius:999px; font-weight:500; display:inline-flex; align-items:center; gap:8px;}
+  .chip.blue{background:rgba(49,107,255,0.10); border:1px solid var(--border-blue); color:var(--khi-blue-soft);}
+  .chip.ghost{background:transparent; border:1px solid var(--border); color:var(--fg-2);}
+  .chip.solid{background:var(--khi-blue); color:#fff;}
+  .badge{font-family:var(--font-display); font-size:11px; padding:5px 12px; border-radius:6px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; display:inline-flex; align-items:center; gap:6px;}
+  .badge.live{background:rgba(49,107,255,.12); color:var(--khi-blue-bright); border:1px solid var(--border-blue);}
+  .badge.live::before{content:''; width:6px; height:6px; border-radius:50%; background:var(--khi-blue-bright); box-shadow:0 0 8px var(--khi-blue-bright); animation: pulse 1.6s ease-in-out infinite;}
+  @keyframes pulse { 50% { opacity:.35; } }
+  .badge.gold{background:rgba(229,200,122,.12); color:#E5C87A; border:1px solid rgba(229,200,122,.3);}
+  .badge.silver{background:rgba(192,192,192,.10); color:#C0C0C0; border:1px solid rgba(192,192,192,.25);}
+</style></head>
+<body>
+  <div class="row"><span class="label">Chips</span>
+    <span class="chip blue">AI &amp; Innovation</span>
+    <span class="chip blue">Karachi 2026</span>
+    <span class="chip ghost">South Asia</span>
+    <span class="chip solid">Featured</span>
+  </div>
+  <div class="row"><span class="label">Badges</span>
+    <span class="badge live">Live Now</span>
+    <span class="badge gold">Platinum</span>
+    <span class="badge silver">Silver</span>
+  </div>
+</body></html>

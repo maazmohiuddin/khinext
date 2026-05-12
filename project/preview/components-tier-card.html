@@ -1,0 +1,51 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<title>Khinext — Tier Card</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;background:var(--bg);color:var(--fg-1);}
+  body{padding:24px 24px; display:grid; grid-template-columns: repeat(3, 1fr); gap:14px;}
+  .card{background:var(--surface-1); border:1px solid var(--border); border-radius:18px; padding:22px 20px; position:relative; overflow:hidden;}
+  .card.featured{background:rgba(49,107,255,0.08); border-color:var(--border-blue-strong);}
+  .name{font-family:var(--font-display); font-size:13px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; margin-bottom:4px;}
+  .price{font-family:var(--font-display); font-size:32px; font-weight:800; color:#fff; letter-spacing:-0.04em; line-height:1;}
+  .ccy{font-family:var(--font-body); font-size:11px; color:var(--fg-3); margin-top:4px; margin-bottom:16px;}
+  .divider{height:1px; background:var(--border); margin-bottom:14px;}
+  .feat{display:flex; align-items:flex-start; gap:9px; font-family:var(--font-body); font-size:12px; color:var(--fg-2); margin-bottom:8px; line-height:1.4;}
+  .check{width:16px;height:16px; flex-shrink:0; background:rgba(49,107,255,0.15); border:1px solid var(--border-blue); border-radius:4px; display:flex; align-items:center; justify-content:center; color:var(--khi-blue-bright); font-size:10px; font-weight:700;}
+  .gold{color:#E5C87A;} .blue{color:var(--khi-blue-bright);} .silver{color:#C0C0C0;}
+  .ribbon{position:absolute; top:12px; right:-26px; background:var(--khi-blue); color:#fff; font-size:9px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; padding:4px 30px; transform:rotate(45deg) translateX(8px);}
+</style></head>
+<body>
+  <div class="card">
+    <div class="name gold">Platinum</div>
+    <div class="price">8M</div>
+    <div class="ccy">Pakistani Rupees</div>
+    <div class="divider"></div>
+    <div class="feat"><div class="check">✓</div>Speakers Lounge Branding</div>
+    <div class="feat"><div class="check">✓</div>Logo on Event Tickets</div>
+    <div class="feat"><div class="check">✓</div>Digital Screens Across Karachi</div>
+    <div class="feat"><div class="check">✓</div>Booth in Main Hall</div>
+  </div>
+  <div class="card featured">
+    <div class="ribbon">Most Popular</div>
+    <div class="name blue">Gold</div>
+    <div class="price">6M</div>
+    <div class="ccy">Pakistani Rupees</div>
+    <div class="divider"></div>
+    <div class="feat"><div class="check">✓</div>Logo on Event Tickets</div>
+    <div class="feat"><div class="check">✓</div>Digital Screens Across Karachi</div>
+    <div class="feat"><div class="check">✓</div>Booth in Main Hall</div>
+    <div class="feat"><div class="check">✓</div>Pre-event Press Pieces</div>
+  </div>
+  <div class="card">
+    <div class="name silver">Silver</div>
+    <div class="price">4M</div>
+    <div class="ccy">Pakistani Rupees</div>
+    <div class="divider"></div>
+    <div class="feat"><div class="check">✓</div>Pre-event Press Pieces</div>
+    <div class="feat"><div class="check">✓</div>Logo on Conference Collateral</div>
+    <div class="feat"><div class="check">✓</div>Ad Placement in Booklets</div>
+    <div class="feat"><div class="check">✓</div>Social Media Mentions</div>
+  </div>
+</body></html>

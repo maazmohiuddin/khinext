@@ -1,0 +1,25 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<title>Khinext — Glows</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;background:var(--bg);color:var(--fg-1);}
+  body{padding:28px 32px;}
+  .legend{font-family:var(--font-body);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--fg-4);margin-bottom:18px;}
+  .row{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;}
+  .item{display:flex;flex-direction:column;align-items:center;gap:14px;padding:18px;}
+  .puck{width:88px;height:88px;border-radius:20px;background:linear-gradient(135deg,#003ACE,#316BFF);}
+  .n{font-family:var(--font-display);font-size:14px;font-weight:700;}
+  .v{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:var(--fg-3);text-align:center;}
+  .g-sm{box-shadow:var(--glow-blue-sm);}
+  .g-md{box-shadow:var(--glow-blue-md);}
+  .g-cta{box-shadow:var(--glow-blue-cta);}
+</style></head>
+<body>
+  <div class="legend">Blue glow · resting → hover → CTA</div>
+  <div class="row">
+    <div class="item"><div class="puck g-sm"></div><div class="n">Resting</div><div class="v">--glow-blue-sm</div></div>
+    <div class="item"><div class="puck g-md"></div><div class="n">Hover</div><div class="v">--glow-blue-md</div></div>
+    <div class="item"><div class="puck g-cta"></div><div class="n">CTA Pulse</div><div class="v">--glow-blue-cta</div></div>
+  </div>
+</body></html>

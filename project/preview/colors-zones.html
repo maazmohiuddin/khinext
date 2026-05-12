@@ -1,0 +1,27 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<title>Khinext — Zone Colors</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;background:var(--bg);color:var(--fg-1);}
+  body{padding:28px 32px;}
+  .legend { font-family:var(--font-body); font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--fg-4); margin-bottom:14px; }
+  .row { display:grid; grid-template-columns: repeat(8,1fr); gap:8px; }
+  .sw { aspect-ratio:1/1; border-radius:14px; position:relative; box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); display:flex; flex-direction:column; justify-content:flex-end; padding:8px;}
+  .sw .h { font-family:ui-monospace,Menlo,monospace; font-size:9px; color:#040B1C; font-weight:700;}
+  .sw .n { font-family:var(--font-display); font-weight:700; font-size:11px; color:#040B1C; letter-spacing:-0.01em;}
+  .sw.dark .h, .sw.dark .n { color:#fff; }
+</style></head>
+<body>
+  <div class="legend">8 innovation zones · one accent each</div>
+  <div class="row">
+    <div class="sw" style="background:#51FFD5"><div class="n">Health</div><div class="h">#51FFD5</div></div>
+    <div class="sw" style="background:#00EAEE"><div class="n">Cities</div><div class="h">#00EAEE</div></div>
+    <div class="sw dark" style="background:#BF00FF"><div class="n">Creative</div><div class="h">#BF00FF</div></div>
+    <div class="sw" style="background:#FFB800"><div class="n">Fintech</div><div class="h">#FFB800</div></div>
+    <div class="sw" style="background:#D4FF00"><div class="n">DevZone</div><div class="h">#D4FF00</div></div>
+    <div class="sw dark" style="background:#FF4D00"><div class="n">Culture</div><div class="h">#FF4D00</div></div>
+    <div class="sw dark" style="background:#FF0F4B"><div class="n">Lifestyle</div><div class="h">#FF0F4B</div></div>
+    <div class="sw" style="background:#E2E2E2"><div class="n">Investor</div><div class="h">#E2E2E2</div></div>
+  </div>
+</body></html>
