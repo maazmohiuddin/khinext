@@ -16,6 +16,12 @@ export interface Registration {
   track: RegistrationTrack;
   referral: string | null;
   created_at: string;
+  // Confirmation flow (migration 002)
+  confirmed_at: string | null;
+  confirmation_email_sent_at: string | null;
+  confirmation_email_count: number;
+  confirmed_by: string | null;
+  admin_note: string | null;
 }
 
 export interface Submission {

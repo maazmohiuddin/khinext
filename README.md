@@ -14,7 +14,8 @@ A Next.js 14 (App Router) + Tailwind + Supabase application: animated public sit
 | Styling      | Tailwind CSS · custom Khinext design tokens            |
 | Animation    | Framer Motion (route transitions + scroll reveals)     |
 | Database     | Supabase Postgres                                      |
-| Auth         | Supabase Auth — email magic links                      |
+| Auth         | Supabase Auth — password + email magic links           |
+| Email        | Resend — transactional / confirmation emails           |
 | Realtime     | Supabase Realtime — admin dashboard live-updates       |
 | Storage      | Supabase Storage — AI Expo submission file uploads     |
 | Deploy       | Vercel (auto-deploy from GitHub)                       |
@@ -80,7 +81,9 @@ A Next.js 14 (App Router) + Tailwind + Supabase application: animated public sit
 | `/admin/login`       | Email magic-link sign-in                                        |
 | `/admin`             | Admin dashboard — live submissions + registrations, approve/reject |
 | `/auth/callback`     | Magic-link OTP exchange handler                                 |
+| `/admin/registrations/[id]` | Registration detail — full form + audit + send-email button |
 | `/api/admin/submissions/[id]/decide` | POST — approve or reject a submission           |
+| `/api/admin/registrations/[id]/send-confirmation` | POST — confirm slot + send Resend email |
 | `/api/admin/signout` | Sign out (clears Supabase session cookie)                       |
 
 ---
@@ -100,16 +103,22 @@ NEXT_PUBLIC_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_xxx
 SUPABASE_SERVICE_ROLE_KEY=sb_secret_xxx
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
+
+# Resend — for confirmation emails
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+EMAIL_FROM=Khinext '26 <info@khinext.com>
+EMAIL_REPLY_TO=info@khinext.com
 ```
 
-Find these at: **https://supabase.com/dashboard/project/_/settings/api**
+Find Supabase keys at: **https://supabase.com/dashboard/project/_/settings/api**
+Find Resend API key at: **https://resend.com/api-keys**
 
-### 3. Run the SQL migration
+### 3. Run the SQL migrations
 1. Open the SQL Editor in Supabase Studio → **New query**.
-2. Paste the contents of `supabase/migrations/001_init.sql`.
-3. Click **Run**.
+2. Paste the contents of `supabase/migrations/001_init.sql` → click **Run**.
+3. Open a new query, paste `supabase/migrations/002_email_tracking.sql` → **Run**.
 
-This creates the `registrations`, `submissions`, and `admins` tables, RLS policies, the `submissions` storage bucket, an `is_admin()` SQL function, and enables realtime replication.
+`001_init.sql` creates the `registrations`, `submissions`, and `admins` tables, RLS policies, the `submissions` storage bucket, an `is_admin()` SQL function, and enables realtime replication. `002_email_tracking.sql` adds confirmation-email audit columns to `registrations`.
 
 ### 4. Add yourself as an admin
 In Supabase SQL Editor:
@@ -121,7 +130,14 @@ values ('you@your-org.com');
 
 Or just edit the bootstrap line in `supabase/migrations/001_init.sql` before running it.
 
-### 5. Allow magic-link redirects
+### 5. Set up Resend (for confirmation emails)
+1. Sign up at <https://resend.com> (free 3,000 emails / month).
+2. Either:
+   - **Verify a domain**: add `khinext.com` under **Domains → Add Domain**, then add the DNS records they show you. ~10 min.
+   - **Or for testing**: skip domain setup and change `EMAIL_FROM` to `onboarding@resend.dev` (your real sender will look generic but works without DNS).
+3. Generate an API key under **API Keys → Create API Key** (give it `Sending access`) and paste into `.env.local` / Vercel as `RESEND_API_KEY`.
+
+### 6. Allow magic-link redirects
 In Supabase Studio → **Authentication → URL Configuration**:
 
 - **Site URL**: `http://localhost:3000` (and your Vercel URL when deployed)
