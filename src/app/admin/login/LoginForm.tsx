@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { ArrowRight, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Field, Input } from "@/components/ui/Field";
@@ -10,12 +10,19 @@ type Method = "password" | "magic";
 type PwdMode = "signin" | "signup";
 
 export function LoginForm() {
-  const router = useRouter();
   const params = useSearchParams();
   const nextParam = params.get("next") ?? "/admin";
   const errFromUrl = params.get("error");
 
   const [method, setMethod] = useState<Method>("password");
+
+  // Hard navigation — guarantees the browser includes the freshly-set
+  // Supabase auth cookies in the request to `/admin`, so the server-side
+  // `getUser()` actually sees the session. router.push() is a soft
+  // navigation that can miss the new cookies and bounce back to login.
+  const goToNext = () => {
+    if (typeof window !== "undefined") window.location.assign(nextParam);
+  };
 
   return (
     <div className="mx-auto max-w-[460px]">
@@ -36,15 +43,9 @@ export function LoginForm() {
       {/* Panel */}
       <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-8 md:p-10">
         {method === "password" ? (
-          <PasswordPanel
-            initialError={errFromUrl}
-            onSuccess={() => router.push(nextParam)}
-          />
+          <PasswordPanel initialError={errFromUrl} onSuccess={goToNext} />
         ) : (
-          <MagicLinkPanel
-            initialError={errFromUrl}
-            nextParam={nextParam}
-          />
+          <MagicLinkPanel initialError={errFromUrl} nextParam={nextParam} />
         )}
       </div>
 
