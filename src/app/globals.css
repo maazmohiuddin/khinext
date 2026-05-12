@@ -1,0 +1,215 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   Khinext '26 — global tokens, fonts, base layer
+   ============================================================ */
+
+/* ── Fonts ──────────────────────────────────────────────── */
+@font-face { font-family: "Helvetica";              src: url("/fonts/Helvetica.ttf")                       format("truetype"); font-weight: 400; font-style: normal;  font-display: swap; }
+@font-face { font-family: "Helvetica";              src: url("/fonts/Helvetica-Bold.ttf")                  format("truetype"); font-weight: 700; font-style: normal;  font-display: swap; }
+@font-face { font-family: "Helvetica Now Display";  src: url("/fonts/HelveticaNowDisplay-ExtLt.ttf")       format("truetype"); font-weight: 200; font-style: normal;  font-display: swap; }
+@font-face { font-family: "Helvetica Now Display";  src: url("/fonts/HelveticaNowDisplay-ExtLtIta.ttf")    format("truetype"); font-weight: 200; font-style: italic;  font-display: swap; }
+@font-face { font-family: "Helvetica Now Display";  src: url("/fonts/HelveticaNowDisplay-Bold.ttf")        format("truetype"); font-weight: 700; font-style: normal;  font-display: swap; }
+@font-face { font-family: "Helvetica Now Display";  src: url("/fonts/HelveticaNowDisplay-BoldIta.ttf")     format("truetype"); font-weight: 700; font-style: italic;  font-display: swap; }
+@font-face { font-family: "Helvetica Now Display";  src: url("/fonts/HelveticaNowDisplay-ExtraBold.ttf")   format("truetype"); font-weight: 800; font-style: normal;  font-display: swap; }
+@font-face { font-family: "Helvetica Now Display";  src: url("/fonts/HelveticaNowDisplay-ExtBdIta.ttf")    format("truetype"); font-weight: 800; font-style: italic;  font-display: swap; }
+@font-face { font-family: "Helvetica Now Display";  src: url("/fonts/HelveticaNowDisplay-Black.ttf")       format("truetype"); font-weight: 900; font-style: normal;  font-display: swap; }
+@font-face { font-family: "Helvetica Now Display";  src: url("/fonts/HelveticaNowDisplay-BlackIta.ttf")    format("truetype"); font-weight: 900; font-style: italic;  font-display: swap; }
+
+/* ── Tokens ─────────────────────────────────────────────── */
+:root {
+  --khi-blue:        #316BFF;
+  --khi-blue-deep:   #003ACE;
+  --khi-blue-bright: #4579FF;
+  --khi-blue-soft:   #8FAFFF;
+  --khi-ink:         #040B1C;
+  --khi-ink-soft:    #02040A;
+  --border-default:  rgba(255,255,255,0.08);
+  --border-strong:   rgba(255,255,255,0.16);
+  --border-blue:     rgba(49,107,255,0.30);
+  --border-blue-lit: rgba(49,107,255,0.55);
+  --fg-1: rgba(255,255,255,1);
+  --fg-2: rgba(255,255,255,0.70);
+  --fg-3: rgba(255,255,255,0.45);
+  --fg-4: rgba(255,255,255,0.30);
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  html, body {
+    @apply bg-khi-ink text-white antialiased;
+    font-family: "Helvetica", "Helvetica Neue", Arial, sans-serif;
+  }
+  body {
+    overflow-x: hidden;
+  }
+  /* smooth scroll for in-page anchors */
+  html { scroll-behavior: smooth; }
+
+  /* Headlines default to display family */
+  h1, h2, h3, h4 {
+    font-family: "Helvetica Now Display", "Helvetica", system-ui, sans-serif;
+    letter-spacing: -0.035em;
+    line-height: 1.04;
+  }
+
+  /* Visible, brand-coloured focus rings on every focusable element */
+  :focus-visible {
+    outline: 2px solid var(--khi-blue);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Reduced motion: kill ambient animations */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* The brand's signature accent: italic blue word with a soft aura */
+  .kx-accent {
+    position: relative;
+    display: inline-block;
+    isolation: isolate;
+    color: var(--khi-blue);
+    font-family: "Helvetica Now Display", "Helvetica", system-ui, sans-serif;
+    font-style: italic;
+    font-weight: 800;
+  }
+  .kx-accent::after {
+    content: '';
+    position: absolute;
+    inset: 18% -10%;
+    background: radial-gradient(ellipse at center,
+      rgba(143,175,255,0.7) 0%,
+      rgba(49,107,255,0.42) 42%,
+      rgba(49,107,255,0.2) 70%,
+      transparent 100%);
+    filter: blur(12px);
+    opacity: 0.62;
+    z-index: -1;
+    animation: kxAura 3.2s ease-in-out infinite;
+  }
+
+  /* Eyebrow / section tag */
+  .kx-eyebrow {
+    @apply inline-flex items-center gap-[10px] text-[12px] font-bold uppercase text-khi-blue;
+    letter-spacing: 0.22em;
+  }
+  .kx-eyebrow::before {
+    content: '';
+    width: 24px;
+    height: 2px;
+    background: var(--khi-blue);
+  }
+
+  /* Buttons */
+  .kx-btn {
+    @apply inline-flex items-center gap-2 rounded-full font-medium leading-none transition-all duration-200 ease-soft;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-khi-blue-bright focus-visible:ring-offset-2 focus-visible:ring-offset-khi-ink;
+  }
+  .kx-btn-primary {
+    @apply kx-btn bg-khi-blue text-white px-7 py-3.5 text-sm;
+    box-shadow: 0 6px 22px rgba(49,107,255,0.32);
+  }
+  .kx-btn-primary:hover:not(:disabled) {
+    @apply bg-khi-blue-bright -translate-y-0.5;
+    box-shadow: 0 14px 36px rgba(49,107,255,0.5);
+  }
+  .kx-btn-primary:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+  .kx-btn-outline {
+    @apply kx-btn bg-transparent text-white/70 px-6 py-3 text-sm;
+    border: 1px solid var(--border-default);
+  }
+  .kx-btn-outline:hover {
+    border-color: var(--border-blue);
+    @apply text-white;
+  }
+
+  /* Card */
+  .kx-card {
+    @apply rounded-2xl p-7 transition-all duration-200 ease-soft;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border-default);
+  }
+  .kx-card:hover {
+    border-color: var(--border-blue);
+  }
+
+  /* Form fields */
+  .kx-label {
+    @apply block text-[11px] font-bold uppercase text-white/30 mb-1.5;
+    letter-spacing: 0.16em;
+  }
+  .kx-input {
+    @apply w-full rounded-xl px-4 py-3.5 text-[15px] text-white bg-white/[0.04] outline-none transition-all duration-200 ease-soft;
+    border: 1px solid var(--border-default);
+    font-family: "Helvetica", "Helvetica Neue", Arial, sans-serif;
+  }
+  .kx-input:focus {
+    border-color: var(--border-blue-lit);
+    background: rgba(49,107,255,0.06);
+    box-shadow: 0 0 0 4px rgba(49,107,255,0.12);
+  }
+  .kx-input::placeholder { @apply text-white/30; }
+
+  /* Section shells */
+  .kx-section {
+    @apply max-w-page mx-auto px-6 md:px-14 py-20 md:py-28;
+  }
+  .kx-section-flush {
+    @apply px-6 md:px-14 py-20 md:py-28;
+  }
+}
+
+/* Smooth-scroll fade-in element */
+.fade-up {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.8s var(--ease-soft), transform 0.8s var(--ease-soft);
+}
+.fade-up.in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Sponsor logo grid item — monochrome white, glow on hover */
+.sponsor-logo {
+  filter: brightness(0) invert(1);
+  opacity: 0.55;
+  transition: opacity 0.25s var(--ease-soft), filter 0.25s var(--ease-soft);
+}
+.sponsor-logo:hover {
+  opacity: 1;
+  filter: brightness(0) invert(1) drop-shadow(0 0 12px rgba(49,107,255,0.6));
+}
+
+/* Skip-to-content link (a11y) */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 16px;
+  z-index: 200;
+  background: var(--khi-blue);
+  color: white;
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: top 0.2s var(--ease-soft);
+}
+.skip-link:focus {
+  top: 16px;
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
