@@ -35,21 +35,6 @@ export async function updateSession(request: NextRequest) {
           );
         },
       },
-      // See lib/supabase/client.ts — strip opaque keys from Authorization.
-      global: {
-        fetch: (input, init) => {
-          const headers = new Headers(init?.headers);
-          const auth = headers.get("Authorization") ?? headers.get("authorization");
-          if (auth) {
-            const token = auth.replace(/^Bearer\s+/i, "");
-            if (/^sb_(publishable|secret)_/.test(token)) {
-              headers.delete("Authorization");
-              headers.delete("authorization");
-            }
-          }
-          return fetch(input, { ...init, headers });
-        },
-      },
     });
 
     // Refresh expired session token if needed.
