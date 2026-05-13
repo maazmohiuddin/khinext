@@ -1,4 +1,5 @@
 import { Hero } from "@/components/sections/Hero";
+import { Countdown } from "@/components/sections/Countdown";
 import { EventDates } from "@/components/sections/EventDates";
 import { Stats } from "@/components/sections/Stats";
 import { Domains } from "@/components/sections/Domains";
@@ -9,6 +10,7 @@ export default function HomePage() {
   return (
     <>
       <Hero />
+      <Countdown />
       <EventDates />
       <Stats />
       <Domains />

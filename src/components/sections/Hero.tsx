@@ -1,29 +1,77 @@
 "use client";
 
 import Link from "next/link";
-import { motion, useReducedMotion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
+import { ArrowRight, Sparkles } from "lucide-react";
 
 export function Hero() {
   const reduced = useReducedMotion();
   const initial = reduced ? false : { opacity: 0, y: 28 };
 
+  const sectionRef = useRef<HTMLElement>(null);
+  const imageRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  // Scroll-tied parallax for the photographic layer
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start start", "end start"],
+  });
+  const imageY = useTransform(scrollYProgress, [0, 1], ["0%", reduced ? "0%" : "18%"]);
+  const imageScale = useTransform(scrollYProgress, [0, 1], [1, reduced ? 1 : 1.08]);
+  const contentY = useTransform(scrollYProgress, [0, 1], ["0%", reduced ? "0%" : "-12%"]);
+  const contentOpacity = useTransform(scrollYProgress, [0, 0.8], [1, reduced ? 1 : 0.2]);
+
+  // Mouse parallax — counter-move the glass-hands + grid based on cursor
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    if (window.matchMedia("(pointer: coarse), (prefers-reduced-motion: reduce)").matches) return;
+
+    let raf = 0;
+    const handle = (e: MouseEvent) => {
+      const r = section.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - 0.5;
+      const y = (e.clientY - r.top) / r.height - 0.5;
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        if (imageRef.current) {
+          imageRef.current.style.transform = `translate3d(${x * -22}px, ${y * -16}px, 0) scale(1.04)`;
+        }
+        if (gridRef.current) {
+          gridRef.current.style.transform = `translate3d(${x * 14}px, ${y * 10}px, 0)`;
+        }
+      });
+    };
+    section.addEventListener("mousemove", handle);
+    return () => {
+      cancelAnimationFrame(raf);
+      section.removeEventListener("mousemove", handle);
+    };
+  }, []);
+
   return (
     <section
+      ref={sectionRef}
       aria-labelledby="hero-title"
       className="relative min-h-[calc(100svh-76px)] grid place-items-center text-center px-5 md:px-10 py-20 md:py-24 overflow-hidden isolate bg-khi-ink-soft"
     >
-      {/* photographic background */}
-      <div
+      {/* photographic background (parallax + mouse follow) */}
+      <motion.div
+        ref={imageRef}
         aria-hidden="true"
-        className="absolute inset-0 -z-30"
+        className="absolute inset-0 -z-30 transition-transform duration-300 ease-out"
         style={{
+          y: imageY,
+          scale: imageScale,
           backgroundImage: "url('/brand/glass-hands.png')",
           backgroundSize: "cover",
           backgroundPosition: "center",
           opacity: 0.72,
           maskImage: "radial-gradient(ellipse 90% 100% at 50% 60%, #000 30%, transparent 95%)",
           WebkitMaskImage: "radial-gradient(ellipse 90% 100% at 50% 60%, #000 30%, transparent 95%)",
+          willChange: "transform",
         }}
       />
       {/* mesh blue glow */}
@@ -37,10 +85,11 @@ export function Hero() {
           opacity: 0.6,
         }}
       />
-      {/* faint blueprint grid */}
+      {/* faint blueprint grid (mouse follow) */}
       <div
+        ref={gridRef}
         aria-hidden="true"
-        className="absolute inset-0 -z-20 pointer-events-none animate-grid-drift"
+        className="absolute inset-0 -z-20 pointer-events-none animate-grid-drift transition-transform duration-300 ease-out"
         style={{
           backgroundImage: "linear-gradient(rgba(49,107,255,0.16) 1px, transparent 1px), linear-gradient(90deg, rgba(49,107,255,0.16) 1px, transparent 1px)",
           backgroundSize: "56px 56px",
@@ -58,7 +107,10 @@ export function Hero() {
         }}
       />
 
-      <div className="relative z-10 flex flex-col items-center">
+      <motion.div
+        style={{ y: contentY, opacity: contentOpacity }}
+        className="relative z-10 flex flex-col items-center"
+      >
         <motion.div
           initial={initial}
           animate={{ opacity: 1, y: 0 }}
@@ -71,7 +123,7 @@ export function Hero() {
             className="w-[7px] h-[7px] rounded-full bg-khi-blue-bright animate-pulse-dot"
             style={{ boxShadow: "0 0 12px #4579FF" }}
           />
-          Karachi · 2026 · AI Expo + Gaming
+          Karachi · 7 June 2026 · AI Expo + Gaming
         </motion.div>
 
         <motion.h1
@@ -104,7 +156,7 @@ export function Hero() {
           className="mt-6 max-w-[560px] text-[15px] md:text-base text-white/55 leading-relaxed"
         >
           10,000+ attendees. 100+ speakers. 7 innovation domains.<br className="hidden md:inline" />
-          Two days that will define South Asia's tech decade.
+          One day that will define South Asia's tech decade.
         </motion.p>
 
         <motion.div
@@ -117,11 +169,24 @@ export function Hero() {
             Register Now
             <ArrowRight size={16} aria-hidden="true" />
           </Link>
-          <Link href="/submit" className="kx-btn-outline">
-            Submit AI Project
+          <Link href="/ai-expo" className="kx-btn-outline">
+            <Sparkles size={15} aria-hidden="true" />
+            Explore AI Expo
           </Link>
         </motion.div>
-      </div>
+
+        {/* scroll cue */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1, delay: 1.2 }}
+          className="absolute left-1/2 -translate-x-1/2 -bottom-2 md:bottom-0 flex flex-col items-center gap-1.5 text-white/30"
+          aria-hidden="true"
+        >
+          <span className="text-[9px] uppercase font-bold" style={{ letterSpacing: "0.36em" }}>Scroll</span>
+          <span className="block w-px h-9 bg-gradient-to-b from-white/30 to-transparent animate-scroll-cue" />
+        </motion.div>
+      </motion.div>
     </section>
   );
 }

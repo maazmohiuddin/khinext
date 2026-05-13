@@ -51,6 +51,7 @@ const config: Config = {
         "hero-float":   "heroFloat 9s ease-in-out infinite",
         "aura":         "kxAura 3.2s ease-in-out infinite",
         "btn-glow":     "btnGlow 3.5s ease-in-out infinite",
+        "scroll-cue":   "scrollCue 2.2s ease-in-out infinite",
       },
       keyframes: {
         pulseDot: {
@@ -76,6 +77,11 @@ const config: Config = {
         btnGlow: {
           "0%,100%": { boxShadow: "0 0 0 0 rgba(49,107,255,0.40), 0 6px 22px rgba(49,107,255,0.32)" },
           "50%":     { boxShadow: "0 0 24px 6px rgba(49,107,255,0.18), 0 6px 22px rgba(49,107,255,0.32)" },
+        },
+        scrollCue: {
+          "0%":      { transform: "scaleY(0.2) translateY(-50%)", transformOrigin: "top" },
+          "50%":     { transform: "scaleY(1) translateY(0%)",     transformOrigin: "top" },
+          "100%":    { transform: "scaleY(0.2) translateY(50%)",  transformOrigin: "bottom" },
         },
       },
       transitionTimingFunction: {

@@ -3,6 +3,7 @@ import "./globals.css";
 import { Nav } from "@/components/layout/Nav";
 import { Footer } from "@/components/layout/Footer";
 import { PageTransition } from "@/components/layout/PageTransition";
+import { Preloader } from "@/components/layout/Preloader";
 
 export const metadata: Metadata = {
   title: "Khinext '26 — Pakistan's First Multi-Domain AI Summit",
@@ -29,6 +30,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <a href="#main-content" className="skip-link">Skip to main content</a>
+        <Preloader />
         <Nav />
         <PageTransition>{children}</PageTransition>
         <Footer />

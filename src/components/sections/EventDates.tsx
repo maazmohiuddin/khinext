@@ -2,7 +2,7 @@ import { Reveal } from "@/components/ui/Reveal";
 import { CalendarDays, MapPin, Ticket, Users } from "lucide-react";
 
 const DATES = [
-  { icon: CalendarDays, label: "Dates",    value: "14 – 15 March 2026" },
+  { icon: CalendarDays, label: "Date",     value: "Sat · 7 June 2026" },
   { icon: MapPin,       label: "Venue",    value: "Karachi, Pakistan" },
   { icon: Users,        label: "Capacity", value: "10,000+ attendees" },
   { icon: Ticket,       label: "Tracks",   value: "AI Expo + Gaming" },
@@ -21,9 +21,9 @@ export function EventDates() {
             {DATES.map(({ icon: Icon, label, value }) => (
               <li
                 key={label}
-                className="bg-khi-ink p-6 md:p-7 flex flex-col gap-3"
+                className="bg-khi-ink p-6 md:p-7 flex flex-col gap-3 group transition-colors duration-300 ease-soft hover:bg-white/[0.02]"
               >
-                <Icon size={18} className="text-khi-blue" aria-hidden="true" />
+                <Icon size={18} className="text-khi-blue transition-transform duration-300 ease-soft group-hover:scale-110 group-hover:-rotate-3" aria-hidden="true" />
                 <div className="text-[10px] md:text-[11px] font-bold uppercase text-white/30" style={{ letterSpacing: "0.18em" }}>
                   {label}
                 </div>

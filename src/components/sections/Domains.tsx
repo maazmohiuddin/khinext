@@ -1,5 +1,22 @@
+"use client";
+
+import {
+  Stethoscope, Building2, Sparkles, Coins,
+  TerminalSquare, HeartPulse, TrendingUp,
+} from "lucide-react";
 import { Reveal } from "@/components/ui/Reveal";
+import { MouseTilt } from "@/components/ui/MouseTilt";
 import { DOMAINS } from "@/lib/types";
+
+const ICONS = {
+  health:    Stethoscope,
+  cities:    Building2,
+  creative:  Sparkles,
+  fintech:   Coins,
+  devzone:   TerminalSquare,
+  lifestyle: HeartPulse,
+  investor:  TrendingUp,
+} as const;
 
 export function Domains() {
   return (
@@ -22,38 +39,66 @@ export function Domains() {
       </Reveal>
 
       <ul className="mt-14 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {DOMAINS.map((d, i) => (
-          <Reveal as="li" key={d.key} delay={i * 0.05} className="contents">
-            <article
-              className="kx-card group h-full focus-within:border-blue-lit"
-              tabIndex={0}
-              aria-label={`Domain: ${d.title}`}
-            >
-              <div className="flex items-center gap-3.5 mb-4">
-                <div
-                  className="grid place-items-center w-12 h-12 rounded-xl transition-transform duration-300 ease-soft group-hover:scale-110"
-                  style={{
-                    background: `${d.color}22`,
-                    border: `1px solid ${d.color}44`,
-                    boxShadow: `0 0 18px ${d.color}33`,
-                  }}
-                  aria-hidden="true"
+        {DOMAINS.map((d, i) => {
+          const Icon = ICONS[d.key as keyof typeof ICONS] ?? Sparkles;
+          return (
+            <Reveal as="li" key={d.key} delay={i * 0.05}>
+              <MouseTilt max={6} scale={1.015}>
+                <article
+                  className="kx-card group h-full focus-within:border-blue-lit relative overflow-hidden"
+                  tabIndex={0}
+                  aria-label={`Domain: ${d.title}`}
                 >
+                  {/* hover halo */}
                   <div
-                    className="w-4 h-4 rounded"
-                    style={{ background: d.color }}
+                    aria-hidden="true"
+                    className="absolute -top-12 -right-12 w-40 h-40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                    style={{
+                      background: `radial-gradient(circle, ${d.color}33 0%, transparent 70%)`,
+                      filter: "blur(20px)",
+                    }}
                   />
-                </div>
-                <h3 className="font-display text-base font-semibold text-white -tracking-tight">
-                  {d.title}
-                </h3>
-              </div>
-              <p className="text-sm text-white/55 leading-relaxed">
-                {d.desc}
-              </p>
-            </article>
-          </Reveal>
-        ))}
+                  {/* domain index */}
+                  <span
+                    className="absolute top-5 right-6 font-display font-extrabold text-white/[0.06] text-5xl select-none"
+                    aria-hidden="true"
+                  >
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+
+                  <div className="relative flex items-center gap-3.5 mb-4">
+                    <div
+                      className="grid place-items-center w-12 h-12 rounded-xl transition-all duration-300 ease-soft group-hover:scale-110 group-hover:-rotate-6"
+                      style={{
+                        background: `${d.color}1F`,
+                        border: `1px solid ${d.color}55`,
+                        boxShadow: `0 0 22px ${d.color}33, inset 0 1px 0 ${d.color}55`,
+                      }}
+                      aria-hidden="true"
+                    >
+                      <Icon size={20} style={{ color: d.color }} strokeWidth={1.8} />
+                    </div>
+                    <h3 className="font-display text-base font-semibold text-white -tracking-tight">
+                      {d.title}
+                    </h3>
+                  </div>
+                  <p className="relative text-sm text-white/55 leading-relaxed">
+                    {d.desc}
+                  </p>
+
+                  {/* bottom accent line */}
+                  <div
+                    aria-hidden="true"
+                    className="absolute left-6 right-6 bottom-0 h-px scale-x-0 origin-left transition-transform duration-500 ease-soft group-hover:scale-x-100"
+                    style={{
+                      background: `linear-gradient(90deg, ${d.color}, transparent)`,
+                    }}
+                  />
+                </article>
+              </MouseTilt>
+            </Reveal>
+          );
+        })}
       </ul>
     </section>
   );
