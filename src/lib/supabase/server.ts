@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 /**
  * Server-side Supabase client bound to the request's cookies.
@@ -13,23 +14,21 @@ export function createServerSupabaseClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
+        getAll() {
+          return cookieStore.getAll();
         },
-        set(name: string, value: string, options) {
+        setAll(cookiesToSet) {
           try {
-            cookieStore.set({ name, value, ...options });
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options),
+            );
           } catch {
-            // Called from a Server Component — Next.js disallows write here. Safe to ignore.
+            // Called from a Server Component — Next.js disallows write here.
+            // Safe to ignore: middleware refreshes the session on the next request.
           }
         },
-        remove(name: string, options) {
-          try {
-            cookieStore.set({ name, value: "", ...options });
-          } catch { /* see above */ }
-        },
       },
-    }
+    },
   );
 }
 
@@ -37,12 +36,10 @@ export function createServerSupabaseClient() {
  * Service-role client. Bypasses RLS. NEVER expose to the browser.
  * Use sparingly: admin API routes only.
  */
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
-
 export function createServiceClient() {
   return createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false } }
+    { auth: { persistSession: false, autoRefreshToken: false } },
   );
 }

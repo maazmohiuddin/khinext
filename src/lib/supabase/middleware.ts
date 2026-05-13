@@ -13,7 +13,6 @@ export async function updateSession(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  // If env vars aren't configured, don't crash the whole site.
   if (!supabaseUrl || !supabaseKey) {
     return NextResponse.next({ request });
   }
@@ -23,16 +22,17 @@ export async function updateSession(request: NextRequest) {
   try {
     const supabase = createServerClient(supabaseUrl, supabaseKey, {
       cookies: {
-        get(name) { return request.cookies.get(name)?.value; },
-        set(name, value, options) {
-          request.cookies.set({ name, value, ...options });
-          supabaseResponse = NextResponse.next({ request });
-          supabaseResponse.cookies.set({ name, value, ...options });
+        getAll() {
+          return request.cookies.getAll();
         },
-        remove(name, options) {
-          request.cookies.set({ name, value: "", ...options });
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value),
+          );
           supabaseResponse = NextResponse.next({ request });
-          supabaseResponse.cookies.set({ name, value: "", ...options });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options),
+          );
         },
       },
     });
@@ -52,8 +52,6 @@ export async function updateSession(request: NextRequest) {
       }
     }
   } catch (e) {
-    // If the auth call throws (Supabase outage, malformed key, etc.) we
-    // pass through. Page-level guards still enforce admin auth.
     console.error("[middleware] supabase error:", e);
   }
 
