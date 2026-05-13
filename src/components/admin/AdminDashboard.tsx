@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Registration, Submission, SubmissionStatus } from "@/lib/types";
 import { SubmissionsTable } from "./SubmissionsTable";
 import { RegistrationsTable } from "./RegistrationsTable";
 import { Toast } from "./Toast";
+import { LiveBadge, type LiveStatus } from "./LiveBadge";
 
 type Tab = "submissions" | "registrations";
 
@@ -24,6 +25,15 @@ export function AdminDashboard({
   const [tab, setTab] = useState<Tab>("submissions");
   const [filter, setFilter] = useState<"all" | SubmissionStatus>("all");
   const [toast, setToast] = useState<string | null>(null);
+  const [liveStatus, setLiveStatus] = useState<LiveStatus>("connecting");
+
+  // First mount: don't toast for the initial state — only for events that arrive AFTER subscription.
+  const subscribedRef = useRef(false);
+
+  function showToast(message: string) {
+    setToast(message);
+    window.setTimeout(() => setToast(null), 3500);
+  }
 
   // ── Realtime subscriptions ───────────────────────────────
   useEffect(() => {
@@ -32,7 +42,11 @@ export function AdminDashboard({
       .channel("admin-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "submissions" }, payload => {
         setSubmissions(curr => {
-          if (payload.eventType === "INSERT") return [payload.new as Submission, ...curr];
+          if (payload.eventType === "INSERT") {
+            const next = payload.new as Submission;
+            if (subscribedRef.current) showToast(`New submission · ${next.full_name ?? "Anonymous"}`);
+            return [next, ...curr];
+          }
           if (payload.eventType === "UPDATE") return curr.map(s => s.id === (payload.new as Submission).id ? (payload.new as Submission) : s);
           if (payload.eventType === "DELETE") return curr.filter(s => s.id !== (payload.old as Submission).id);
           return curr;
@@ -40,14 +54,40 @@ export function AdminDashboard({
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "registrations" }, payload => {
         setRegistrations(curr => {
-          if (payload.eventType === "INSERT") return [payload.new as Registration, ...curr];
+          if (payload.eventType === "INSERT") {
+            const next = payload.new as Registration;
+            if (subscribedRef.current) showToast(`New registration · ${next.full_name}`);
+            return [next, ...curr];
+          }
           if (payload.eventType === "UPDATE") return curr.map(r => r.id === (payload.new as Registration).id ? (payload.new as Registration) : r);
           if (payload.eventType === "DELETE") return curr.filter(r => r.id !== (payload.old as Registration).id);
           return curr;
         });
       })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+      .subscribe(status => {
+        if (status === "SUBSCRIBED") {
+          subscribedRef.current = true;
+          setLiveStatus("live");
+        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          setLiveStatus("down");
+        } else if (status === "CLOSED") {
+          setLiveStatus("down");
+        }
+      });
+
+    // Tab visibility: reset state hint when user comes back to the tab,
+    // so they see the live indicator update if the socket dropped while hidden.
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && channel.state !== "joined") {
+        setLiveStatus("connecting");
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const counts = useMemo(() => ({
@@ -61,11 +101,6 @@ export function AdminDashboard({
     () => filter === "all" ? submissions : submissions.filter(s => s.status === filter),
     [submissions, filter]
   );
-
-  function showToast(message: string) {
-    setToast(message);
-    window.setTimeout(() => setToast(null), 3200);
-  }
 
   async function decide(submissionId: string, decision: "approved" | "rejected") {
     const res = await fetch(`/api/admin/submissions/${submissionId}/decide`, {
@@ -91,7 +126,8 @@ export function AdminDashboard({
             Khinext <span className="kx-accent">'26</span>
           </h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <LiveBadge status={liveStatus} />
           <span className="text-xs text-white/45">
             Signed in as <strong className="text-white">{adminEmail}</strong>
           </span>

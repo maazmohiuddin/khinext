@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft, Mail, CheckCircle2, Clock, Phone, Building2,
@@ -9,6 +9,8 @@ import {
 import type { Registration } from "@/lib/types";
 import { TRACK_LABELS } from "@/lib/types";
 import { Toast } from "@/components/admin/Toast";
+import { LiveBadge, type LiveStatus } from "@/components/admin/LiveBadge";
+import { createClient } from "@/lib/supabase/client";
 
 export function RegistrationDetail({ initial }: { initial: Registration }) {
   const [registration, setRegistration] = useState<Registration>(initial);
@@ -16,6 +18,32 @@ export function RegistrationDetail({ initial }: { initial: Registration }) {
   const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [liveStatus, setLiveStatus] = useState<LiveStatus>("connecting");
+
+  // ── Realtime: subscribe to UPDATE/DELETE on THIS registration row only ──
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`registration-${initial.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "registrations", filter: `id=eq.${initial.id}` },
+        payload => setRegistration(payload.new as Registration),
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "registrations", filter: `id=eq.${initial.id}` },
+        () => {
+          setError("This registration was deleted by another admin.");
+          setLiveStatus("down");
+        },
+      )
+      .subscribe(status => {
+        if (status === "SUBSCRIBED") setLiveStatus("live");
+        else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") setLiveStatus("down");
+      });
+    return () => { supabase.removeChannel(channel); };
+  }, [initial.id]);
 
   const confirmed = !!registration.confirmed_at;
   const hasSent = (registration.confirmation_email_count ?? 0) > 0;
@@ -49,14 +77,17 @@ export function RegistrationDetail({ initial }: { initial: Registration }) {
 
   return (
     <div className="max-w-page mx-auto px-6 md:px-14 py-10 md:py-14">
-      {/* Breadcrumb */}
-      <Link
-        href="/admin"
-        className="inline-flex items-center gap-2 text-sm text-white/55 hover:text-white transition-colors mb-6"
-      >
-        <ArrowLeft size={14} aria-hidden="true" />
-        Back to dashboard
-      </Link>
+      {/* Breadcrumb + live indicator */}
+      <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
+        <Link
+          href="/admin"
+          className="inline-flex items-center gap-2 text-sm text-white/55 hover:text-white transition-colors"
+        >
+          <ArrowLeft size={14} aria-hidden="true" />
+          Back to dashboard
+        </Link>
+        <LiveBadge status={liveStatus} />
+      </div>
 
       {/* Header card */}
       <header className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 md:p-10">
