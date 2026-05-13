@@ -59,9 +59,11 @@ export function RegisterForm() {
     setSubmitting(true);
     setError(null);
     const supabase = createClient();
-    const { data, error } = await supabase
+    const id = crypto.randomUUID();
+    const { error } = await supabase
       .from("registrations")
       .insert({
+        id,
         full_name: form.fullName,
         email: form.email.trim().toLowerCase(),
         phone: form.phone || null,
@@ -69,15 +71,13 @@ export function RegisterForm() {
         role: form.role,
         track: form.track,
         referral: form.referral || null,
-      })
-      .select("id")
-      .single();
+      });
     setSubmitting(false);
-    if (error || !data) {
-      setError(error?.message ?? "Could not register. Please try again.");
+    if (error) {
+      setError(error.message ?? "Could not register. Please try again.");
       return;
     }
-    setDone({ id: data.id.slice(0, 8).toUpperCase(), name: form.fullName, email: form.email, track: TRACK_LABELS[form.track] });
+    setDone({ id: id.slice(0, 8).toUpperCase(), name: form.fullName, email: form.email, track: TRACK_LABELS[form.track] });
   }
 
   if (done) {

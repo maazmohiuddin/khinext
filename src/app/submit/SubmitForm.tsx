@@ -73,9 +73,11 @@ export function SubmitForm() {
         filePath = key;
       }
 
-      const { data, error: insErr } = await supabase
+      const submissionId = crypto.randomUUID();
+      const { error: insErr } = await supabase
         .from("submissions")
         .insert({
+          id: submissionId,
           full_name: form.fullName,
           email: form.email.trim().toLowerCase(),
           project: form.project,
@@ -83,12 +85,10 @@ export function SubmitForm() {
           description: form.description,
           team_size: form.teamSize,
           file_path: filePath,
-        })
-        .select("id")
-        .single();
+        });
 
-      if (insErr || !data) throw insErr ?? new Error("Could not save submission.");
-      setDone({ id: data.id.slice(0, 8).toUpperCase(), name: form.fullName });
+      if (insErr) throw insErr;
+      setDone({ id: submissionId.slice(0, 8).toUpperCase(), name: form.fullName });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Submission failed. Please try again.";
       setError(msg);
