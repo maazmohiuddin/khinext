@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { LogOut } from "lucide-react";
+import { LogOut, Mail } from "lucide-react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { Registration, Submission, SubmissionStatus } from "@/lib/types";
 import { SubmissionsTable } from "./SubmissionsTable";
@@ -131,6 +132,13 @@ export function AdminDashboard({
           <span className="text-xs text-white/45">
             Signed in as <strong className="text-white">{adminEmail}</strong>
           </span>
+          <Link
+            href="/admin/bulk-email"
+            className="kx-btn kx-btn-primary !py-2 !px-4 !text-xs"
+          >
+            <Mail size={14} aria-hidden="true" />
+            Invitation Mailer
+          </Link>
           <form action="/api/admin/signout" method="post">
             <button className="kx-btn-outline !py-2 !px-4 !text-xs" type="submit">
               <LogOut size={14} aria-hidden="true" />
