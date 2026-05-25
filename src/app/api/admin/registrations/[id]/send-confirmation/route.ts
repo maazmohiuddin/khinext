@@ -6,16 +6,17 @@ import type { Registration } from "@/lib/types";
 
 /**
  * POST /api/admin/registrations/[id]/send-confirmation
- *   Sends (or resends) the branded "slot confirmed" email via Resend,
- *   marks the registration as confirmed, and stamps the audit columns.
+ * Sends (or resends) the branded "slot confirmed" email via SMTP,
+ * marks the registration as confirmed, and stamps the audit columns.
  */
 export async function POST(
-  request: Request,
+  _request: Request,
   { params }: { params: { id: string } }
 ) {
   const auth = createServerSupabaseClient();
   const { data: { user } } = await auth.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+
   const { data: isAdmin } = await auth.rpc("is_admin");
   if (!isAdmin) return NextResponse.json({ error: "Not an admin." }, { status: 403 });
 
@@ -31,7 +32,7 @@ export async function POST(
   }
 
   try {
-    const result = await sendRegistrationConfirmation({
+    await sendRegistrationConfirmation({
       to: reg.email,
       fullName: reg.full_name,
       registrationId: reg.id,
@@ -39,15 +40,11 @@ export async function POST(
       role: reg.role,
       resend: (reg.confirmation_email_count ?? 0) > 0,
     });
-    if ("error" in result && result.error) {
-      throw new Error(typeof result.error === "string" ? result.error : (result.error.message ?? "Resend error"));
-    }
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Email send failed.";
     return NextResponse.json({ error: msg }, { status: 502 });
   }
 
-  // Mark as confirmed + stamp the audit columns.
   const now = new Date().toISOString();
   const { data: updated, error: updErr } = await svc
     .from("registrations")

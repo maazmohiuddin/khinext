@@ -1,54 +1,50 @@
 /**
- * Resend wrapper + Khinext email templates.
- *
+ * Transactional email — now sent via SMTP (nodemailer) instead of Resend.
  * Server-only — never import from a client component.
- * All transactional emails inherit the shell in `lib/email/layout.ts`
- * so brand chrome (header, footer, dark gradient) stays consistent.
  */
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 import { renderKhinextEmail, type KhinextEmailParams } from "./email/layout";
 
-let _client: Resend | null = null;
-function client() {
-  if (!_client) {
-    const key = process.env.RESEND_API_KEY;
-    if (!key) throw new Error("RESEND_API_KEY is not configured.");
-    _client = new Resend(key);
-  }
-  return _client;
+function createTransport() {
+  const host = process.env.SMTP_HOST ?? "mail.khinext.com";
+  const port = Number(process.env.SMTP_PORT ?? 465);
+  const user = process.env.SMTP_USER ?? "info@khinext.com";
+  const pass = process.env.SMTP_PASS;
+  if (!pass) throw new Error("SMTP_PASS is not configured.");
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure: true,
+    auth: { user, pass },
+    tls: { rejectUnauthorized: false },
+  });
 }
 
-const FROM = process.env.EMAIL_FROM ?? "Khinext '26 <info@khinext.com>";
-const REPLY_TO = process.env.EMAIL_REPLY_TO ?? "info@khinext.com";
+const FROM_ADDRESS = process.env.SMTP_USER ?? "info@khinext.com";
+const FROM = `Khinext '26 <${FROM_ADDRESS}>`;
 
-// ─────────────────────────────────────────────────────────────
-// Generic send — re-export of the shell, for any one-off email
-// ─────────────────────────────────────────────────────────────
 export interface SendKhinextEmailParams extends KhinextEmailParams {
   to: string | string[];
   subject: string;
-  /** Plain-text fallback (auto-generated from body if omitted). */
   text?: string;
-  /** Optional Resend tag for analytics. */
-  refId?: string;
 }
 
 export async function sendKhinextEmail(p: SendKhinextEmailParams) {
+  const transport = createTransport();
   const html = renderKhinextEmail(p);
   const text = p.text ?? stripHtml(p.body);
-  return client().emails.send({
+  return transport.sendMail({
     from: FROM,
-    to: p.to,
-    replyTo: REPLY_TO,
+    to: Array.isArray(p.to) ? p.to.join(", ") : p.to,
+    replyTo: FROM_ADDRESS,
     subject: p.subject,
     html,
     text,
-    ...(p.refId ? { headers: { "X-Entity-Ref-ID": p.refId } } : {}),
   });
 }
 
 // ─────────────────────────────────────────────────────────────
-// Registration confirmation (uses the shell)
+// Registration confirmation
 // ─────────────────────────────────────────────────────────────
 
 interface RegistrationConfirmationParams {
@@ -57,7 +53,7 @@ interface RegistrationConfirmationParams {
   registrationId: string;
   track: string;
   role: string;
-  resend?: boolean;  // true = include "this is a resend" preheader
+  resend?: boolean;
 }
 
 export async function sendRegistrationConfirmation(p: RegistrationConfirmationParams) {
@@ -65,7 +61,6 @@ export async function sendRegistrationConfirmation(p: RegistrationConfirmationPa
   return sendKhinextEmail({
     to: p.to,
     subject: `You're confirmed for Khinext '26 — ${p.track}`,
-    refId: p.registrationId,
     preheader: `${p.resend ? "[Resend] " : ""}Your slot at Khinext '26 is confirmed. Karachi, 7 June 2026.`,
     eyebrow: "Registration · Confirmed",
     headline: `Your slot is <em data-accent>confirmed.</em>`,
@@ -76,12 +71,59 @@ export async function sendRegistrationConfirmation(p: RegistrationConfirmationPa
     `,
     details: [
       { label: "Registration ID", value: shortId },
-      { label: "Attendee", value: p.fullName },
-      { label: "Track", value: p.track },
-      { label: "Role", value: p.role },
-      { label: "Event", value: "Sat · 7 June 2026 · Karachi" },
+      { label: "Attendee",        value: p.fullName },
+      { label: "Track",           value: p.track },
+      { label: "Role",            value: p.role },
+      { label: "Event",           value: "Sat · 7 June 2026 · Karachi" },
     ],
     footerNote: "You're receiving this because you registered for Khinext '26.",
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// AI Expo submission decision email
+// ─────────────────────────────────────────────────────────────
+
+interface SubmissionDecisionParams {
+  to: string;
+  fullName: string;
+  projectName: string;
+  decision: "approved" | "rejected";
+  note?: string | null;
+}
+
+export async function sendSubmissionDecision(p: SubmissionDecisionParams) {
+  const approved = p.decision === "approved";
+  return sendKhinextEmail({
+    to: p.to,
+    subject: approved
+      ? `Your AI Expo submission is approved — Khinext '26`
+      : `Update on your AI Expo submission — Khinext '26`,
+    preheader: approved
+      ? `Congratulations! "${p.projectName}" has been approved for Khinext '26 AI Expo.`
+      : `We reviewed your submission "${p.projectName}" for Khinext '26.`,
+    eyebrow: approved ? "AI Expo · Approved" : "AI Expo · Update",
+    headline: approved
+      ? `Your project is <em data-accent>approved.</em>`
+      : `Submission <em data-accent>reviewed.</em>`,
+    greeting: `Hi <strong style="color:#040B1C">${escapeHtml(p.fullName)}</strong>,`,
+    body: approved
+      ? `
+        <p style="margin:0 0 18px">Congratulations — your project <strong style="color:#040B1C">"${escapeHtml(p.projectName)}"</strong> has been approved for the <strong style="color:#040B1C">Khinext '26 AI Expo</strong>!</p>
+        <p style="margin:0 0 18px">Our team will be in touch with next steps, including setup details and your allocated showcase slot. Get ready to present to Pakistan's top investors, engineers, and decision-makers.</p>
+        ${p.note ? `<p style="margin:0 0 18px"><strong style="color:#040B1C">Note from the team:</strong> ${escapeHtml(p.note)}</p>` : ""}
+      `
+      : `
+        <p style="margin:0 0 18px">Thank you for submitting <strong style="color:#040B1C">"${escapeHtml(p.projectName)}"</strong> to the Khinext '26 AI Expo. After review, we're unable to include this project in the current cohort.</p>
+        <p style="margin:0 0 18px">We encourage you to keep building — Khinext '26 is about the journey as much as the showcase. Stay connected for future opportunities.</p>
+        ${p.note ? `<p style="margin:0 0 18px"><strong style="color:#040B1C">Feedback:</strong> ${escapeHtml(p.note)}</p>` : ""}
+      `,
+    details: [
+      { label: "Project",  value: p.projectName },
+      { label: "Decision", value: approved ? "✓ Approved" : "✗ Not selected" },
+      { label: "Event",    value: "Sat · 7 June 2026 · Karachi" },
+    ],
+    footerNote: "You're receiving this because you submitted a project to Khinext '26 AI Expo.",
   });
 }
 

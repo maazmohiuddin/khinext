@@ -1,35 +1,23 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient, createServiceClient } from "@/lib/supabase/server";
+import { sendSubmissionDecision } from "@/lib/email";
+import type { Submission } from "@/lib/types";
 
 interface DecideBody {
   decision: "approved" | "rejected";
   note?: string;
 }
 
-/**
- * POST /api/admin/submissions/[id]/decide
- *   { decision: "approved" | "rejected", note?: string }
- *
- * Approves or rejects an AI Expo submission.
- *   1. Require an authenticated user.
- *   2. Verify the user is in the admins whitelist via is_admin() RPC.
- *   3. Update the submission with status + reviewer metadata.
- *   4. (TODO) Trigger an outbound approval email via Resend / SES.
- */
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   const auth = createServerSupabaseClient();
   const { data: { user } } = await auth.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
-  }
+  if (!user) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
 
   const { data: isAdmin } = await auth.rpc("is_admin");
-  if (!isAdmin) {
-    return NextResponse.json({ error: "Not an admin." }, { status: 403 });
-  }
+  if (!isAdmin) return NextResponse.json({ error: "Not an admin." }, { status: 403 });
 
   let body: DecideBody;
   try {
@@ -41,8 +29,19 @@ export async function POST(
     return NextResponse.json({ error: "Invalid decision." }, { status: 400 });
   }
 
-  // Service-role client so we don't depend on user-RLS for the update path.
   const svc = createServiceClient();
+
+  // Fetch submission to get submitter email + project name
+  const { data: sub, error: fetchErr } = await svc
+    .from("submissions")
+    .select("*")
+    .eq("id", params.id)
+    .single<Submission>();
+
+  if (fetchErr || !sub) {
+    return NextResponse.json({ error: fetchErr?.message ?? "Submission not found." }, { status: 404 });
+  }
+
   const { data: updated, error } = await svc
     .from("submissions")
     .update({
@@ -59,8 +58,19 @@ export async function POST(
     return NextResponse.json({ error: error?.message ?? "Update failed." }, { status: 500 });
   }
 
-  // Outbound email — wire in your provider here (Resend / Postmark / SES).
-  // For the prototype this is a no-op; the Email Preview UI shows what would be sent.
+  // Send decision email via SMTP
+  try {
+    await sendSubmissionDecision({
+      to: sub.email,
+      fullName: sub.full_name,
+      projectName: sub.project,
+      decision: body.decision,
+      note: body.note ?? null,
+    });
+  } catch {
+    // Non-fatal: DB is updated; log but don't fail the request
+    console.error(`Decision email failed for submission ${params.id}`);
+  }
 
   return NextResponse.json({ ok: true, submission: updated });
 }
