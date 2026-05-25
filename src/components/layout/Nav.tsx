@@ -17,6 +17,7 @@ const LINKS: NavLink[] = [
       { label: "Gaming",  href: "/gaming"  },
     ],
   },
+  { label: "My Card",  href: "/card-generator" },
   { label: "Submit",   href: "/submit" },
   { label: "Admin",    href: "/admin" },
 ];
@@ -174,6 +175,7 @@ export function Nav() {
             <MobileLink href="/ai-expo" label="AI Expo" indented />
             <MobileLink href="/gaming"  label="Gaming"  indented />
             <li className="mt-3" />
+            <MobileLink href="/card-generator" label="My Card" />
             <MobileLink href="/submit" label="Submit" />
             <MobileLink href="/admin" label="Admin" />
             <li className="mt-4">
