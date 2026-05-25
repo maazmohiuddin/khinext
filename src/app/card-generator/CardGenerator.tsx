@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Upload, Download, Share2, Check, X, ArrowLeft, Link2 } from "lucide-react";
+import { Upload, Download, Share2, Check, X, ArrowLeft, Link2, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 // ── Types ──────────────────────────────────────────────────────
@@ -15,10 +15,14 @@ interface CardState {
   photoDataUrl: string | null;
 }
 
-// ── Canvas constants ───────────────────────────────────────────
+// ── Size catalogue ─────────────────────────────────────────────
 
-const W = 1080;
-const H = 1080;
+const SIZES = {
+  square:   { W: 1080, H: 1080, label: "Square",   sub: "1080 × 1080" },
+  portrait: { W: 1080, H: 1350, label: "Portrait",  sub: "1080 × 1350" },
+  story:    { W: 1080, H: 1920, label: "Story",     sub: "1080 × 1920" },
+} as const;
+type SizeKey = keyof typeof SIZES;
 
 // ── Helpers ───────────────────────────────────────────────────
 
@@ -47,45 +51,41 @@ function loadDataUrlImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-// Center-crop image into circle
 function drawCircleImage(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement,
-  cx: number, cy: number, r: number
+  cx: number, cy: number, radius: number
 ) {
   const nw = img.naturalWidth, nh = img.naturalHeight;
   const minDim = Math.min(nw, nh);
   const sx = (nw - minDim) / 2, sy = (nh - minDim) / 2;
   ctx.save();
   ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
   ctx.clip();
-  ctx.drawImage(img, sx, sy, minDim, minDim, cx - r, cy - r, r * 2, r * 2);
+  ctx.drawImage(img, sx, sy, minDim, minDim, cx - radius, cy - radius, radius * 2, radius * 2);
   ctx.restore();
 }
 
 function drawPhotoPlaceholder(
   ctx: CanvasRenderingContext2D,
-  cx: number, cy: number, r: number, isVip: boolean
+  cx: number, cy: number, radius: number, isVip: boolean
 ) {
   ctx.save();
   ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
   ctx.fillStyle = isVip ? "rgba(255,184,0,0.07)" : "rgba(49,107,255,0.08)";
   ctx.fill();
   ctx.fillStyle = "rgba(255,255,255,0.09)";
-  // head
   ctx.beginPath();
-  ctx.arc(cx, cy - r * 0.26, r * 0.30, 0, Math.PI * 2);
+  ctx.arc(cx, cy - radius * 0.26, radius * 0.30, 0, Math.PI * 2);
   ctx.fill();
-  // body
   ctx.beginPath();
-  ctx.ellipse(cx, cy + r * 0.44, r * 0.50, r * 0.40, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx, cy + radius * 0.44, radius * 0.50, radius * 0.40, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 }
 
-// Fit text to maxWidth by shrinking font size
 function fitText(
   ctx: CanvasRenderingContext2D,
   text: string,
@@ -104,7 +104,6 @@ function fitText(
   ctx.fillText(text, x, y);
 }
 
-// Draw letter-spaced text by walking each character
 function drawSpaced(
   ctx: CanvasRenderingContext2D,
   text: string,
@@ -121,13 +120,19 @@ function drawSpaced(
 
 // ── Standard card ──────────────────────────────────────────────
 
-async function drawStandard(ctx: CanvasRenderingContext2D, s: CardState) {
-  // ── 1. Background fill
+async function drawStandard(
+  ctx: CanvasRenderingContext2D,
+  s: CardState,
+  W: number, H: number,
+  gen: number, genRef: React.MutableRefObject<number>
+) {
+  // Proportional scale factor relative to the reference 1080×1080 design
+  const ys = H / 1080;
+  const r = (n: number) => Math.round(n * ys);
+
   ctx.fillStyle = "#040B1C";
   ctx.fillRect(0, 0, W, H);
 
-  // ── 2. Blueprint grid — only drawn in outer / corner zones
-  // First draw full grid, then suppress center with a dark radial mask
   ctx.save();
   ctx.strokeStyle = "rgba(49,107,255,0.065)";
   ctx.lineWidth = 1;
@@ -139,116 +144,104 @@ async function drawStandard(ctx: CanvasRenderingContext2D, s: CardState) {
   }
   ctx.restore();
 
-  // Suppress grid behind content zone (center ellipse darkener)
-  const suppress = ctx.createRadialGradient(W / 2, H * 0.47, 100, W / 2, H * 0.47, 530);
+  const suppress = ctx.createRadialGradient(W / 2, H * 0.47, r(100), W / 2, H * 0.47, r(530));
   suppress.addColorStop(0,   "rgba(4,11,28,0.92)");
   suppress.addColorStop(0.6, "rgba(4,11,28,0.60)");
   suppress.addColorStop(1,   "rgba(4,11,28,0)");
   ctx.fillStyle = suppress;
   ctx.fillRect(0, 0, W, H);
 
-  // ── 3. Top glow — drawn only from top edge, limited radius
-  const tg = ctx.createRadialGradient(W / 2, 0, 0, W / 2, 0, 480);
+  const tg = ctx.createRadialGradient(W / 2, 0, 0, W / 2, 0, r(480));
   tg.addColorStop(0,   "rgba(49,107,255,0.28)");
   tg.addColorStop(0.6, "rgba(49,107,255,0.08)");
   tg.addColorStop(1,   "rgba(49,107,255,0)");
   ctx.fillStyle = tg;
-  ctx.fillRect(0, 0, W, 480);
+  ctx.fillRect(0, 0, W, r(480));
 
-  // ── 4. Logo
   try {
     const logo = await getLogoImg();
+    if (gen !== genRef.current) return;
     const lw = 200, lh = (logo.naturalHeight / logo.naturalWidth) * lw;
-    ctx.drawImage(logo, (W - lw) / 2, 52, lw, lh);
+    ctx.drawImage(logo, (W - lw) / 2, r(52), lw, lh);
   } catch { /* logo unavailable */ }
 
-  // Accent line under logo
   const al = ctx.createLinearGradient(W / 2 - 90, 0, W / 2 + 90, 0);
   al.addColorStop(0, "transparent");
   al.addColorStop(0.5, "rgba(49,107,255,0.65)");
   al.addColorStop(1, "transparent");
   ctx.fillStyle = al;
-  ctx.fillRect(W / 2 - 90, 132, 180, 1.5);
+  ctx.fillRect(W / 2 - 90, r(132), 180, 1.5);
 
-  // ── 5. "I AM ATTENDING"
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillStyle = "rgba(255,255,255,0.40)";
-  ctx.font = `700 24px "Helvetica Now Display", "Helvetica", sans-serif`;
-  drawSpaced(ctx, "I AM ATTENDING", W / 2, 166, 22);
+  ctx.font = `700 ${r(24)}px "Helvetica Now Display", "Helvetica", sans-serif`;
+  drawSpaced(ctx, "I AM ATTENDING", W / 2, r(166), r(22));
 
-  // ── 6. "KHINEXT" display text
-  ctx.font = `900 90px "Helvetica Now Display", "Helvetica", sans-serif`;
+  ctx.font = `900 ${r(90)}px "Helvetica Now Display", "Helvetica", sans-serif`;
   ctx.fillStyle = "#FFFFFF";
-  ctx.fillText("KHINEXT", W / 2, 268);
+  ctx.fillText("KHINEXT", W / 2, r(268));
 
-  // ── 7. Photo
-  const px = W / 2, py = 488, pr = 150;
+  const px = W / 2, py = r(488), pr = r(150);
 
-  // Photo halo — drawn as a disc, not full-canvas rect (avoids bleed)
-  const haloGrad = ctx.createRadialGradient(px, py, pr, px, py, pr + 62);
+  const haloGrad = ctx.createRadialGradient(px, py, pr, px, py, pr + r(62));
   haloGrad.addColorStop(0,   "rgba(49,107,255,0.14)");
   haloGrad.addColorStop(0.7, "rgba(49,107,255,0.04)");
   haloGrad.addColorStop(1,   "transparent");
   ctx.beginPath();
-  ctx.arc(px, py, pr + 62, 0, Math.PI * 2);
+  ctx.arc(px, py, pr + r(62), 0, Math.PI * 2);
   ctx.fillStyle = haloGrad;
   ctx.fill();
 
-  // Photo image / placeholder
   if (s.photoDataUrl) {
     try {
-      drawCircleImage(ctx, await loadDataUrlImage(s.photoDataUrl), px, py, pr);
+      const imgEl = await loadDataUrlImage(s.photoDataUrl);
+      if (gen !== genRef.current) return;
+      drawCircleImage(ctx, imgEl, px, py, pr);
     } catch { drawPhotoPlaceholder(ctx, px, py, pr, false); }
   } else {
     drawPhotoPlaceholder(ctx, px, py, pr, false);
   }
 
-  // Blue ring
   ctx.beginPath();
   ctx.arc(px, py, pr + 3, 0, Math.PI * 2);
   ctx.strokeStyle = "rgba(49,107,255,0.80)";
   ctx.lineWidth = 3;
   ctx.stroke();
 
-  // Outer soft ring
   ctx.beginPath();
-  ctx.arc(px, py, pr + 14, 0, Math.PI * 2);
+  ctx.arc(px, py, pr + r(14), 0, Math.PI * 2);
   ctx.strokeStyle = "rgba(49,107,255,0.15)";
   ctx.lineWidth = 7;
   ctx.stroke();
 
-  // ── 8. Name
   const nameText = s.name.trim() || "Your Name";
   ctx.fillStyle = "#FFFFFF";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  fitText(ctx, nameText, W / 2, 718, 860,
-    (sz) => `800 ${sz}px "Helvetica Now Display", "Helvetica", sans-serif`, 58, 26);
+  fitText(ctx, nameText, W / 2, r(718), 860,
+    (sz) => `800 ${sz}px "Helvetica Now Display", "Helvetica", sans-serif`, r(58), 26);
 
-  // Divider
   const dg = ctx.createLinearGradient(W / 2 - 70, 0, W / 2 + 70, 0);
   dg.addColorStop(0, "transparent");
   dg.addColorStop(0.5, "rgba(49,107,255,0.60)");
   dg.addColorStop(1, "transparent");
   ctx.fillStyle = dg;
-  ctx.fillRect(W / 2 - 70, 756, 140, 1.5);
+  ctx.fillRect(W / 2 - 70, r(756), 140, 1.5);
 
-  // ── 9. Tagline + footer
-  ctx.font = `400 22px "Helvetica", sans-serif`;
+  ctx.font = `400 ${r(22)}px "Helvetica", sans-serif`;
   ctx.fillStyle = "rgba(255,255,255,0.46)";
-  ctx.fillText("Asia's First Multi Domain AI and Innovation Summit", W / 2, 798);
+  ctx.fillText("Asia's First Multi Domain AI and Innovation Summit", W / 2, r(798));
 
-  ctx.font = `700 20px "Helvetica", sans-serif`;
+  ctx.font = `700 ${r(20)}px "Helvetica", sans-serif`;
   ctx.fillStyle = "rgba(143,175,255,0.80)";
-  ctx.fillText("PC Hotel, Karachi  ·  June 7, 2026  ·  khinext.com", W / 2, 844);
+  ctx.fillText("PC Hotel, Karachi  ·  June 7, 2026  ·  khinext.com", W / 2, r(844));
 
-  // ── 10. Bottom decor zone
-  const bz = ctx.createLinearGradient(0, 900, 0, H);
+  const bz = ctx.createLinearGradient(0, r(900), 0, H);
   bz.addColorStop(0, "rgba(4,11,28,0)");
   bz.addColorStop(1, "rgba(4,11,28,0.4)");
   ctx.fillStyle = bz;
-  ctx.fillRect(0, 900, W, H - 900);
+  ctx.fillRect(0, r(900), W, H - r(900));
 
   const bl = ctx.createLinearGradient(0, 0, W, 0);
   bl.addColorStop(0, "transparent");
@@ -260,12 +253,18 @@ async function drawStandard(ctx: CanvasRenderingContext2D, s: CardState) {
 
 // ── VIP card ───────────────────────────────────────────────────
 
-async function drawVip(ctx: CanvasRenderingContext2D, s: CardState) {
-  // ── 1. Background fill
+async function drawVip(
+  ctx: CanvasRenderingContext2D,
+  s: CardState,
+  W: number, H: number,
+  gen: number, genRef: React.MutableRefObject<number>
+) {
+  const ys = H / 1080;
+  const r = (n: number) => Math.round(n * ys);
+
   ctx.fillStyle = "#020409";
   ctx.fillRect(0, 0, W, H);
 
-  // ── 2. Dot grid — only in outer zones (suppressed behind content)
   ctx.fillStyle = "rgba(255,184,0,0.045)";
   for (let x = 18; x < W; x += 36) {
     for (let y = 18; y < H; y += 36) {
@@ -275,55 +274,49 @@ async function drawVip(ctx: CanvasRenderingContext2D, s: CardState) {
     }
   }
 
-  // Suppress dots behind content zone
-  const suppress = ctx.createRadialGradient(W / 2, H * 0.48, 100, W / 2, H * 0.48, 520);
+  const suppress = ctx.createRadialGradient(W / 2, H * 0.48, r(100), W / 2, H * 0.48, r(520));
   suppress.addColorStop(0,   "rgba(2,4,9,0.94)");
   suppress.addColorStop(0.6, "rgba(2,4,9,0.62)");
   suppress.addColorStop(1,   "rgba(2,4,9,0)");
   ctx.fillStyle = suppress;
   ctx.fillRect(0, 0, W, H);
 
-  // ── 3. Top gold glow — restricted to top half
-  const tg = ctx.createRadialGradient(W / 2, 0, 0, W / 2, 0, 480);
+  const tg = ctx.createRadialGradient(W / 2, 0, 0, W / 2, 0, r(480));
   tg.addColorStop(0,   "rgba(255,184,0,0.20)");
   tg.addColorStop(0.6, "rgba(255,184,0,0.05)");
   tg.addColorStop(1,   "rgba(255,184,0,0)");
   ctx.fillStyle = tg;
-  ctx.fillRect(0, 0, W, 480);
+  ctx.fillRect(0, 0, W, r(480));
 
-  // Bottom-right accent glow (very subtle)
-  const cg = ctx.createRadialGradient(W, H, 0, W, H, 420);
+  const cg = ctx.createRadialGradient(W, H, 0, W, H, r(420));
   cg.addColorStop(0,   "rgba(255,184,0,0.06)");
   cg.addColorStop(1,   "rgba(255,184,0,0)");
   ctx.fillStyle = cg;
-  ctx.fillRect(W - 420, H - 420, 420, 420);
+  ctx.fillRect(W - r(420), H - r(420), r(420), r(420));
 
-  // ── 4. Logo
   try {
     const logo = await getLogoImg();
+    if (gen !== genRef.current) return;
     const lw = 192, lh = (logo.naturalHeight / logo.naturalWidth) * lw;
-    ctx.drawImage(logo, (W - lw) / 2, 46, lw, lh);
+    ctx.drawImage(logo, (W - lw) / 2, r(46), lw, lh);
   } catch { /* continue */ }
 
-  // ── 5. "I AM ATTENDING AS A"
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillStyle = "rgba(255,255,255,0.36)";
-  ctx.font = `700 22px "Helvetica Now Display", "Helvetica", sans-serif`;
-  drawSpaced(ctx, "I AM ATTENDING AS A", W / 2, 146, 19.5);
+  ctx.font = `700 ${r(22)}px "Helvetica Now Display", "Helvetica", sans-serif`;
+  drawSpaced(ctx, "I AM ATTENDING AS A", W / 2, r(146), r(19.5));
 
-  // ── 6. "VIP DELEGATE" gold gradient text
   const goldGrad = ctx.createLinearGradient(100, 0, W - 100, 0);
   goldGrad.addColorStop(0,    "#7A5010");
   goldGrad.addColorStop(0.25, "#FFD060");
   goldGrad.addColorStop(0.5,  "#FFF0A0");
   goldGrad.addColorStop(0.75, "#FFD060");
   goldGrad.addColorStop(1,    "#7A5010");
-  ctx.font = `900 94px "Helvetica Now Display", "Helvetica", sans-serif`;
+  ctx.font = `900 ${r(94)}px "Helvetica Now Display", "Helvetica", sans-serif`;
   ctx.fillStyle = goldGrad;
-  ctx.fillText("VIP DELEGATE", W / 2, 254);
+  ctx.fillText("VIP DELEGATE", W / 2, r(254));
 
-  // Gold line — below VIP text, above photo
   const ul = ctx.createLinearGradient(0, 0, W, 0);
   ul.addColorStop(0,    "transparent");
   ul.addColorStop(0.2,  "rgba(255,184,0,0.40)");
@@ -331,31 +324,29 @@ async function drawVip(ctx: CanvasRenderingContext2D, s: CardState) {
   ul.addColorStop(0.8,  "rgba(255,184,0,0.40)");
   ul.addColorStop(1,    "transparent");
   ctx.fillStyle = ul;
-  ctx.fillRect(0, 314, W, 1.5);
+  ctx.fillRect(0, r(314), W, 1.5);
 
-  // ── 7. Photo  (py=514 → top=369 → 55px clear gap after line at y=314)
-  const px = W / 2, py = 514, pr = 145;
+  const px = W / 2, py = r(514), pr = r(145);
 
-  // Gold halo — drawn as a disc, NOT full canvas fillRect (avoids bleed)
-  const haloGrad = ctx.createRadialGradient(px, py, pr, px, py, pr + 60);
+  const haloGrad = ctx.createRadialGradient(px, py, pr, px, py, pr + r(60));
   haloGrad.addColorStop(0,   "rgba(255,184,0,0.14)");
   haloGrad.addColorStop(0.7, "rgba(255,184,0,0.04)");
   haloGrad.addColorStop(1,   "transparent");
   ctx.beginPath();
-  ctx.arc(px, py, pr + 60, 0, Math.PI * 2);
+  ctx.arc(px, py, pr + r(60), 0, Math.PI * 2);
   ctx.fillStyle = haloGrad;
   ctx.fill();
 
-  // Photo image / placeholder
   if (s.photoDataUrl) {
     try {
-      drawCircleImage(ctx, await loadDataUrlImage(s.photoDataUrl), px, py, pr);
+      const imgEl = await loadDataUrlImage(s.photoDataUrl);
+      if (gen !== genRef.current) return;
+      drawCircleImage(ctx, imgEl, px, py, pr);
     } catch { drawPhotoPlaceholder(ctx, px, py, pr, true); }
   } else {
     drawPhotoPlaceholder(ctx, px, py, pr, true);
   }
 
-  // Gold ring — gradient follows the circle
   const ringGrad = ctx.createLinearGradient(px - pr, py - pr, px + pr, py + pr);
   ringGrad.addColorStop(0,    "#7A5010");
   ringGrad.addColorStop(0.25, "#FFD060");
@@ -368,33 +359,29 @@ async function drawVip(ctx: CanvasRenderingContext2D, s: CardState) {
   ctx.lineWidth = 3.5;
   ctx.stroke();
 
-  // Outer soft glow ring
   ctx.beginPath();
-  ctx.arc(px, py, pr + 15, 0, Math.PI * 2);
+  ctx.arc(px, py, pr + r(15), 0, Math.PI * 2);
   ctx.strokeStyle = "rgba(255,184,0,0.11)";
   ctx.lineWidth = 7;
   ctx.stroke();
 
-  // ── 8. Name
   const nameText = s.name.trim() || "Your Name";
   ctx.fillStyle = "#FFFFFF";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  fitText(ctx, nameText, W / 2, 736, 860,
-    (sz) => `800 ${sz}px "Helvetica Now Display", "Helvetica", sans-serif`, 56, 26);
+  fitText(ctx, nameText, W / 2, r(736), 860,
+    (sz) => `800 ${sz}px "Helvetica Now Display", "Helvetica", sans-serif`, r(56), 26);
 
   const hasDesig = s.designation.trim().length > 0;
 
-  // Designation
   if (hasDesig) {
     ctx.fillStyle = "rgba(255,200,55,0.88)";
-    fitText(ctx, s.designation.trim(), W / 2, 786, 820,
-      (sz) => `400 ${sz}px "Helvetica Now Display", "Helvetica", sans-serif`, 28, 18);
+    fitText(ctx, s.designation.trim(), W / 2, r(786), 820,
+      (sz) => `400 ${sz}px "Helvetica Now Display", "Helvetica", sans-serif`, r(28), 18);
   }
 
-  const divY = hasDesig ? 826 : 776;
+  const divY = hasDesig ? r(826) : r(776);
 
-  // Gold divider
   const dg = ctx.createLinearGradient(W / 2 - 70, 0, W / 2 + 70, 0);
   dg.addColorStop(0, "transparent");
   dg.addColorStop(0.5, "rgba(255,184,0,0.58)");
@@ -402,23 +389,21 @@ async function drawVip(ctx: CanvasRenderingContext2D, s: CardState) {
   ctx.fillStyle = dg;
   ctx.fillRect(W / 2 - 70, divY, 140, 1.5);
 
-  const tY = divY + 50;
+  const tY = divY + r(50);
 
-  // ── 9. Tagline + footer
-  ctx.font = `400 21px "Helvetica", sans-serif`;
+  ctx.font = `400 ${r(21)}px "Helvetica", sans-serif`;
   ctx.fillStyle = "rgba(255,255,255,0.42)";
   ctx.fillText("Asia's First Multi Domain AI and Innovation Summit", W / 2, tY);
 
-  ctx.font = `700 19px "Helvetica", sans-serif`;
+  ctx.font = `700 ${r(19)}px "Helvetica", sans-serif`;
   ctx.fillStyle = "rgba(255,184,0,0.70)";
-  ctx.fillText("PC Hotel, Karachi  ·  June 7, 2026  ·  khinext.com", W / 2, tY + 44);
+  ctx.fillText("PC Hotel, Karachi  ·  June 7, 2026  ·  khinext.com", W / 2, tY + r(44));
 
-  // ── 10. Bottom decor zone
-  const bz = ctx.createLinearGradient(0, tY + 80, 0, H);
+  const bz = ctx.createLinearGradient(0, tY + r(80), 0, H);
   bz.addColorStop(0, "rgba(2,4,9,0)");
   bz.addColorStop(1, "rgba(2,4,9,0.5)");
   ctx.fillStyle = bz;
-  ctx.fillRect(0, tY + 80, W, H - (tY + 80));
+  ctx.fillRect(0, tY + r(80), W, H - (tY + r(80)));
 
   const bl = ctx.createLinearGradient(0, 0, W, 0);
   bl.addColorStop(0, "transparent");
@@ -428,14 +413,32 @@ async function drawVip(ctx: CanvasRenderingContext2D, s: CardState) {
   ctx.fillRect(0, H - 3, W, 3);
 }
 
-// ── Shareable URL generator ─────────────────────────────────────
+// ── Upload card image to Supabase ──────────────────────────────
 
-function makeShareUrl(s: CardState): string {
+async function uploadCard(canvas: HTMLCanvasElement): Promise<string | null> {
+  try {
+    const blob = await new Promise<Blob>((res, rej) =>
+      canvas.toBlob(b => b ? res(b) : rej(new Error("toBlob failed")), "image/jpeg", 0.93)
+    );
+    const form = new FormData();
+    form.append("image", blob, "card.jpg");
+    const resp = await fetch("/api/card/share", { method: "POST", body: form });
+    if (!resp.ok) return null;
+    const { id } = await resp.json();
+    return id as string;
+  } catch {
+    return null;
+  }
+}
+
+// ── Shareable URL ──────────────────────────────────────────────
+
+function makeShareUrl(s: CardState, cardId?: string): string {
   const base = typeof window !== "undefined" ? window.location.origin : "https://khinext.com";
   const p = new URLSearchParams({ t: s.template });
   if (s.name.trim()) p.set("n", s.name.trim());
   if (s.designation.trim()) p.set("d", s.designation.trim());
-  // unique ID busts LinkedIn/Facebook link-preview cache on every share
+  if (cardId) p.set("card", cardId);
   p.set("_v", Math.random().toString(36).slice(2, 8));
   return `${base}/card-generator?${p}`;
 }
@@ -445,6 +448,7 @@ function makeShareUrl(s: CardState): string {
 export function CardGenerator() {
   const canvasRef    = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const drawGenRef   = useRef(0);
 
   const [state, setState] = useState<CardState>({
     template: "standard",
@@ -453,18 +457,22 @@ export function CardGenerator() {
     photoDataUrl: null,
   });
 
+  const [sizeKey,      setSizeKey]      = useState<SizeKey>("square");
   const [downloading,  setDownloading]  = useState(false);
+  const [uploading,    setUploading]    = useState(false);
   const [shared,       setShared]       = useState(false);
   const [linkCopied,   setLinkCopied]   = useState(false);
   const [fmt,          setFmt]          = useState<"jpeg" | "png">("jpeg");
 
+  const { W: CW, H: CH } = SIZES[sizeKey];
+
   // Pre-fill from URL params on first mount
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const p   = new URLSearchParams(window.location.search);
-    const t   = p.get("t") as Template | null;
-    const n   = p.get("n") ?? "";
-    const d   = p.get("d") ?? "";
+    const p = new URLSearchParams(window.location.search);
+    const t = p.get("t") as Template | null;
+    const n = p.get("n") ?? "";
+    const d = p.get("d") ?? "";
     if (t || n || d) {
       setState(prev => ({
         ...prev,
@@ -475,18 +483,22 @@ export function CardGenerator() {
     }
   }, []);
 
-  // Redraw canvas whenever state changes
+  // Redraw canvas whenever state or size changes — race-condition safe
   const redraw = useCallback(async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    // Wait for fonts so custom typeface is used
+    const genId = ++drawGenRef.current;
     if (typeof document !== "undefined") await document.fonts.ready;
-    ctx.clearRect(0, 0, W, H);
-    if (state.template === "standard") await drawStandard(ctx, state);
-    else await drawVip(ctx, state);
-  }, [state]);
+    if (genId !== drawGenRef.current) return;
+    ctx.clearRect(0, 0, CW, CH);
+    if (state.template === "standard") {
+      await drawStandard(ctx, state, CW, CH, genId, drawGenRef);
+    } else {
+      await drawVip(ctx, state, CW, CH, genId, drawGenRef);
+    }
+  }, [state, sizeKey, CW, CH]);
 
   useEffect(() => { redraw(); }, [redraw]);
 
@@ -515,7 +527,7 @@ export function CardGenerator() {
     const url  = canvas.toDataURL(mime, fmt === "jpeg" ? 0.96 : undefined);
     const a    = document.createElement("a");
     a.href     = url;
-    a.download = `khinext-${state.template}-card.${fmt}`;
+    a.download = `khinext-${state.template}-card-${sizeKey}.${fmt}`;
     a.click();
     setDownloading(false);
   }
@@ -547,27 +559,44 @@ export function CardGenerator() {
   }
 
   async function handleCopyLink() {
-    const url = makeShareUrl(state);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    setUploading(true);
+    await redraw();
+    const cardId = await uploadCard(canvas);
+    setUploading(false);
+    const url = makeShareUrl(state, cardId ?? undefined);
     try {
       await navigator.clipboard.writeText(url);
       setLinkCopied(true);
       setTimeout(() => setLinkCopied(false), 2200);
     } catch {
-      // Fallback: select text from prompt
       window.prompt("Copy this link:", url);
     }
   }
 
-  function handleShareLinkedIn() {
-    const url = makeShareUrl(state);
+  async function handleShareLinkedIn() {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    setUploading(true);
+    await redraw();
+    const cardId = await uploadCard(canvas);
+    setUploading(false);
+    const url = makeShareUrl(state, cardId ?? undefined);
     window.open(
       `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
       "_blank", "noopener,noreferrer,width=600,height=480"
     );
   }
 
-  function handleShareFacebook() {
-    const url = makeShareUrl(state);
+  async function handleShareFacebook() {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    setUploading(true);
+    await redraw();
+    const cardId = await uploadCard(canvas);
+    setUploading(false);
+    const url = makeShareUrl(state, cardId ?? undefined);
     window.open(
       `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
       "_blank", "noopener,noreferrer,width=600,height=480"
@@ -602,7 +631,7 @@ export function CardGenerator() {
 
       {/* Template selector */}
       <div role="tablist"
-        className="inline-flex gap-1 rounded-full bg-white/[0.04] border border-white/10 p-1 mb-10">
+        className="inline-flex gap-1 rounded-full bg-white/[0.04] border border-white/10 p-1 mb-6">
         <button
           role="tab" aria-selected={!isVip}
           onClick={() => setState(s => ({ ...s, template: "standard" }))}
@@ -620,6 +649,25 @@ export function CardGenerator() {
           style={isVip ? { background: "linear-gradient(135deg,#5C3D00,#B8860B,#5C3D00)" } : {}}>
           ✦ VIP Delegate
         </button>
+      </div>
+
+      {/* Size selector */}
+      <div className="flex flex-wrap gap-2 mb-10">
+        {(Object.entries(SIZES) as [SizeKey, typeof SIZES[SizeKey]][]).map(([key, sz]) => (
+          <button
+            key={key}
+            onClick={() => setSizeKey(key)}
+            className={`flex flex-col items-center px-4 py-2 rounded-xl border text-xs font-semibold transition-all ${
+              sizeKey === key
+                ? "border-khi-blue bg-khi-blue/10 text-white"
+                : "border-white/10 text-white/40 hover:border-white/25 hover:text-white/70"
+            }`}>
+            <span>{sz.label}</span>
+            <span className={`text-[10px] font-normal mt-0.5 ${sizeKey === key ? "text-white/60" : "text-white/25"}`}>
+              {sz.sub}
+            </span>
+          </button>
+        ))}
       </div>
 
       <div className="grid lg:grid-cols-[400px_1fr] gap-8 items-start">
@@ -746,14 +794,14 @@ export function CardGenerator() {
           </button>
 
           {/* Copy unique link */}
-          <button onClick={handleCopyLink}
-            className={`kx-btn w-full justify-center transition-all ${
+          <button onClick={handleCopyLink} disabled={uploading}
+            className={`kx-btn w-full justify-center transition-all disabled:opacity-60 ${
               linkCopied
                 ? "bg-emerald-500/15 border border-emerald-500/30 text-emerald-400"
                 : "kx-btn-outline"
             }`}>
-            {linkCopied ? <Check size={16} /> : <Link2 size={16} />}
-            {linkCopied ? "Link copied!" : "Copy unique link"}
+            {uploading ? <Loader2 size={16} className="animate-spin" /> : linkCopied ? <Check size={16} /> : <Link2 size={16} />}
+            {uploading ? "Uploading card…" : linkCopied ? "Link copied!" : "Copy unique link"}
           </button>
 
           {/* Social share */}
@@ -761,20 +809,26 @@ export function CardGenerator() {
             <p className="text-xs text-white/30 text-center mb-3">Share on</p>
             <div className="flex items-stretch gap-2">
               {/* LinkedIn */}
-              <button onClick={handleShareLinkedIn}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-white/12 hover:border-[#0077B5] hover:bg-[#0077B5]/10 transition-all text-xs text-white/45 hover:text-white font-medium">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-                </svg>
+              <button onClick={handleShareLinkedIn} disabled={uploading}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-white/12 hover:border-[#0077B5] hover:bg-[#0077B5]/10 transition-all text-xs text-white/45 hover:text-white font-medium disabled:opacity-50">
+                {uploading
+                  ? <Loader2 size={13} className="animate-spin" />
+                  : <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                    </svg>
+                }
                 LinkedIn
               </button>
 
               {/* Facebook */}
-              <button onClick={handleShareFacebook}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-white/12 hover:border-[#1877F2] hover:bg-[#1877F2]/10 transition-all text-xs text-white/45 hover:text-white font-medium">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                </svg>
+              <button onClick={handleShareFacebook} disabled={uploading}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-white/12 hover:border-[#1877F2] hover:bg-[#1877F2]/10 transition-all text-xs text-white/45 hover:text-white font-medium disabled:opacity-50">
+                {uploading
+                  ? <Loader2 size={13} className="animate-spin" />
+                  : <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
+                }
                 Facebook
               </button>
 
@@ -789,25 +843,35 @@ export function CardGenerator() {
               </button>
             </div>
             <p className="text-[11px] text-white/22 text-center mt-2">
-              Each share uses a unique URL · Instagram: download then post from the app
+              LinkedIn &amp; Facebook show your card as a link preview · Instagram: download then post
             </p>
           </div>
         </div>
 
         {/* ── Canvas preview ── */}
         <div className="sticky top-6">
-          <p className="text-xs text-white/30 text-center mb-3">Live preview · 1080 × 1080 px</p>
+          <p className="text-xs text-white/30 text-center mb-3">
+            Live preview · {SIZES[sizeKey].sub}
+          </p>
           <div className="relative rounded-2xl overflow-hidden"
             style={{
               boxShadow: isVip
                 ? "0 0 80px rgba(255,184,0,0.14), 0 0 0 1px rgba(255,184,0,0.12)"
                 : "0 0 80px rgba(49,107,255,0.14), 0 0 0 1px rgba(49,107,255,0.12)",
             }}>
-            <canvas ref={canvasRef} width={W} height={H}
+            <canvas ref={canvasRef} width={CW} height={CH}
               style={{ width: "100%", height: "auto", display: "block" }} />
+            {uploading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm rounded-2xl">
+                <div className="flex flex-col items-center gap-3">
+                  <Loader2 size={32} className="animate-spin text-white" />
+                  <p className="text-sm text-white/80">Uploading card…</p>
+                </div>
+              </div>
+            )}
           </div>
           <p className="text-[11px] text-white/22 text-center mt-3">
-            1080 × 1080 · Optimised for LinkedIn, Instagram &amp; Facebook
+            {SIZES[sizeKey].label} · Optimised for LinkedIn, Instagram &amp; Facebook
           </p>
         </div>
       </div>
