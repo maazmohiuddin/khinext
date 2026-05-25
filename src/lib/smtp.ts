@@ -1,7 +1,5 @@
 /**
- * Nodemailer SMTP transport for bulk/direct email sending.
- * Uses mail.khinext.com via SSL on port 465.
- *
+ * Nodemailer SMTP transport — mail.khinext.com:465 SSL.
  * Server-only — never import from a client component.
  */
 import nodemailer from "nodemailer";
@@ -13,19 +11,15 @@ function createTransport() {
   const user = process.env.SMTP_USER ?? "info@khinext.com";
   const pass = process.env.SMTP_PASS;
   if (!pass) throw new Error("SMTP_PASS is not configured.");
-
   return nodemailer.createTransport({
-    host,
-    port,
-    secure: true, // SSL on port 465
+    host, port, secure: true,
     auth: { user, pass },
     tls: { rejectUnauthorized: false },
   });
 }
 
-const FROM_NAME = "Khinext '26";
 const FROM_ADDRESS = process.env.SMTP_USER ?? "info@khinext.com";
-const FROM = `${FROM_NAME} <${FROM_ADDRESS}>`;
+const FROM = `Khinext '26 <${FROM_ADDRESS}>`;
 
 export interface SmtpEmailParams extends KhinextEmailParams {
   to: string;
@@ -33,21 +27,30 @@ export interface SmtpEmailParams extends KhinextEmailParams {
   text?: string;
 }
 
+/** Send a single email rendered from template params. */
 export async function sendSmtpEmail(p: SmtpEmailParams) {
   const transport = createTransport();
   const html = renderKhinextEmail(p);
   const text = p.text ?? stripHtml(p.body);
-
-  return transport.sendMail({
-    from: FROM,
-    to: p.to,
-    replyTo: FROM_ADDRESS,
-    subject: p.subject,
-    html,
-    text,
-  });
+  return transport.sendMail({ from: FROM, to: p.to, replyTo: FROM_ADDRESS, subject: p.subject, html, text });
 }
 
+/** Send a pre-rendered HTML email. Returns the SMTP messageId. */
+export async function sendRawEmail(p: {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+}): Promise<{ messageId: string }> {
+  const transport = createTransport();
+  const info = await transport.sendMail({
+    from: FROM, to: p.to, replyTo: FROM_ADDRESS,
+    subject: p.subject, html: p.html, text: p.text,
+  });
+  return { messageId: info.messageId };
+}
+
+/** Legacy bulk sender (no per-recipient tracking). Kept for compatibility. */
 export async function sendSmtpEmailsBulk(
   recipients: string[],
   params: Omit<SmtpEmailParams, "to">
@@ -55,31 +58,27 @@ export async function sendSmtpEmailsBulk(
   const transport = createTransport();
   const html = renderKhinextEmail(params);
   const text = params.text ?? stripHtml(params.body);
-
   const sent: string[] = [];
   const failed: { email: string; error: string }[] = [];
-
-  // Send sequentially to avoid overwhelming the SMTP server
   for (const to of recipients) {
     try {
-      await transport.sendMail({
-        from: FROM,
-        to,
-        replyTo: FROM_ADDRESS,
-        subject: params.subject,
-        html,
-        text,
-      });
+      await transport.sendMail({ from: FROM, to, replyTo: FROM_ADDRESS, subject: params.subject, html, text });
       sent.push(to);
     } catch (err) {
       failed.push({ email: to, error: err instanceof Error ? err.message : String(err) });
     }
   }
-
   return { sent, failed };
 }
 
-function stripHtml(html: string): string {
+/** Injects a 1×1 tracking pixel just before </body>. */
+export function injectTrackingPixel(html: string, pixelUrl: string): string {
+  const pixel = `<img src="${pixelUrl}" width="1" height="1" alt="" style="display:none;border:0;width:1px;height:1px;overflow:hidden">`;
+  return html.includes("</body>") ? html.replace("</body>", `${pixel}</body>`) : html + pixel;
+}
+
+/** Plain-text fallback. */
+export function stripHtml(html: string): string {
   return html
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
     .replace(/<[^>]+>/g, "")
