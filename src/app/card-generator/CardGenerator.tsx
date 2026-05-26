@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Upload, Download, Share2, Check, X, ArrowLeft, Link2, Loader2 } from "lucide-react";
+import { Upload, Download, Share2, Check, X, ArrowLeft, Link2, Loader2, Lock } from "lucide-react";
 import Link from "next/link";
 
 // ── Types ──────────────────────────────────────────────────────
@@ -23,6 +23,8 @@ const SIZES = {
   story:    { W: 1080, H: 1920, label: "Story",     sub: "1080 × 1920" },
 } as const;
 type SizeKey = keyof typeof SIZES;
+
+const VIP_PASSWORD = "KhinextVIP2026Cards";
 
 // ── Image loaders with cache ───────────────────────────────────
 
@@ -134,13 +136,9 @@ function drawSpaced(
   }
 }
 
-// Draw "PARTNERED BY" label + circular partner logo
 async function drawPartnerLogo(
   ctx: CanvasRenderingContext2D,
-  cx: number,
-  labelY: number,
-  logoY: number,
-  radius: number,
+  cx: number, labelY: number, logoY: number, radius: number,
   isVip: boolean,
   gen: number, genRef: React.MutableRefObject<number>
 ) {
@@ -148,14 +146,13 @@ async function drawPartnerLogo(
     const partner = await getPartnerImg();
     if (gen !== genRef.current) return;
 
-    // Label
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = isVip ? "rgba(255,200,80,0.45)" : "rgba(255,255,255,0.30)";
-    ctx.font = `700 ${Math.max(radius * 0.38, 12)}px "Helvetica", sans-serif`;
+    ctx.font = `700 ${Math.round(radius * 0.4)}px "Helvetica", sans-serif`;
     ctx.fillText("PARTNERED BY", cx, labelY);
 
-    // White disc background for the logo
+    // White disc so logo reads on dark background
     ctx.save();
     ctx.beginPath();
     ctx.arc(cx, logoY, radius + 2, 0, Math.PI * 2);
@@ -163,14 +160,29 @@ async function drawPartnerLogo(
     ctx.fill();
     ctx.restore();
 
-    // Logo clipped to circle
     drawCircleImage(ctx, partner, cx, logoY, radius);
   } catch {
-    // Partner logo not found — skip silently
+    // Logo file absent — skip silently
   }
 }
 
 // ── Standard card ──────────────────────────────────────────────
+// Layout (reference 1080 × 1080):
+//   52   logo
+//  138   accent line
+//  174   "I AM ATTENDING"
+//  270   "KHINEXT"                  ← baseline ~270, bottom ~316
+//                                   ← ~74 px breathing room
+//  390   photo top  (centre 540, r 150)
+//  540   photo centre
+//  690   photo bottom
+//  730   name
+//  762   divider
+//  796   tagline
+//  834   footer
+//  874   "PARTNERED BY"
+//  922   partner logo centre (r 32) → bottom 954
+// 1077   bottom bar
 
 async function drawStandard(
   ctx: CanvasRenderingContext2D,
@@ -195,52 +207,55 @@ async function drawStandard(
   }
   ctx.restore();
 
-  const suppress = ctx.createRadialGradient(W / 2, H * 0.47, r(100), W / 2, H * 0.47, r(530));
-  suppress.addColorStop(0,   "rgba(4,11,28,0.92)");
+  const suppress = ctx.createRadialGradient(W / 2, H * 0.5, r(110), W / 2, H * 0.5, r(540));
+  suppress.addColorStop(0,   "rgba(4,11,28,0.93)");
   suppress.addColorStop(0.6, "rgba(4,11,28,0.60)");
   suppress.addColorStop(1,   "rgba(4,11,28,0)");
   ctx.fillStyle = suppress;
   ctx.fillRect(0, 0, W, H);
 
-  const tg = ctx.createRadialGradient(W / 2, 0, 0, W / 2, 0, r(480));
-  tg.addColorStop(0,   "rgba(49,107,255,0.28)");
-  tg.addColorStop(0.6, "rgba(49,107,255,0.08)");
+  const tg = ctx.createRadialGradient(W / 2, 0, 0, W / 2, 0, r(420));
+  tg.addColorStop(0,   "rgba(49,107,255,0.26)");
+  tg.addColorStop(0.6, "rgba(49,107,255,0.07)");
   tg.addColorStop(1,   "rgba(49,107,255,0)");
   ctx.fillStyle = tg;
-  ctx.fillRect(0, 0, W, r(480));
+  ctx.fillRect(0, 0, W, r(420));
 
   try {
     const logo = await getLogoImg();
     if (gen !== genRef.current) return;
     const lw = 200, lh = (logo.naturalHeight / logo.naturalWidth) * lw;
     ctx.drawImage(logo, (W - lw) / 2, r(52), lw, lh);
-  } catch { /* logo unavailable */ }
+  } catch { /* unavailable */ }
 
+  // Accent line under logo
   const al = ctx.createLinearGradient(W / 2 - 90, 0, W / 2 + 90, 0);
   al.addColorStop(0, "transparent");
   al.addColorStop(0.5, "rgba(49,107,255,0.65)");
   al.addColorStop(1, "transparent");
   ctx.fillStyle = al;
-  ctx.fillRect(W / 2 - 90, r(132), 180, 1.5);
+  ctx.fillRect(W / 2 - 90, r(138), 180, 1.5);
 
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillStyle = "rgba(255,255,255,0.40)";
-  ctx.font = `700 ${r(24)}px "Helvetica Now Display", "Helvetica", sans-serif`;
-  drawSpaced(ctx, "I AM ATTENDING", W / 2, r(166), r(22));
+  ctx.font = `700 ${r(23)}px "Helvetica Now Display", "Helvetica", sans-serif`;
+  drawSpaced(ctx, "I AM ATTENDING", W / 2, r(174), r(21));
 
-  ctx.font = `900 ${r(90)}px "Helvetica Now Display", "Helvetica", sans-serif`;
+  ctx.font = `900 ${r(86)}px "Helvetica Now Display", "Helvetica", sans-serif`;
   ctx.fillStyle = "#FFFFFF";
-  ctx.fillText("KHINEXT", W / 2, r(268));
+  ctx.fillText("KHINEXT", W / 2, r(270));
 
-  const px = W / 2, py = r(460), pr = r(150);
+  // ── Photo — centre at 540, radius 150 ──
+  const px = W / 2, py = r(540), pr = r(150);
 
-  const haloGrad = ctx.createRadialGradient(px, py, pr, px, py, pr + r(62));
+  // Halo disc (not full-canvas rect)
+  const haloGrad = ctx.createRadialGradient(px, py, pr, px, py, pr + r(60));
   haloGrad.addColorStop(0,   "rgba(49,107,255,0.14)");
   haloGrad.addColorStop(0.7, "rgba(49,107,255,0.04)");
   haloGrad.addColorStop(1,   "transparent");
   ctx.beginPath();
-  ctx.arc(px, py, pr + r(62), 0, Math.PI * 2);
+  ctx.arc(px, py, pr + r(60), 0, Math.PI * 2);
   ctx.fillStyle = haloGrad;
   ctx.fill();
 
@@ -266,30 +281,31 @@ async function drawStandard(
   ctx.lineWidth = 7;
   ctx.stroke();
 
+  // Name
   const nameText = s.name.trim() || "Your Name";
   ctx.fillStyle = "#FFFFFF";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  fitText(ctx, nameText, W / 2, r(690), 860,
-    (sz) => `800 ${sz}px "Helvetica Now Display", "Helvetica", sans-serif`, r(58), 26);
+  fitText(ctx, nameText, W / 2, r(730), 860,
+    (sz) => `800 ${sz}px "Helvetica Now Display", "Helvetica", sans-serif`, r(56), 26);
 
   const dg = ctx.createLinearGradient(W / 2 - 70, 0, W / 2 + 70, 0);
   dg.addColorStop(0, "transparent");
   dg.addColorStop(0.5, "rgba(49,107,255,0.60)");
   dg.addColorStop(1, "transparent");
   ctx.fillStyle = dg;
-  ctx.fillRect(W / 2 - 70, r(722), 140, 1.5);
+  ctx.fillRect(W / 2 - 70, r(762), 140, 1.5);
 
   ctx.font = `400 ${r(21)}px "Helvetica", sans-serif`;
   ctx.fillStyle = "rgba(255,255,255,0.46)";
-  ctx.fillText("Asia's First Multi Domain AI and Innovation Summit", W / 2, r(758));
+  ctx.fillText("Asia's First Multi Domain AI and Innovation Summit", W / 2, r(796));
 
   ctx.font = `700 ${r(19)}px "Helvetica", sans-serif`;
   ctx.fillStyle = "rgba(143,175,255,0.80)";
-  ctx.fillText("PC Hotel, Karachi  ·  June 7, 2026  ·  khinext.com", W / 2, r(800));
+  ctx.fillText("PC Hotel, Karachi  ·  June 7, 2026  ·  khinext.com", W / 2, r(834));
 
-  // Partner logo
-  await drawPartnerLogo(ctx, W / 2, r(840), r(892), r(32), false, gen, genRef);
+  // Partner
+  await drawPartnerLogo(ctx, W / 2, r(874), r(922), r(32), false, gen, genRef);
   if (gen !== genRef.current) return;
 
   // Bottom bar
@@ -339,8 +355,8 @@ async function drawVip(
   ctx.fillRect(0, 0, W, r(480));
 
   const cg = ctx.createRadialGradient(W, H, 0, W, H, r(420));
-  cg.addColorStop(0,   "rgba(255,184,0,0.06)");
-  cg.addColorStop(1,   "rgba(255,184,0,0)");
+  cg.addColorStop(0, "rgba(255,184,0,0.06)");
+  cg.addColorStop(1, "rgba(255,184,0,0)");
   ctx.fillStyle = cg;
   ctx.fillRect(W - r(420), H - r(420), r(420), r(420));
 
@@ -357,7 +373,7 @@ async function drawVip(
   ctx.font = `700 ${r(22)}px "Helvetica Now Display", "Helvetica", sans-serif`;
   drawSpaced(ctx, "I AM ATTENDING AS A", W / 2, r(146), r(19.5));
 
-  // "VIP DELEGATE" — fit to width so it never overflows
+  // VIP DELEGATE — fitText prevents overflow
   const goldGrad = ctx.createLinearGradient(100, 0, W - 100, 0);
   goldGrad.addColorStop(0,    "#7A5010");
   goldGrad.addColorStop(0.25, "#FFD060");
@@ -368,6 +384,7 @@ async function drawVip(
   fitText(ctx, "VIP DELEGATE", W / 2, r(254), W - r(80),
     sz => `900 ${sz}px "Helvetica Now Display", "Helvetica", sans-serif`, r(90), 40);
 
+  // Gold line
   const ul = ctx.createLinearGradient(0, 0, W, 0);
   ul.addColorStop(0,    "transparent");
   ul.addColorStop(0.2,  "rgba(255,184,0,0.40)");
@@ -377,6 +394,7 @@ async function drawVip(
   ctx.fillStyle = ul;
   ctx.fillRect(0, r(314), W, 1.5);
 
+  // Photo — centre 488, r 145 (top 343, 29 px below gold line)
   const px = W / 2, py = r(488), pr = r(145);
 
   const haloGrad = ctx.createRadialGradient(px, py, pr, px, py, pr + r(60));
@@ -424,7 +442,6 @@ async function drawVip(
     (sz) => `800 ${sz}px "Helvetica Now Display", "Helvetica", sans-serif`, r(56), 26);
 
   const hasDesig = s.designation.trim().length > 0;
-
   if (hasDesig) {
     ctx.fillStyle = "rgba(255,200,55,0.88)";
     fitText(ctx, s.designation.trim(), W / 2, r(756), 820,
@@ -440,7 +457,7 @@ async function drawVip(
   ctx.fillStyle = dg;
   ctx.fillRect(W / 2 - 70, divY, 140, 1.5);
 
-  const tY = divY + r(46);
+  const tY = divY + r(44);
 
   ctx.font = `400 ${r(20)}px "Helvetica", sans-serif`;
   ctx.fillStyle = "rgba(255,255,255,0.42)";
@@ -448,12 +465,10 @@ async function drawVip(
 
   ctx.font = `700 ${r(18)}px "Helvetica", sans-serif`;
   ctx.fillStyle = "rgba(255,184,0,0.70)";
-  ctx.fillText("PC Hotel, Karachi  ·  June 7, 2026  ·  khinext.com", W / 2, tY + r(40));
+  ctx.fillText("PC Hotel, Karachi  ·  June 7, 2026  ·  khinext.com", W / 2, tY + r(38));
 
-  // Partner logo
-  const partnerLabelY = tY + r(82);
-  const partnerLogoY  = tY + r(128);
-  await drawPartnerLogo(ctx, W / 2, partnerLabelY, partnerLogoY, r(30), true, gen, genRef);
+  // Partner
+  await drawPartnerLogo(ctx, W / 2, tY + r(78), tY + r(122), r(30), true, gen, genRef);
   if (gen !== genRef.current) return;
 
   // Bottom bar
@@ -470,7 +485,7 @@ async function drawVip(
 async function uploadCard(canvas: HTMLCanvasElement): Promise<string | null> {
   try {
     const blob = await new Promise<Blob>((res, rej) =>
-      canvas.toBlob(b => b ? res(b) : rej(new Error("toBlob failed")), "image/jpeg", 0.93)
+      canvas.toBlob(b => b ? res(b) : rej(new Error("toBlob")), "image/jpeg", 0.93)
     );
     const form = new FormData();
     form.append("image", blob, "card.jpg");
@@ -495,6 +510,69 @@ function makeShareUrl(s: CardState, cardId?: string): string {
   return `${base}/card-generator?${p}`;
 }
 
+// ── VIP Password Modal ─────────────────────────────────────────
+
+function VipModal({
+  onSuccess,
+  onClose,
+}: {
+  onSuccess: () => void;
+  onClose: () => void;
+}) {
+  const [pwd, setPwd] = useState("");
+  const [err, setErr] = useState(false);
+
+  function submit() {
+    if (pwd === VIP_PASSWORD) { onSuccess(); }
+    else { setErr(true); }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <div
+        className="w-full max-w-sm rounded-2xl border border-white/10 p-8"
+        style={{ background: "linear-gradient(135deg,#0A0D1A,#060810)" }}
+      >
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 rounded-full flex items-center justify-center"
+            style={{ background: "linear-gradient(135deg,#5C3D00,#B8860B)" }}>
+            <Lock size={16} className="text-yellow-200" />
+          </div>
+          <div>
+            <h2 className="font-display font-bold text-white text-lg leading-tight">VIP Access</h2>
+            <p className="text-xs text-white/40">Restricted to VIP delegates only</p>
+          </div>
+        </div>
+        <p className="text-sm text-white/55 mb-5">
+          Enter the VIP access code to unlock VIP Delegate card generation.
+        </p>
+        <input
+          type="password"
+          value={pwd}
+          autoFocus
+          placeholder="Access code"
+          maxLength={64}
+          className={`kx-input w-full rounded-xl mb-1 ${err ? "!border-red-500/50" : ""}`}
+          onChange={e => { setPwd(e.target.value); setErr(false); }}
+          onKeyDown={e => e.key === "Enter" && submit()}
+        />
+        {err && <p className="text-xs text-red-400 mb-3">Incorrect access code — please try again.</p>}
+        <div className="flex gap-2 mt-4">
+          <button onClick={onClose}
+            className="kx-btn kx-btn-outline flex-1 justify-center">
+            Cancel
+          </button>
+          <button onClick={submit}
+            className="kx-btn kx-btn-primary flex-1 justify-center"
+            style={{ background: "linear-gradient(135deg,#5C3D00,#B8860B,#5C3D00)" }}>
+            Unlock VIP
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main component ─────────────────────────────────────────────
 
 export function CardGenerator() {
@@ -510,6 +588,8 @@ export function CardGenerator() {
   });
 
   const [sizeKey,      setSizeKey]      = useState<SizeKey>("square");
+  const [vipUnlocked,  setVipUnlocked]  = useState(false);
+  const [showVipModal, setShowVipModal] = useState(false);
   const [downloading,  setDownloading]  = useState(false);
   const [uploading,    setUploading]    = useState(false);
   const [shared,       setShared]       = useState(false);
@@ -517,6 +597,7 @@ export function CardGenerator() {
   const [fmt,          setFmt]          = useState<"jpeg" | "png">("jpeg");
 
   const { W: CW, H: CH } = SIZES[sizeKey];
+  const isVip = state.template === "vip";
 
   // Pre-fill from URL params on first mount
   useEffect(() => {
@@ -525,6 +606,7 @@ export function CardGenerator() {
     const t = p.get("t") as Template | null;
     const n = p.get("n") ?? "";
     const d = p.get("d") ?? "";
+    if (t === "vip") setVipUnlocked(true); // VIP URL = already authenticated
     if (t || n || d) {
       setState(prev => ({
         ...prev,
@@ -535,7 +617,6 @@ export function CardGenerator() {
     }
   }, []);
 
-  // Redraw canvas whenever state or size changes — race-condition safe
   const redraw = useCallback(async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -550,11 +631,19 @@ export function CardGenerator() {
     } else {
       await drawVip(ctx, state, CW, CH, genId, drawGenRef);
     }
-  }, [state, sizeKey, CW, CH]);
+  }, [state, CW, CH]);
 
   useEffect(() => { redraw(); }, [redraw]);
 
   // ── Handlers ────────────────────────────────────────────────
+
+  function handleVipTabClick() {
+    if (vipUnlocked) {
+      setState(s => ({ ...s, template: "vip" }));
+    } else {
+      setShowVipModal(true);
+    }
+  }
 
   function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -627,8 +716,7 @@ export function CardGenerator() {
     }
   }
 
-  // Open popup synchronously (user-gesture context) then navigate after upload
-  // — prevents browser popup blockers from killing the window.open call.
+  // Open popup synchronously (user gesture), navigate after async upload
   async function handleShareLinkedIn() {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -638,9 +726,7 @@ export function CardGenerator() {
     const cardId = await uploadCard(canvas);
     setUploading(false);
     const url = makeShareUrl(state, cardId ?? undefined);
-    if (win) {
-      win.location.href = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
-    }
+    if (win) win.location.href = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
   }
 
   async function handleShareFacebook() {
@@ -652,284 +738,285 @@ export function CardGenerator() {
     const cardId = await uploadCard(canvas);
     setUploading(false);
     const url = makeShareUrl(state, cardId ?? undefined);
-    if (win) {
-      win.location.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
-    }
+    if (win) win.location.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
   }
 
-  // ── Derived ─────────────────────────────────────────────────
-
-  const isVip      = state.template === "vip";
   const accent     = isVip ? "#FFB800"              : "#316BFF";
   const accentMute = isVip ? "rgba(255,184,0,0.18)" : "rgba(49,107,255,0.18)";
 
-  // ── Render ──────────────────────────────────────────────────
-
   return (
-    <div className="max-w-page mx-auto px-6 md:px-14 py-12 md:py-16">
+    <>
+      {showVipModal && (
+        <VipModal
+          onSuccess={() => {
+            setVipUnlocked(true);
+            setShowVipModal(false);
+            setState(s => ({ ...s, template: "vip" }));
+          }}
+          onClose={() => setShowVipModal(false)}
+        />
+      )}
 
-      {/* Header */}
-      <header className="mb-10">
-        <Link href="/"
-          className="inline-flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors mb-4">
-          <ArrowLeft size={12} /> Back to Home
-        </Link>
-        <p className="kx-eyebrow mb-3">Khinext &apos;26</p>
-        <h1 className="font-display font-extrabold text-white text-4xl md:text-5xl -tracking-tight mb-3">
-          Your <span className="kx-accent">Digital Card</span>
-        </h1>
-        <p className="text-white/50 text-sm max-w-lg">
-          Personalise your attendance card and share it on LinkedIn, Instagram, and Facebook.
-        </p>
-      </header>
+      <div className="max-w-page mx-auto px-6 md:px-14 py-12 md:py-16">
 
-      {/* Template selector */}
-      <div role="tablist"
-        className="inline-flex gap-1 rounded-full bg-white/[0.04] border border-white/10 p-1 mb-6">
-        <button
-          role="tab" aria-selected={!isVip}
-          onClick={() => setState(s => ({ ...s, template: "standard" }))}
-          className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all ${
-            !isVip ? "bg-khi-blue text-white shadow-lg" : "text-white/50 hover:text-white"
-          }`}>
-          Standard
-        </button>
-        <button
-          role="tab" aria-selected={isVip}
-          onClick={() => setState(s => ({ ...s, template: "vip" }))}
-          className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all ${
-            isVip ? "text-white shadow-lg" : "text-white/50 hover:text-white"
-          }`}
-          style={isVip ? { background: "linear-gradient(135deg,#5C3D00,#B8860B,#5C3D00)" } : {}}>
-          ✦ VIP Delegate
-        </button>
-      </div>
+        {/* Header */}
+        <header className="mb-10">
+          <Link href="/"
+            className="inline-flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors mb-4">
+            <ArrowLeft size={12} /> Back to Home
+          </Link>
+          <p className="kx-eyebrow mb-3">Khinext &apos;26</p>
+          <h1 className="font-display font-extrabold text-white text-4xl md:text-5xl -tracking-tight mb-3">
+            Your <span className="kx-accent">Digital Card</span>
+          </h1>
+          <p className="text-white/50 text-sm max-w-lg">
+            Personalise your attendance card and share it on LinkedIn, Instagram, and Facebook.
+          </p>
+        </header>
 
-      {/* Size selector */}
-      <div className="flex flex-wrap gap-2 mb-10">
-        {(Object.entries(SIZES) as [SizeKey, typeof SIZES[SizeKey]][]).map(([key, sz]) => (
+        {/* Template selector */}
+        <div role="tablist"
+          className="inline-flex gap-1 rounded-full bg-white/[0.04] border border-white/10 p-1 mb-6">
           <button
-            key={key}
-            onClick={() => setSizeKey(key)}
-            className={`flex flex-col items-center px-4 py-2 rounded-xl border text-xs font-semibold transition-all ${
-              sizeKey === key
-                ? "border-khi-blue bg-khi-blue/10 text-white"
-                : "border-white/10 text-white/40 hover:border-white/25 hover:text-white/70"
+            role="tab" aria-selected={!isVip}
+            onClick={() => setState(s => ({ ...s, template: "standard" }))}
+            className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all ${
+              !isVip ? "bg-khi-blue text-white shadow-lg" : "text-white/50 hover:text-white"
             }`}>
-            <span>{sz.label}</span>
-            <span className={`text-[10px] font-normal mt-0.5 ${sizeKey === key ? "text-white/60" : "text-white/25"}`}>
-              {sz.sub}
-            </span>
+            Standard
           </button>
-        ))}
-      </div>
+          <button
+            role="tab" aria-selected={isVip}
+            onClick={handleVipTabClick}
+            className={`inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-semibold transition-all ${
+              isVip ? "text-white shadow-lg" : "text-white/50 hover:text-white"
+            }`}
+            style={isVip ? { background: "linear-gradient(135deg,#5C3D00,#B8860B,#5C3D00)" } : {}}>
+            {!vipUnlocked && <Lock size={11} className="opacity-60" />}
+            {vipUnlocked ? "✦" : ""} VIP Delegate
+          </button>
+        </div>
 
-      <div className="grid lg:grid-cols-[400px_1fr] gap-8 items-start">
+        {/* Size selector */}
+        <div className="flex flex-wrap gap-2 mb-10">
+          {(Object.entries(SIZES) as [SizeKey, typeof SIZES[SizeKey]][]).map(([key, sz]) => (
+            <button key={key} onClick={() => setSizeKey(key)}
+              className={`flex flex-col items-center px-4 py-2 rounded-xl border text-xs font-semibold transition-all ${
+                sizeKey === key
+                  ? "border-khi-blue bg-khi-blue/10 text-white"
+                  : "border-white/10 text-white/40 hover:border-white/25 hover:text-white/70"
+              }`}>
+              <span>{sz.label}</span>
+              <span className={`text-[10px] font-normal mt-0.5 ${sizeKey === key ? "text-white/60" : "text-white/25"}`}>
+                {sz.sub}
+              </span>
+            </button>
+          ))}
+        </div>
 
-        {/* ── Controls panel ── */}
-        <div className="space-y-4">
+        <div className="grid lg:grid-cols-[400px_1fr] gap-8 items-start">
 
-          {/* Photo upload */}
-          <div className="kx-card !p-6 !rounded-2xl">
-            <p className="kx-label block mb-3">Your Photo</p>
-            {state.photoDataUrl ? (
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 border-2"
-                  style={{ borderColor: accent }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={state.photoDataUrl} alt="Preview" className="w-full h-full object-cover" />
+          {/* ── Controls panel ── */}
+          <div className="space-y-4">
+
+            {/* Photo upload */}
+            <div className="kx-card !p-6 !rounded-2xl">
+              <p className="kx-label block mb-3">Your Photo</p>
+              {state.photoDataUrl ? (
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 border-2"
+                    style={{ borderColor: accent }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={state.photoDataUrl} alt="Preview" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-white/75">Photo uploaded</p>
+                    <p className="text-xs text-white/35 mt-0.5">Auto-cropped to circle</p>
+                  </div>
+                  <button onClick={removePhoto}
+                    className="p-2 rounded-full hover:bg-white/10 transition-colors text-white/35 hover:text-white"
+                    aria-label="Remove photo">
+                    <X size={15} />
+                  </button>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-white/75">Photo uploaded</p>
-                  <p className="text-xs text-white/35 mt-0.5">Auto-cropped to circle</p>
-                </div>
-                <button onClick={removePhoto}
-                  className="p-2 rounded-full hover:bg-white/10 transition-colors text-white/35 hover:text-white"
-                  aria-label="Remove photo">
-                  <X size={15} />
+              ) : (
+                <button onClick={() => fileInputRef.current?.click()}
+                  className="w-full flex flex-col items-center gap-3 py-8 rounded-xl border-2 border-dashed border-white/12 hover:border-white/28 transition-colors group">
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center"
+                    style={{ background: accentMute }}>
+                    <Upload size={20} style={{ color: accent }} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white/65 group-hover:text-white transition-colors">
+                      Upload Photo
+                    </p>
+                    <p className="text-xs text-white/30 mt-1">JPG or PNG · Best with a headshot</p>
+                  </div>
+                </button>
+              )}
+              <input ref={fileInputRef} type="file" accept="image/*"
+                className="sr-only" onChange={handlePhotoUpload} />
+            </div>
+
+            {/* Name */}
+            <div className="kx-card !p-6 !rounded-2xl">
+              <label htmlFor="card-name" className="kx-label block mb-2">Your Name</label>
+              <input id="card-name" type="text" value={state.name}
+                onChange={e => setState(s => ({ ...s, name: e.target.value }))}
+                placeholder="Dr. Ayesha Khan" maxLength={50}
+                className="kx-input w-full rounded-xl" />
+            </div>
+
+            {/* Designation — VIP only */}
+            {isVip && (
+              <div className="kx-card !p-6 !rounded-2xl"
+                style={{ borderColor: "rgba(255,184,0,0.18)" }}>
+                <label htmlFor="card-designation"
+                  className="block mb-2 text-[11px] font-bold uppercase"
+                  style={{ color: "#FFB800", letterSpacing: "0.14em" }}>
+                  Designation / Title
+                </label>
+                <input id="card-designation" type="text" value={state.designation}
+                  onChange={e => setState(s => ({ ...s, designation: e.target.value }))}
+                  placeholder="CEO · AI Research Director" maxLength={55}
+                  className="kx-input w-full rounded-xl"
+                  style={{ borderColor: "rgba(255,184,0,0.20)" }} />
+                <p className="text-xs text-white/32 mt-2">Appears in gold below your name</p>
+              </div>
+            )}
+
+            {/* Card summary */}
+            <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4 text-xs text-white/38 space-y-1.5">
+              <p className="text-white/55 font-semibold mb-2.5">
+                {isVip ? "VIP Delegate" : "Standard"} card includes:
+              </p>
+              {isVip ? (
+                <>
+                  <p>✦ &ldquo;I am attending as a VIP Delegate&rdquo;</p>
+                  <p>✦ Your photo · Gold ring frame</p>
+                  <p>✦ Your name + designation</p>
+                </>
+              ) : (
+                <>
+                  <p>✦ &ldquo;I am attending KHINEXT&rdquo;</p>
+                  <p>✦ Your photo · Blue ring frame</p>
+                  <p>✦ Your name</p>
+                </>
+              )}
+              <p>✦ Asia&apos;s First Multi Domain AI Summit</p>
+              <p>✦ PC Hotel, Karachi · June 7, 2026 · khinext.com</p>
+              <p>✦ Partnered by Sports &amp; Youth Affairs Dept</p>
+            </div>
+
+            {/* Format toggle */}
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-white/40">Format:</span>
+              <div className="inline-flex gap-0.5 rounded-full bg-white/[0.05] border border-white/10 p-0.5">
+                {(["jpeg", "png"] as const).map(f => (
+                  <button key={f} onClick={() => setFmt(f)}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide transition-colors ${
+                      fmt === f ? "bg-white/15 text-white" : "text-white/40 hover:text-white"
+                    }`}>
+                    {f}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Download */}
+            <button onClick={handleDownload} disabled={downloading}
+              className="kx-btn kx-btn-primary w-full justify-center disabled:opacity-60">
+              <Download size={16} />
+              {downloading ? "Generating…" : `Download ${fmt.toUpperCase()}`}
+            </button>
+
+            {/* Share via device */}
+            <button onClick={handleShare}
+              className="kx-btn kx-btn-outline w-full justify-center">
+              {shared ? <Check size={16} /> : <Share2 size={16} />}
+              {shared ? "Shared!" : "Share via device"}
+            </button>
+
+            {/* Copy unique link */}
+            <button onClick={handleCopyLink} disabled={uploading}
+              className={`kx-btn w-full justify-center transition-all disabled:opacity-60 ${
+                linkCopied
+                  ? "bg-emerald-500/15 border border-emerald-500/30 text-emerald-400"
+                  : "kx-btn-outline"
+              }`}>
+              {uploading ? <Loader2 size={16} className="animate-spin" /> : linkCopied ? <Check size={16} /> : <Link2 size={16} />}
+              {uploading ? "Uploading card…" : linkCopied ? "Link copied!" : "Copy unique link"}
+            </button>
+
+            {/* Social share */}
+            <div>
+              <p className="text-xs text-white/30 text-center mb-3">Share on</p>
+              <div className="flex items-stretch gap-2">
+                <button onClick={handleShareLinkedIn} disabled={uploading}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-white/12 hover:border-[#0077B5] hover:bg-[#0077B5]/10 transition-all text-xs text-white/45 hover:text-white font-medium disabled:opacity-50">
+                  {uploading
+                    ? <Loader2 size={13} className="animate-spin" />
+                    : <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                      </svg>
+                  }
+                  LinkedIn
+                </button>
+
+                <button onClick={handleShareFacebook} disabled={uploading}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-white/12 hover:border-[#1877F2] hover:bg-[#1877F2]/10 transition-all text-xs text-white/45 hover:text-white font-medium disabled:opacity-50">
+                  {uploading
+                    ? <Loader2 size={13} className="animate-spin" />
+                    : <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                      </svg>
+                  }
+                  Facebook
+                </button>
+
+                <button onClick={handleDownload}
+                  title="Download then share on Instagram"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-white/12 hover:border-[#E1306C] hover:bg-[#E1306C]/10 transition-all text-xs text-white/45 hover:text-white font-medium">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                  </svg>
+                  Instagram
                 </button>
               </div>
-            ) : (
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full flex flex-col items-center gap-3 py-8 rounded-xl border-2 border-dashed border-white/12 hover:border-white/28 transition-colors group">
-                <div className="w-12 h-12 rounded-full flex items-center justify-center"
-                  style={{ background: accentMute }}>
-                  <Upload size={20} style={{ color: accent }} />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-white/65 group-hover:text-white transition-colors">
-                    Upload Photo
-                  </p>
-                  <p className="text-xs text-white/30 mt-1">JPG or PNG · Best with a headshot</p>
-                </div>
-              </button>
-            )}
-            <input ref={fileInputRef} type="file" accept="image/*"
-              className="sr-only" onChange={handlePhotoUpload} />
-          </div>
-
-          {/* Name */}
-          <div className="kx-card !p-6 !rounded-2xl">
-            <label htmlFor="card-name" className="kx-label block mb-2">Your Name</label>
-            <input id="card-name" type="text" value={state.name}
-              onChange={e => setState(s => ({ ...s, name: e.target.value }))}
-              placeholder="Dr. Ayesha Khan" maxLength={50}
-              className="kx-input w-full rounded-xl" />
-          </div>
-
-          {/* Designation — VIP only */}
-          {isVip && (
-            <div className="kx-card !p-6 !rounded-2xl"
-              style={{ borderColor: "rgba(255,184,0,0.18)" }}>
-              <label htmlFor="card-designation"
-                className="block mb-2 text-[11px] font-bold uppercase"
-                style={{ color: "#FFB800", letterSpacing: "0.14em" }}>
-                Designation / Title
-              </label>
-              <input id="card-designation" type="text" value={state.designation}
-                onChange={e => setState(s => ({ ...s, designation: e.target.value }))}
-                placeholder="CEO · AI Research Director" maxLength={55}
-                className="kx-input w-full rounded-xl"
-                style={{ borderColor: "rgba(255,184,0,0.20)" }} />
-              <p className="text-xs text-white/32 mt-2">Appears in gold below your name</p>
+              <p className="text-[11px] text-white/22 text-center mt-2">
+                LinkedIn &amp; Facebook show your card as a link preview · Instagram: download then post
+              </p>
             </div>
-          )}
+          </div>
 
-          {/* Card summary */}
-          <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4 text-xs text-white/38 space-y-1.5">
-            <p className="text-white/55 font-semibold mb-2.5">
-              {isVip ? "VIP Delegate" : "Standard"} card includes:
+          {/* ── Canvas preview ── */}
+          <div className="sticky top-6">
+            <p className="text-xs text-white/30 text-center mb-3">
+              Live preview · {SIZES[sizeKey].sub}
             </p>
-            {isVip ? (
-              <>
-                <p>✦ &ldquo;I am attending as a VIP Delegate&rdquo;</p>
-                <p>✦ Your photo · Gold ring frame</p>
-                <p>✦ Your name + designation</p>
-              </>
-            ) : (
-              <>
-                <p>✦ &ldquo;I am attending KHINEXT&rdquo;</p>
-                <p>✦ Your photo · Blue ring frame</p>
-                <p>✦ Your name</p>
-              </>
-            )}
-            <p>✦ Asia&apos;s First Multi Domain AI Summit</p>
-            <p>✦ PC Hotel, Karachi · June 7, 2026 · khinext.com</p>
-            <p>✦ Partnered by Sports &amp; Youth Affairs Dept</p>
-          </div>
-
-          {/* Format toggle */}
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-white/40">Format:</span>
-            <div className="inline-flex gap-0.5 rounded-full bg-white/[0.05] border border-white/10 p-0.5">
-              {(["jpeg", "png"] as const).map(f => (
-                <button key={f} onClick={() => setFmt(f)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide transition-colors ${
-                    fmt === f ? "bg-white/15 text-white" : "text-white/40 hover:text-white"
-                  }`}>
-                  {f}
-                </button>
-              ))}
+            <div className="relative rounded-2xl overflow-hidden"
+              style={{
+                boxShadow: isVip
+                  ? "0 0 80px rgba(255,184,0,0.14), 0 0 0 1px rgba(255,184,0,0.12)"
+                  : "0 0 80px rgba(49,107,255,0.14), 0 0 0 1px rgba(49,107,255,0.12)",
+              }}>
+              <canvas ref={canvasRef} width={CW} height={CH}
+                style={{ width: "100%", height: "auto", display: "block" }} />
+              {uploading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm rounded-2xl">
+                  <div className="flex flex-col items-center gap-3">
+                    <Loader2 size={32} className="animate-spin text-white" />
+                    <p className="text-sm text-white/80">Uploading card…</p>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-
-          {/* Download */}
-          <button onClick={handleDownload} disabled={downloading}
-            className="kx-btn kx-btn-primary w-full justify-center disabled:opacity-60">
-            <Download size={16} />
-            {downloading ? "Generating…" : `Download ${fmt.toUpperCase()}`}
-          </button>
-
-          {/* Share via device */}
-          <button onClick={handleShare}
-            className="kx-btn kx-btn-outline w-full justify-center">
-            {shared ? <Check size={16} /> : <Share2 size={16} />}
-            {shared ? "Shared!" : "Share via device"}
-          </button>
-
-          {/* Copy unique link */}
-          <button onClick={handleCopyLink} disabled={uploading}
-            className={`kx-btn w-full justify-center transition-all disabled:opacity-60 ${
-              linkCopied
-                ? "bg-emerald-500/15 border border-emerald-500/30 text-emerald-400"
-                : "kx-btn-outline"
-            }`}>
-            {uploading ? <Loader2 size={16} className="animate-spin" /> : linkCopied ? <Check size={16} /> : <Link2 size={16} />}
-            {uploading ? "Uploading card…" : linkCopied ? "Link copied!" : "Copy unique link"}
-          </button>
-
-          {/* Social share */}
-          <div>
-            <p className="text-xs text-white/30 text-center mb-3">Share on</p>
-            <div className="flex items-stretch gap-2">
-              {/* LinkedIn */}
-              <button onClick={handleShareLinkedIn} disabled={uploading}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-white/12 hover:border-[#0077B5] hover:bg-[#0077B5]/10 transition-all text-xs text-white/45 hover:text-white font-medium disabled:opacity-50">
-                {uploading
-                  ? <Loader2 size={13} className="animate-spin" />
-                  : <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-                    </svg>
-                }
-                LinkedIn
-              </button>
-
-              {/* Facebook */}
-              <button onClick={handleShareFacebook} disabled={uploading}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-white/12 hover:border-[#1877F2] hover:bg-[#1877F2]/10 transition-all text-xs text-white/45 hover:text-white font-medium disabled:opacity-50">
-                {uploading
-                  ? <Loader2 size={13} className="animate-spin" />
-                  : <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                    </svg>
-                }
-                Facebook
-              </button>
-
-              {/* Instagram */}
-              <button onClick={handleDownload}
-                title="Download then share on Instagram"
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-white/12 hover:border-[#E1306C] hover:bg-[#E1306C]/10 transition-all text-xs text-white/45 hover:text-white font-medium">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-                </svg>
-                Instagram
-              </button>
-            </div>
-            <p className="text-[11px] text-white/22 text-center mt-2">
-              LinkedIn &amp; Facebook show your card as a link preview · Instagram: download then post
+            <p className="text-[11px] text-white/22 text-center mt-3">
+              {SIZES[sizeKey].label} · Optimised for LinkedIn, Instagram &amp; Facebook
             </p>
           </div>
         </div>
-
-        {/* ── Canvas preview ── */}
-        <div className="sticky top-6">
-          <p className="text-xs text-white/30 text-center mb-3">
-            Live preview · {SIZES[sizeKey].sub}
-          </p>
-          <div className="relative rounded-2xl overflow-hidden"
-            style={{
-              boxShadow: isVip
-                ? "0 0 80px rgba(255,184,0,0.14), 0 0 0 1px rgba(255,184,0,0.12)"
-                : "0 0 80px rgba(49,107,255,0.14), 0 0 0 1px rgba(49,107,255,0.12)",
-            }}>
-            <canvas ref={canvasRef} width={CW} height={CH}
-              style={{ width: "100%", height: "auto", display: "block" }} />
-            {uploading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm rounded-2xl">
-                <div className="flex flex-col items-center gap-3">
-                  <Loader2 size={32} className="animate-spin text-white" />
-                  <p className="text-sm text-white/80">Uploading card…</p>
-                </div>
-              </div>
-            )}
-          </div>
-          <p className="text-[11px] text-white/22 text-center mt-3">
-            {SIZES[sizeKey].label} · Optimised for LinkedIn, Instagram &amp; Facebook
-          </p>
-        </div>
       </div>
-    </div>
+    </>
   );
 }
