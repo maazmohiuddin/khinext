@@ -24,7 +24,7 @@ const SIZES = {
 } as const;
 type SizeKey = keyof typeof SIZES;
 
-// ── Helpers ───────────────────────────────────────────────────
+// ── Image loaders with cache ───────────────────────────────────
 
 let logoCache: HTMLImageElement | null = null;
 let logoPromise: Promise<HTMLImageElement> | null = null;
@@ -40,6 +40,22 @@ function getLogoImg(): Promise<HTMLImageElement> {
     img.src = "/brand/logo.png";
   });
   return logoPromise;
+}
+
+let partnerCache: HTMLImageElement | null = null;
+let partnerPromise: Promise<HTMLImageElement> | null = null;
+
+function getPartnerImg(): Promise<HTMLImageElement> {
+  if (partnerCache) return Promise.resolve(partnerCache);
+  if (partnerPromise) return partnerPromise;
+  partnerPromise = new Promise((resolve, reject) => {
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => { partnerCache = img; resolve(img); };
+    img.onerror = reject;
+    img.src = "/brand/partner-logo.png";
+  });
+  return partnerPromise;
 }
 
 function loadDataUrlImage(src: string): Promise<HTMLImageElement> {
@@ -118,6 +134,42 @@ function drawSpaced(
   }
 }
 
+// Draw "PARTNERED BY" label + circular partner logo
+async function drawPartnerLogo(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  labelY: number,
+  logoY: number,
+  radius: number,
+  isVip: boolean,
+  gen: number, genRef: React.MutableRefObject<number>
+) {
+  try {
+    const partner = await getPartnerImg();
+    if (gen !== genRef.current) return;
+
+    // Label
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = isVip ? "rgba(255,200,80,0.45)" : "rgba(255,255,255,0.30)";
+    ctx.font = `700 ${Math.max(radius * 0.38, 12)}px "Helvetica", sans-serif`;
+    ctx.fillText("PARTNERED BY", cx, labelY);
+
+    // White disc background for the logo
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, logoY, radius + 2, 0, Math.PI * 2);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fill();
+    ctx.restore();
+
+    // Logo clipped to circle
+    drawCircleImage(ctx, partner, cx, logoY, radius);
+  } catch {
+    // Partner logo not found — skip silently
+  }
+}
+
 // ── Standard card ──────────────────────────────────────────────
 
 async function drawStandard(
@@ -126,7 +178,6 @@ async function drawStandard(
   W: number, H: number,
   gen: number, genRef: React.MutableRefObject<number>
 ) {
-  // Proportional scale factor relative to the reference 1080×1080 design
   const ys = H / 1080;
   const r = (n: number) => Math.round(n * ys);
 
@@ -182,7 +233,7 @@ async function drawStandard(
   ctx.fillStyle = "#FFFFFF";
   ctx.fillText("KHINEXT", W / 2, r(268));
 
-  const px = W / 2, py = r(488), pr = r(150);
+  const px = W / 2, py = r(460), pr = r(150);
 
   const haloGrad = ctx.createRadialGradient(px, py, pr, px, py, pr + r(62));
   haloGrad.addColorStop(0,   "rgba(49,107,255,0.14)");
@@ -219,7 +270,7 @@ async function drawStandard(
   ctx.fillStyle = "#FFFFFF";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  fitText(ctx, nameText, W / 2, r(718), 860,
+  fitText(ctx, nameText, W / 2, r(690), 860,
     (sz) => `800 ${sz}px "Helvetica Now Display", "Helvetica", sans-serif`, r(58), 26);
 
   const dg = ctx.createLinearGradient(W / 2 - 70, 0, W / 2 + 70, 0);
@@ -227,22 +278,21 @@ async function drawStandard(
   dg.addColorStop(0.5, "rgba(49,107,255,0.60)");
   dg.addColorStop(1, "transparent");
   ctx.fillStyle = dg;
-  ctx.fillRect(W / 2 - 70, r(756), 140, 1.5);
+  ctx.fillRect(W / 2 - 70, r(722), 140, 1.5);
 
-  ctx.font = `400 ${r(22)}px "Helvetica", sans-serif`;
+  ctx.font = `400 ${r(21)}px "Helvetica", sans-serif`;
   ctx.fillStyle = "rgba(255,255,255,0.46)";
-  ctx.fillText("Asia's First Multi Domain AI and Innovation Summit", W / 2, r(798));
+  ctx.fillText("Asia's First Multi Domain AI and Innovation Summit", W / 2, r(758));
 
-  ctx.font = `700 ${r(20)}px "Helvetica", sans-serif`;
+  ctx.font = `700 ${r(19)}px "Helvetica", sans-serif`;
   ctx.fillStyle = "rgba(143,175,255,0.80)";
-  ctx.fillText("PC Hotel, Karachi  ·  June 7, 2026  ·  khinext.com", W / 2, r(844));
+  ctx.fillText("PC Hotel, Karachi  ·  June 7, 2026  ·  khinext.com", W / 2, r(800));
 
-  const bz = ctx.createLinearGradient(0, r(900), 0, H);
-  bz.addColorStop(0, "rgba(4,11,28,0)");
-  bz.addColorStop(1, "rgba(4,11,28,0.4)");
-  ctx.fillStyle = bz;
-  ctx.fillRect(0, r(900), W, H - r(900));
+  // Partner logo
+  await drawPartnerLogo(ctx, W / 2, r(840), r(892), r(32), false, gen, genRef);
+  if (gen !== genRef.current) return;
 
+  // Bottom bar
   const bl = ctx.createLinearGradient(0, 0, W, 0);
   bl.addColorStop(0, "transparent");
   bl.addColorStop(0.5, "rgba(49,107,255,0.75)");
@@ -307,15 +357,16 @@ async function drawVip(
   ctx.font = `700 ${r(22)}px "Helvetica Now Display", "Helvetica", sans-serif`;
   drawSpaced(ctx, "I AM ATTENDING AS A", W / 2, r(146), r(19.5));
 
+  // "VIP DELEGATE" — fit to width so it never overflows
   const goldGrad = ctx.createLinearGradient(100, 0, W - 100, 0);
   goldGrad.addColorStop(0,    "#7A5010");
   goldGrad.addColorStop(0.25, "#FFD060");
   goldGrad.addColorStop(0.5,  "#FFF0A0");
   goldGrad.addColorStop(0.75, "#FFD060");
   goldGrad.addColorStop(1,    "#7A5010");
-  ctx.font = `900 ${r(94)}px "Helvetica Now Display", "Helvetica", sans-serif`;
   ctx.fillStyle = goldGrad;
-  ctx.fillText("VIP DELEGATE", W / 2, r(254));
+  fitText(ctx, "VIP DELEGATE", W / 2, r(254), W - r(80),
+    sz => `900 ${sz}px "Helvetica Now Display", "Helvetica", sans-serif`, r(90), 40);
 
   const ul = ctx.createLinearGradient(0, 0, W, 0);
   ul.addColorStop(0,    "transparent");
@@ -326,7 +377,7 @@ async function drawVip(
   ctx.fillStyle = ul;
   ctx.fillRect(0, r(314), W, 1.5);
 
-  const px = W / 2, py = r(514), pr = r(145);
+  const px = W / 2, py = r(488), pr = r(145);
 
   const haloGrad = ctx.createRadialGradient(px, py, pr, px, py, pr + r(60));
   haloGrad.addColorStop(0,   "rgba(255,184,0,0.14)");
@@ -369,18 +420,18 @@ async function drawVip(
   ctx.fillStyle = "#FFFFFF";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  fitText(ctx, nameText, W / 2, r(736), 860,
+  fitText(ctx, nameText, W / 2, r(710), 860,
     (sz) => `800 ${sz}px "Helvetica Now Display", "Helvetica", sans-serif`, r(56), 26);
 
   const hasDesig = s.designation.trim().length > 0;
 
   if (hasDesig) {
     ctx.fillStyle = "rgba(255,200,55,0.88)";
-    fitText(ctx, s.designation.trim(), W / 2, r(786), 820,
+    fitText(ctx, s.designation.trim(), W / 2, r(756), 820,
       (sz) => `400 ${sz}px "Helvetica Now Display", "Helvetica", sans-serif`, r(28), 18);
   }
 
-  const divY = hasDesig ? r(826) : r(776);
+  const divY = hasDesig ? r(796) : r(748);
 
   const dg = ctx.createLinearGradient(W / 2 - 70, 0, W / 2 + 70, 0);
   dg.addColorStop(0, "transparent");
@@ -389,22 +440,23 @@ async function drawVip(
   ctx.fillStyle = dg;
   ctx.fillRect(W / 2 - 70, divY, 140, 1.5);
 
-  const tY = divY + r(50);
+  const tY = divY + r(46);
 
-  ctx.font = `400 ${r(21)}px "Helvetica", sans-serif`;
+  ctx.font = `400 ${r(20)}px "Helvetica", sans-serif`;
   ctx.fillStyle = "rgba(255,255,255,0.42)";
   ctx.fillText("Asia's First Multi Domain AI and Innovation Summit", W / 2, tY);
 
-  ctx.font = `700 ${r(19)}px "Helvetica", sans-serif`;
+  ctx.font = `700 ${r(18)}px "Helvetica", sans-serif`;
   ctx.fillStyle = "rgba(255,184,0,0.70)";
-  ctx.fillText("PC Hotel, Karachi  ·  June 7, 2026  ·  khinext.com", W / 2, tY + r(44));
+  ctx.fillText("PC Hotel, Karachi  ·  June 7, 2026  ·  khinext.com", W / 2, tY + r(40));
 
-  const bz = ctx.createLinearGradient(0, tY + r(80), 0, H);
-  bz.addColorStop(0, "rgba(2,4,9,0)");
-  bz.addColorStop(1, "rgba(2,4,9,0.5)");
-  ctx.fillStyle = bz;
-  ctx.fillRect(0, tY + r(80), W, H - (tY + r(80)));
+  // Partner logo
+  const partnerLabelY = tY + r(82);
+  const partnerLogoY  = tY + r(128);
+  await drawPartnerLogo(ctx, W / 2, partnerLabelY, partnerLogoY, r(30), true, gen, genRef);
+  if (gen !== genRef.current) return;
 
+  // Bottom bar
   const bl = ctx.createLinearGradient(0, 0, W, 0);
   bl.addColorStop(0, "transparent");
   bl.addColorStop(0.5, "rgba(255,184,0,0.72)");
@@ -575,32 +627,34 @@ export function CardGenerator() {
     }
   }
 
+  // Open popup synchronously (user-gesture context) then navigate after upload
+  // — prevents browser popup blockers from killing the window.open call.
   async function handleShareLinkedIn() {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const win = window.open("about:blank", "_blank", "noopener,width=600,height=480");
     setUploading(true);
     await redraw();
     const cardId = await uploadCard(canvas);
     setUploading(false);
     const url = makeShareUrl(state, cardId ?? undefined);
-    window.open(
-      `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
-      "_blank", "noopener,noreferrer,width=600,height=480"
-    );
+    if (win) {
+      win.location.href = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
+    }
   }
 
   async function handleShareFacebook() {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const win = window.open("about:blank", "_blank", "noopener,width=600,height=480");
     setUploading(true);
     await redraw();
     const cardId = await uploadCard(canvas);
     setUploading(false);
     const url = makeShareUrl(state, cardId ?? undefined);
-    window.open(
-      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
-      "_blank", "noopener,noreferrer,width=600,height=480"
-    );
+    if (win) {
+      win.location.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+    }
   }
 
   // ── Derived ─────────────────────────────────────────────────
@@ -762,6 +816,7 @@ export function CardGenerator() {
             )}
             <p>✦ Asia&apos;s First Multi Domain AI Summit</p>
             <p>✦ PC Hotel, Karachi · June 7, 2026 · khinext.com</p>
+            <p>✦ Partnered by Sports &amp; Youth Affairs Dept</p>
           </div>
 
           {/* Format toggle */}
