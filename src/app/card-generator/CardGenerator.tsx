@@ -361,7 +361,7 @@ async function drawStandard(
   ctx.fillStyle = "rgba(143,175,255,0.80)";
   ctx.fillText("PC Hotel, Karachi  ·  June 7, 2026  ·  khinext.com", W / 2, r(864));
 
-  await drawPartnerLogo(ctx, W / 2, r(876), r(932), r(44), false, gen, genRef);
+  await drawPartnerLogo(ctx, W / 2, r(898), r(966), r(44), false, gen, genRef);
   if (gen !== genRef.current) return;
 
   // Bottom bar
