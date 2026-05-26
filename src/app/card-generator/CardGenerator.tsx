@@ -361,9 +361,8 @@ async function drawStandard(
   ctx.fillStyle = "rgba(143,175,255,0.80)";
   ctx.fillText("PC Hotel, Karachi  ·  June 7, 2026  ·  khinext.com", W / 2, r(864));
 
-  // Partner
-  // Logo centre r(950), radius r(50) → bottom r(1000); gap to bar = r(77) = gap above avatar
-  await drawPartnerLogo(ctx, W / 2, r(900), r(952), r(50), false, gen, genRef);
+  // Partner — 10-15px visual gap above logo at preview scale
+  await drawPartnerLogo(ctx, W / 2, r(876), r(1015), r(44), false, gen, genRef);
   if (gen !== genRef.current) return;
 
   // Bottom bar
@@ -522,8 +521,8 @@ async function drawVip(
   ctx.fillStyle = "rgba(255,184,0,0.70)";
   ctx.fillText("PC Hotel, Karachi  ·  June 7, 2026  ·  khinext.com", W / 2, tY + r(38));
 
-  // Partner
-  await drawPartnerLogo(ctx, W / 2, tY + r(76), tY + r(124), r(42), true, gen, genRef);
+  // Partner — 10-15px visual gap above logo at preview scale
+  await drawPartnerLogo(ctx, W / 2, tY + r(68), tY + r(175), r(38), true, gen, genRef);
   if (gen !== genRef.current) return;
 
   // Bottom bar
