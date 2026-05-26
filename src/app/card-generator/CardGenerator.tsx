@@ -277,8 +277,8 @@ async function drawStandard(
   ctx.fillStyle = "rgba(143,175,255,0.80)";
   ctx.fillText("PC Hotel, Karachi  ·  June 7, 2026  ·  khinext.com", W / 2, r(844));
 
-  // Partner — label r(876), logo r(988), radius r(46): ~57px gap at 1080px
-  await drawPartnerLogo(ctx, W / 2, r(876), r(988), r(46), false, gen, genRef);
+  // Partner — label r(876), logo r(1010), radius r(46): ~80px gap at 1080px
+  await drawPartnerLogo(ctx, W / 2, r(876), r(1010), r(46), false, gen, genRef);
   if (gen !== genRef.current) return;
 
   const bl = ctx.createLinearGradient(0, 0, W, 0);
@@ -437,8 +437,8 @@ async function drawVip(
   ctx.fillStyle = "rgba(255,184,0,0.70)";
   ctx.fillText("PC Hotel, Karachi  ·  June 7, 2026  ·  khinext.com", W / 2, tY + r(44));
 
-  // Partner — label tY+r(68), logo tY+r(144), radius r(40): ~29px gap at 1080px
-  await drawPartnerLogo(ctx, W / 2, tY + r(68), tY + r(144), r(40), true, gen, genRef);
+  // Partner — label tY+r(68), logo tY+r(160), radius r(40): ~45px gap at 1080px
+  await drawPartnerLogo(ctx, W / 2, tY + r(68), tY + r(160), r(40), true, gen, genRef);
   if (gen !== genRef.current) return;
 
   const bl = ctx.createLinearGradient(0, 0, W, 0);
