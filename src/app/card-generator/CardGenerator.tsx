@@ -118,6 +118,46 @@ function drawSpaced(
   }
 }
 
+// ── Partner logo ───────────────────────────────────────────────
+
+let partnerCache: HTMLImageElement | null = null;
+let partnerPromise: Promise<HTMLImageElement> | null = null;
+
+function getPartnerImg(): Promise<HTMLImageElement> {
+  if (partnerCache) return Promise.resolve(partnerCache);
+  if (partnerPromise) return partnerPromise;
+  partnerPromise = new Promise((resolve, reject) => {
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => { partnerCache = img; resolve(img); };
+    img.onerror = reject;
+    img.src = "/brand/partner-logo.png";
+  });
+  return partnerPromise;
+}
+
+async function drawPartnerLogo(
+  ctx: CanvasRenderingContext2D,
+  cx: number, labelY: number, logoY: number, radius: number,
+  isVip: boolean,
+  gen: number, genRef: React.MutableRefObject<number>
+) {
+  try {
+    const partner = await getPartnerImg();
+    if (gen !== genRef.current) return;
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = isVip ? "rgba(255,200,80,0.45)" : "rgba(255,255,255,0.30)";
+    ctx.font = `700 ${Math.round(radius * 0.36)}px "Helvetica", sans-serif`;
+    ctx.fillText("PARTNERED BY", cx, labelY);
+
+    drawCircleImage(ctx, partner, cx, logoY, radius);
+  } catch {
+    // Logo file absent — skip silently
+  }
+}
+
 // ── Standard card ──────────────────────────────────────────────
 
 async function drawStandard(
@@ -237,11 +277,9 @@ async function drawStandard(
   ctx.fillStyle = "rgba(143,175,255,0.80)";
   ctx.fillText("PC Hotel, Karachi  ·  June 7, 2026  ·  khinext.com", W / 2, r(844));
 
-  const bz = ctx.createLinearGradient(0, r(900), 0, H);
-  bz.addColorStop(0, "rgba(4,11,28,0)");
-  bz.addColorStop(1, "rgba(4,11,28,0.4)");
-  ctx.fillStyle = bz;
-  ctx.fillRect(0, r(900), W, H - r(900));
+  // Partner — label centre r(884), logo centre r(958), radius r(50) → no overlap
+  await drawPartnerLogo(ctx, W / 2, r(884), r(958), r(50), false, gen, genRef);
+  if (gen !== genRef.current) return;
 
   const bl = ctx.createLinearGradient(0, 0, W, 0);
   bl.addColorStop(0, "transparent");
@@ -399,11 +437,9 @@ async function drawVip(
   ctx.fillStyle = "rgba(255,184,0,0.70)";
   ctx.fillText("PC Hotel, Karachi  ·  June 7, 2026  ·  khinext.com", W / 2, tY + r(44));
 
-  const bz = ctx.createLinearGradient(0, tY + r(80), 0, H);
-  bz.addColorStop(0, "rgba(2,4,9,0)");
-  bz.addColorStop(1, "rgba(2,4,9,0.5)");
-  ctx.fillStyle = bz;
-  ctx.fillRect(0, tY + r(80), W, H - (tY + r(80)));
+  // Partner
+  await drawPartnerLogo(ctx, W / 2, tY + r(72), tY + r(130), r(42), true, gen, genRef);
+  if (gen !== genRef.current) return;
 
   const bl = ctx.createLinearGradient(0, 0, W, 0);
   bl.addColorStop(0, "transparent");
