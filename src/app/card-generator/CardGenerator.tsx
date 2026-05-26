@@ -136,6 +136,73 @@ function drawSpaced(
   }
 }
 
+// Draw name with the last word styled like kx-accent:
+// italic, blue (#4579FF), with a canvas shadow glow.
+function drawAccentName(
+  ctx: CanvasRenderingContext2D,
+  name: string,
+  cx: number, cy: number,
+  maxWidth: number,
+  startSize: number,
+  minSize = 26
+) {
+  const words = name.trim().split(/\s+/);
+  const makeRegular  = (sz: number) => `800 ${sz}px "Helvetica Now Display","Helvetica",sans-serif`;
+  const makeAccent   = (sz: number) => `italic 800 ${sz}px "Helvetica Now Display","Helvetica",sans-serif`;
+
+  if (words.length === 1) {
+    // Single word — draw normally in white, no accent split
+    ctx.fillStyle = "#FFFFFF";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    fitText(ctx, words[0], cx, cy, maxWidth, makeRegular, startSize, minSize);
+    return;
+  }
+
+  const lastName  = words[words.length - 1];
+  const firstPart = words.slice(0, -1).join(" ");
+
+  // Find largest size where the combined text fits
+  let size = startSize;
+  while (size > minSize) {
+    ctx.font = makeRegular(size);
+    const fw = ctx.measureText(firstPart + " ").width;
+    ctx.font = makeAccent(size);
+    const lw = ctx.measureText(lastName).width;
+    if (fw + lw <= maxWidth) break;
+    size -= 2;
+  }
+
+  ctx.font = makeRegular(size);
+  const firstWidth = ctx.measureText(firstPart + " ").width;
+  ctx.font = makeAccent(size);
+  const lastWidth = ctx.measureText(lastName).width;
+
+  const startX = cx - (firstWidth + lastWidth) / 2;
+
+  // First part — white
+  ctx.font = makeRegular(size);
+  ctx.fillStyle = "#FFFFFF";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText(firstPart + " ", startX, cy);
+
+  // Last word — blue with glow (two shadow passes for depth)
+  ctx.font = makeAccent(size);
+  ctx.save();
+  ctx.shadowColor = "rgba(69,121,255,0.85)";
+  ctx.shadowBlur  = 22;
+  ctx.fillStyle   = "#4579FF";
+  ctx.fillText(lastName, startX + firstWidth, cy);
+  // Brighter inner glow
+  ctx.shadowBlur  = 8;
+  ctx.fillStyle   = "rgba(180,210,255,0.92)";
+  ctx.fillText(lastName, startX + firstWidth, cy);
+  ctx.restore();
+
+  ctx.textAlign = "center"; // reset
+}
+
 async function drawPartnerLogo(
   ctx: CanvasRenderingContext2D,
   cx: number, labelY: number, logoY: number, radius: number,
@@ -281,31 +348,28 @@ async function drawStandard(
   ctx.lineWidth = 7;
   ctx.stroke();
 
-  // Name
+  // Name — last word gets kx-accent style (blue italic glow)
   const nameText = s.name.trim() || "Your Name";
-  ctx.fillStyle = "#FFFFFF";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  fitText(ctx, nameText, W / 2, r(730), 860,
-    (sz) => `800 ${sz}px "Helvetica Now Display", "Helvetica", sans-serif`, r(56), 26);
+  drawAccentName(ctx, nameText, W / 2, r(758), 860, r(56), 26);
 
   const dg = ctx.createLinearGradient(W / 2 - 70, 0, W / 2 + 70, 0);
   dg.addColorStop(0, "transparent");
   dg.addColorStop(0.5, "rgba(49,107,255,0.60)");
   dg.addColorStop(1, "transparent");
   ctx.fillStyle = dg;
-  ctx.fillRect(W / 2 - 70, r(762), 140, 1.5);
+  ctx.fillRect(W / 2 - 70, r(792), 140, 1.5);
 
   ctx.font = `400 ${r(21)}px "Helvetica", sans-serif`;
   ctx.fillStyle = "rgba(255,255,255,0.46)";
-  ctx.fillText("Asia's First Multi Domain AI and Innovation Summit", W / 2, r(796));
+  ctx.textAlign = "center";
+  ctx.fillText("Asia's First Multi Domain AI and Innovation Summit", W / 2, r(826));
 
   ctx.font = `700 ${r(19)}px "Helvetica", sans-serif`;
   ctx.fillStyle = "rgba(143,175,255,0.80)";
-  ctx.fillText("PC Hotel, Karachi  ·  June 7, 2026  ·  khinext.com", W / 2, r(834));
+  ctx.fillText("PC Hotel, Karachi  ·  June 7, 2026  ·  khinext.com", W / 2, r(864));
 
   // Partner
-  await drawPartnerLogo(ctx, W / 2, r(874), r(922), r(32), false, gen, genRef);
+  await drawPartnerLogo(ctx, W / 2, r(904), r(950), r(30), false, gen, genRef);
   if (gen !== genRef.current) return;
 
   // Bottom bar
@@ -434,12 +498,9 @@ async function drawVip(
   ctx.lineWidth = 7;
   ctx.stroke();
 
+  // Name — last word gets kx-accent style (blue italic glow)
   const nameText = s.name.trim() || "Your Name";
-  ctx.fillStyle = "#FFFFFF";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  fitText(ctx, nameText, W / 2, r(710), 860,
-    (sz) => `800 ${sz}px "Helvetica Now Display", "Helvetica", sans-serif`, r(56), 26);
+  drawAccentName(ctx, nameText, W / 2, r(710), 860, r(56), 26);
 
   const hasDesig = s.designation.trim().length > 0;
   if (hasDesig) {
