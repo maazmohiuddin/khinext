@@ -216,17 +216,10 @@ async function drawPartnerLogo(
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = isVip ? "rgba(255,200,80,0.45)" : "rgba(255,255,255,0.30)";
-    ctx.font = `700 ${Math.round(radius * 0.4)}px "Helvetica", sans-serif`;
+    ctx.font = `700 ${Math.round(radius * 0.36)}px "Helvetica", sans-serif`;
     ctx.fillText("PARTNERED BY", cx, labelY);
 
-    // White disc so logo reads on dark background
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(cx, logoY, radius + 2, 0, Math.PI * 2);
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fill();
-    ctx.restore();
-
+    // PNG has transparency — draw directly, no white disc
     drawCircleImage(ctx, partner, cx, logoY, radius);
   } catch {
     // Logo file absent — skip silently
@@ -369,7 +362,8 @@ async function drawStandard(
   ctx.fillText("PC Hotel, Karachi  ·  June 7, 2026  ·  khinext.com", W / 2, r(864));
 
   // Partner
-  await drawPartnerLogo(ctx, W / 2, r(904), r(950), r(30), false, gen, genRef);
+  // Logo centre r(950), radius r(50) → bottom r(1000); gap to bar = r(77) = gap above avatar
+  await drawPartnerLogo(ctx, W / 2, r(900), r(952), r(50), false, gen, genRef);
   if (gen !== genRef.current) return;
 
   // Bottom bar
@@ -529,7 +523,7 @@ async function drawVip(
   ctx.fillText("PC Hotel, Karachi  ·  June 7, 2026  ·  khinext.com", W / 2, tY + r(38));
 
   // Partner
-  await drawPartnerLogo(ctx, W / 2, tY + r(78), tY + r(122), r(30), true, gen, genRef);
+  await drawPartnerLogo(ctx, W / 2, tY + r(76), tY + r(124), r(42), true, gen, genRef);
   if (gen !== genRef.current) return;
 
   // Bottom bar
