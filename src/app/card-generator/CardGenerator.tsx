@@ -642,6 +642,7 @@ export function CardGenerator() {
   const [sizeKey,      setSizeKey]      = useState<SizeKey>("square");
   const [vipUnlocked,  setVipUnlocked]  = useState(false);
   const [showVipModal, setShowVipModal] = useState(false);
+  const [tokenState,   setTokenState]   = useState<"idle" | "validating" | "expired" | "invalid">("idle");
   const [downloading,  setDownloading]  = useState(false);
   const [uploading,    setUploading]    = useState(false);
   const [shared,       setShared]       = useState(false);
@@ -651,14 +652,15 @@ export function CardGenerator() {
   const { W: CW, H: CH } = SIZES[sizeKey];
   const isVip = state.template === "vip";
 
-  // Pre-fill from URL params on first mount
+  // Pre-fill from URL params on first mount; validate VIP token if present
   useEffect(() => {
     if (typeof window === "undefined") return;
     const p = new URLSearchParams(window.location.search);
     const t = p.get("t") as Template | null;
+    const token = p.get("token");
     const n = p.get("n") ?? "";
     const d = p.get("d") ?? "";
-    if (t === "vip") setVipUnlocked(true); // VIP URL = already authenticated
+
     if (t || n || d) {
       setState(prev => ({
         ...prev,
@@ -666,6 +668,27 @@ export function CardGenerator() {
         name:        n || prev.name,
         designation: d || prev.designation,
       }));
+    }
+
+    if (t === "vip") {
+      if (token) {
+        // Validate the per-recipient invite token
+        setTokenState("validating");
+        fetch(`/api/vip/validate?token=${encodeURIComponent(token)}`)
+          .then(r => r.json())
+          .then((data: { valid: boolean; reason?: string }) => {
+            if (data.valid) {
+              setVipUnlocked(true);
+              setTokenState("idle");
+            } else {
+              setTokenState(data.reason === "expired" ? "expired" : "invalid");
+            }
+          })
+          .catch(() => setTokenState("invalid"));
+      } else {
+        // Staff/direct VIP link without token — still grant access
+        setVipUnlocked(true);
+      }
     }
   }, []);
 
@@ -844,10 +867,22 @@ export function CardGenerator() {
               isVip ? "text-white shadow-lg" : "text-white/50 hover:text-white"
             }`}
             style={isVip ? { background: "linear-gradient(135deg,#5C3D00,#B8860B,#5C3D00)" } : {}}>
-            {!vipUnlocked && <Lock size={11} className="opacity-60" />}
+            {tokenState === "validating" ? <Loader2 size={11} className="animate-spin opacity-60" /> : (!vipUnlocked && <Lock size={11} className="opacity-60" />)}
             {vipUnlocked ? "✦" : ""} VIP Delegate
           </button>
         </div>
+
+        {/* Token error banners */}
+        {tokenState === "expired" && (
+          <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            Your VIP access link has expired (tokens are valid for 48 hours). Please contact the Khinext team for a new invite.
+          </div>
+        )}
+        {tokenState === "invalid" && (
+          <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            This VIP access link is invalid. Please check your invitation email or contact the Khinext team.
+          </div>
+        )}
 
         {/* Size selector */}
         <div className="flex flex-wrap gap-2 mb-10">

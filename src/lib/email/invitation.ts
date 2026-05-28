@@ -8,6 +8,9 @@ import { renderKhinextEmail, type KhinextEmailParams } from "./layout";
 export const DEFAULT_CTA_URL = "https://khinext.vercel.app/register";
 export const INVITATION_SUBJECT = "You're Invited — Khinext '26 · AI Summit · Karachi";
 
+export const VIP_CARD_BODY =
+  `As a personally selected VIP invitee, you have been given exclusive early access to generate your own personalised VIP Delegate card for Khinext '26. Your access link is unique to you and valid for 48 hours — use the button below to create and download your card.`;
+
 export const INVITATION_BODY_PARAMS: KhinextEmailParams = {
   preheader: "You're invited to Khinext '26 — Pakistan's first multi-domain AI Summit. Karachi, 7 June 2026.",
   eyebrow: "Exclusive · Invitation",

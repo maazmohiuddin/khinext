@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   Mail, Send, CheckSquare, Square, RefreshCw, ArrowLeft,
   History, ChevronDown, ChevronUp, Edit3, Users,
-  CheckCircle2, XCircle, AlertCircle, Loader2, Eye, EyeOff,
+  CheckCircle2, XCircle, AlertCircle, Loader2, Eye, EyeOff, Key,
 } from "lucide-react";
 import Link from "next/link";
 import { INVITATION_SUBJECT, DEFAULT_CTA_URL } from "@/lib/email/invitation";
@@ -24,12 +24,13 @@ interface SendRecord {
   id: string; email: string; delivery_status: string;
   mx_valid: boolean | null; opened_at: string | null;
   open_count: number; last_opened_at: string | null; smtp_error: string | null;
+  vip_token: string | null; token_expires_at: string | null; token_redeemed_at: string | null;
 }
 
 interface EmailLog {
   id: string; sent_at: string; subject: string;
   total_count: number; sent_count: number; failed_count: number;
-  total_opens: number; unique_openers: number;
+  total_opens: number; unique_openers: number; vip_tokens_sent: number;
   records: SendRecord[];
 }
 
@@ -59,6 +60,14 @@ function fmt(iso: string) {
 function openRate(log: EmailLog) {
   if (log.sent_count === 0) return "—";
   return `${Math.round((log.unique_openers / log.sent_count) * 100)}%`;
+}
+
+function fmtExpiry(iso: string) {
+  const d = new Date(iso);
+  const now = new Date();
+  const expired = d < now;
+  const label = expired ? "Expired" : `Expires ${fmt(iso)}`;
+  return { label, expired };
 }
 
 // ── Micro-components ───────────────────────────────────────────
@@ -94,6 +103,68 @@ function OpenBadge({ count, openedAt }: { count: number; openedAt: string | null
     <span className="flex items-center gap-1 text-[11px] text-blue-300" title={openedAt ? `First opened: ${fmt(openedAt)}` : undefined}>
       <Eye size={11} />{count} open{count !== 1 ? "s" : ""}
     </span>
+  );
+}
+
+function TokenBadge({ token, redeemed }: { token: string | null; redeemed: boolean }) {
+  if (!token) return null;
+  if (redeemed) return <span className="flex items-center gap-1 text-[11px] text-amber-400"><Key size={11} />Redeemed</span>;
+  return <span className="flex items-center gap-1 text-[11px] text-white/40"><Key size={11} />VIP sent</span>;
+}
+
+// ── Expandable record row ──────────────────────────────────────
+
+function RecordRow({ rec }: { rec: SendRecord }) {
+  const [open, setOpen] = useState(false);
+  const hasToken = !!rec.vip_token;
+
+  return (
+    <>
+      <div
+        className={`grid gap-2 items-center px-5 py-3 cursor-pointer hover:bg-white/[0.03] transition-colors ${hasToken ? "grid-cols-[1fr_80px_90px_90px_90px]" : "grid-cols-[1fr_80px_90px_90px]"}`}
+        onClick={() => setOpen(v => !v)}
+      >
+        <div className="min-w-0 flex items-center gap-2">
+          {open ? <ChevronUp size={11} className="text-white/30 flex-shrink-0" /> : <ChevronDown size={11} className="text-white/30 flex-shrink-0" />}
+          <div className="min-w-0">
+            <p className="text-xs font-mono text-white/75 truncate">{rec.email}</p>
+            {rec.smtp_error && <p className="text-[10px] text-red-400/60 truncate mt-0.5">{rec.smtp_error}</p>}
+          </div>
+        </div>
+        <MxBadge mx={rec.mx_valid} />
+        <DeliveryBadge status={rec.delivery_status} />
+        <OpenBadge count={rec.open_count} openedAt={rec.opened_at} />
+        {hasToken && <TokenBadge token={rec.vip_token} redeemed={!!rec.token_redeemed_at} />}
+      </div>
+
+      {open && (
+        <div className="px-5 pb-3 pt-0 bg-white/[0.015] border-t border-white/[0.04] space-y-2">
+          {rec.open_count > 0 && (
+            <div className="flex flex-wrap gap-x-6 gap-y-1 text-[11px] text-white/50">
+              {rec.opened_at && <span>First opened: <span className="text-white/70">{fmt(rec.opened_at)}</span></span>}
+              {rec.last_opened_at && rec.last_opened_at !== rec.opened_at &&
+                <span>Last opened: <span className="text-white/70">{fmt(rec.last_opened_at)}</span></span>}
+              <span>Total opens: <span className="text-blue-300">{rec.open_count}</span></span>
+            </div>
+          )}
+          {rec.vip_token && (
+            <div className="flex flex-wrap gap-x-6 gap-y-1 text-[11px] text-white/50">
+              <span>Token: <span className="font-mono text-white/40">{rec.vip_token.slice(0, 12)}…</span></span>
+              {rec.token_expires_at && (() => {
+                const { label, expired } = fmtExpiry(rec.token_expires_at);
+                return <span className={expired ? "text-red-400/60" : "text-white/50"}>{label}</span>;
+              })()}
+              {rec.token_redeemed_at
+                ? <span className="text-amber-400">Redeemed: {fmt(rec.token_redeemed_at)}</span>
+                : <span className="text-white/30">Not yet redeemed</span>}
+            </div>
+          )}
+          {rec.open_count === 0 && !rec.vip_token && (
+            <p className="text-[11px] text-white/25">No activity yet.</p>
+          )}
+        </div>
+      )}
+    </>
   );
 }
 
@@ -186,27 +257,26 @@ function HistoryTab() {
                 <p className="text-sm font-bold text-white/60">{openRate(log)}</p>
                 <p className="text-[10px] text-white/30">Open rate</p>
               </div>
+              {log.vip_tokens_sent > 0 && (
+                <div className="text-center">
+                  <p className="text-sm font-bold text-amber-400">{log.vip_tokens_sent}</p>
+                  <p className="text-[10px] text-white/30">VIP tokens</p>
+                </div>
+              )}
               {expanded === log.id ? <ChevronUp size={14} className="text-white/30" /> : <ChevronDown size={14} className="text-white/30" />}
             </div>
           </button>
 
-          {/* Per-recipient records */}
+          {/* Per-recipient records — each row is individually expandable */}
           {expanded === log.id && log.records.length > 0 && (
             <div className="border-t border-white/10">
-              <div className="grid grid-cols-[1fr_80px_90px_90px] gap-2 px-5 py-2 bg-white/[0.02] text-[10px] uppercase tracking-widest text-white/30 font-semibold">
+              <div className={`grid gap-2 px-5 py-2 bg-white/[0.02] text-[10px] uppercase tracking-widest text-white/30 font-semibold ${log.vip_tokens_sent > 0 ? "grid-cols-[1fr_80px_90px_90px_90px]" : "grid-cols-[1fr_80px_90px_90px]"}`}>
                 <span>Email</span><span>Domain</span><span>Delivery</span><span>Opens</span>
+                {log.vip_tokens_sent > 0 && <span>VIP Token</span>}
               </div>
               <div className="divide-y divide-white/[0.04] max-h-72 overflow-y-auto">
                 {log.records.map(rec => (
-                  <div key={rec.id} className="grid grid-cols-[1fr_80px_90px_90px] gap-2 items-center px-5 py-3">
-                    <div className="min-w-0">
-                      <p className="text-xs font-mono text-white/75 truncate">{rec.email}</p>
-                      {rec.smtp_error && <p className="text-[10px] text-red-400/60 truncate mt-0.5">{rec.smtp_error}</p>}
-                    </div>
-                    <MxBadge mx={rec.mx_valid} />
-                    <DeliveryBadge status={rec.delivery_status} />
-                    <OpenBadge count={rec.open_count} openedAt={rec.opened_at} />
-                  </div>
+                  <RecordRow key={rec.id} rec={rec as SendRecord} />
                 ))}
               </div>
             </div>
@@ -225,8 +295,9 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
 
   const [fields, setFields] = useState<EmailFields>({
     subject: INVITATION_SUBJECT, headline: "You are invited.",
-    bodyText: "", ctaLabel: "Claim Your Spot", ctaUrl: DEFAULT_CTA_URL,
+    bodyText: "", ctaLabel: "", ctaUrl: "",
   });
+  const [includeVipToken, setIncludeVipToken] = useState(false);
 
   const [rawInput, setRawInput] = useState("");
   const [parsed, setParsed] = useState<{ valid: string[]; invalid: string[] } | null>(null);
@@ -240,7 +311,24 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
 
   function setField(k: keyof EmailFields, v: string) { setFields(f => ({ ...f, [k]: v })); }
 
-  // ── Parse ──────────────────────────────────────────────────
+  // When VIP token is toggled on, pre-fill CTA defaults
+  function handleVipToggle(on: boolean) {
+    setIncludeVipToken(on);
+    if (on) {
+      setFields(f => ({
+        ...f,
+        ctaLabel: f.ctaLabel || "Create Your VIP Card",
+        ctaUrl: "",
+      }));
+    } else {
+      setFields(f => ({
+        ...f,
+        ctaLabel: f.ctaLabel === "Create Your VIP Card" ? "" : f.ctaLabel,
+        ctaUrl: f.ctaUrl || "",
+      }));
+    }
+  }
+
   function handleParse() {
     const p = parseEmails(rawInput);
     setParsed(p);
@@ -249,7 +337,6 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
     setPhase("review");
   }
 
-  // ── MX Validate ───────────────────────────────────────────
   async function handleValidate() {
     if (!parsed || parsed.valid.length === 0) return;
     setValidating(true);
@@ -269,7 +356,6 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
     setValidating(false);
   }
 
-  // ── Selection ─────────────────────────────────────────────
   const allSelected = parsed ? selected.size === parsed.valid.length : false;
   function toggleAll() { setSelected(allSelected ? new Set() : new Set(parsed?.valid ?? [])); }
   function toggleOne(email: string) {
@@ -280,7 +366,6 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
     });
   }
 
-  // ── Send ───────────────────────────────────────────────────
   async function handleSend() {
     if (selected.size === 0) return;
     setPhase("sending");
@@ -296,6 +381,7 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
           bodyText: fields.bodyText,
           ctaLabel: fields.ctaLabel,
           ctaUrl: fields.ctaUrl,
+          includeVipToken,
         }),
       });
       const data = await res.json();
@@ -314,7 +400,6 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
     setResult(null); setErrorMsg(null);
   }
 
-  // ── Render ─────────────────────────────────────────────────
   return (
     <div className="max-w-page mx-auto px-6 md:px-14 py-12 md:py-16">
 
@@ -370,18 +455,53 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
                 </div>
                 <div>
                   <label className="kx-label block mb-1.5">Body Text</label>
-                  <p className="text-xs text-white/35 mb-2">Leave blank to use the default invitation copy.</p>
+                  <p className="text-xs text-white/35 mb-2">Leave blank to use the default copy{includeVipToken ? " (VIP card access)" : ""}.</p>
                   <textarea value={fields.bodyText} onChange={e => setField("bodyText", e.target.value)} placeholder="Custom message body… (leave blank for default)" rows={4} className="kx-input w-full rounded-xl resize-y text-sm" />
                 </div>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label className="kx-label block mb-1.5">CTA Button Label</label>
-                    <input value={fields.ctaLabel} onChange={e => setField("ctaLabel", e.target.value)} placeholder="Claim Your Spot" className="kx-input w-full rounded-xl text-sm" />
+                    <input
+                      value={fields.ctaLabel}
+                      onChange={e => setField("ctaLabel", e.target.value)}
+                      placeholder={includeVipToken ? "Create Your VIP Card" : "Claim Your Spot"}
+                      className="kx-input w-full rounded-xl text-sm"
+                    />
                   </div>
                   <div>
                     <label className="kx-label block mb-1.5">CTA Button URL</label>
-                    <input value={fields.ctaUrl} onChange={e => setField("ctaUrl", e.target.value)} placeholder={DEFAULT_CTA_URL} className="kx-input w-full rounded-xl text-sm" />
+                    <input
+                      value={fields.ctaUrl}
+                      onChange={e => setField("ctaUrl", e.target.value)}
+                      placeholder={includeVipToken ? "Auto-generated per recipient" : DEFAULT_CTA_URL}
+                      disabled={includeVipToken}
+                      className="kx-input w-full rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                    />
+                    {includeVipToken && (
+                      <p className="text-[11px] text-amber-400/70 mt-1.5">URL is auto-generated with each recipient&apos;s unique 48h VIP token.</p>
+                    )}
                   </div>
+                </div>
+
+                {/* VIP Token toggle */}
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.04] px-4 py-3">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={includeVipToken}
+                      onChange={e => handleVipToggle(e.target.checked)}
+                      className="mt-0.5 accent-amber-400 w-4 h-4 flex-shrink-0"
+                    />
+                    <div>
+                      <p className="text-sm font-semibold text-white flex items-center gap-1.5">
+                        <Key size={13} className="text-amber-400" />
+                        Include VIP Card Access
+                      </p>
+                      <p className="text-xs text-white/45 mt-0.5">
+                        Each recipient gets a unique access token (valid 48 hours) embedded in the CTA link. Clicking it auto-unlocks the VIP card generator. Token redemption is tracked.
+                      </p>
+                    </div>
+                  </label>
                 </div>
               </div>
             )}
@@ -422,22 +542,17 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
                 <Stat n={parsed.invalid.length} label="Invalid" color="#FF6B6B" />
               </div>
 
-              {/* Domain validation banner */}
               <div className="rounded-2xl border border-white/10 overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-4 bg-white/[0.02]">
                   <div>
                     <p className="text-sm font-semibold text-white">Domain Validation</p>
-                    <p className="text-xs text-white/40 mt-0.5">Check if each email's domain has active mail servers (MX records).</p>
+                    <p className="text-xs text-white/40 mt-0.5">Check if each email&apos;s domain has active mail servers (MX records).</p>
                   </div>
-                  <button
-                    onClick={handleValidate}
-                    disabled={validating}
-                    className="kx-btn kx-btn-outline !py-2 !px-4 !text-xs flex-shrink-0 disabled:opacity-50"
-                  >
+                  <button onClick={handleValidate} disabled={validating}
+                    className="kx-btn kx-btn-outline !py-2 !px-4 !text-xs flex-shrink-0 disabled:opacity-50">
                     {validating
                       ? <><Loader2 size={13} className="animate-spin" />Checking…</>
-                      : <><CheckCircle2 size={13} />Validate Domains</>
-                    }
+                      : <><CheckCircle2 size={13} />Validate Domains</>}
                   </button>
                 </div>
                 {mxResults.size > 0 && (
@@ -457,7 +572,6 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
                 )}
               </div>
 
-              {/* Recipients list */}
               <div className="kx-card !p-0 !rounded-2xl overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
                   <span className="text-sm font-semibold text-white">Recipients ({parsed.valid.length})</span>
@@ -473,12 +587,8 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
                       <label key={email} className="flex items-center gap-3 px-5 py-3 cursor-pointer hover:bg-white/[0.03] transition-colors">
                         <input type="checkbox" checked={selected.has(email)} onChange={() => toggleOne(email)} className="accent-khi-blue w-4 h-4 flex-shrink-0" />
                         <span className="flex-1 text-sm text-white/80 font-mono truncate">{email}</span>
-                        {mx
-                          ? <MxBadge mx={mx.mx} reason={mx.reason} />
-                          : <span className="text-[11px] text-white/20">not checked</span>}
-                        {mx && !mx.mx && (
-                          <span title={mx.reason}><AlertCircle size={13} className="text-amber-400 flex-shrink-0" /></span>
-                        )}
+                        {mx ? <MxBadge mx={mx.mx} reason={mx.reason} /> : <span className="text-[11px] text-white/20">not checked</span>}
+                        {mx && !mx.mx && <span title={mx.reason}><AlertCircle size={13} className="text-amber-400 flex-shrink-0" /></span>}
                       </label>
                     );
                   })}
@@ -490,6 +600,13 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
                   </div>
                 )}
               </div>
+
+              {includeVipToken && (
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.04] px-4 py-3 flex items-center gap-3 text-sm text-amber-300/80">
+                  <Key size={15} className="flex-shrink-0 text-amber-400" />
+                  {selected.size} unique VIP token{selected.size !== 1 ? "s" : ""} will be generated — each valid for 48 hours.
+                </div>
+              )}
 
               <div className="flex gap-3">
                 <button onClick={handleReset} className="kx-btn kx-btn-outline flex-1 justify-center">
@@ -530,7 +647,10 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
                   </div>
                   <div>
                     <p className="font-semibold text-white">{result.failed === 0 ? "All invitations sent!" : "Batch completed with some failures"}</p>
-                    <p className="text-xs text-white/45 mt-0.5">{result.sent} of {result.total} delivered · Open tracking active</p>
+                    <p className="text-xs text-white/45 mt-0.5">
+                      {result.sent} of {result.total} delivered · Open tracking active
+                      {includeVipToken ? ` · ${result.sent} VIP tokens generated` : ""}
+                    </p>
                   </div>
                 </div>
 
