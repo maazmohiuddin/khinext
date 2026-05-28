@@ -1,23 +1,44 @@
+import { cache } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Download } from "lucide-react";
+import { createServiceClient } from "@/lib/supabase/server";
+import { CardViewCard } from "./CardViewCard";
 
 const SUPABASE_URL = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/$/, "");
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://khinext.com").replace(/\/$/, "");
+const SITE_URL     = (process.env.NEXT_PUBLIC_SITE_URL || "https://khinext.com").replace(/\/$/, "");
 
 function cardImageUrl(cardId: string) {
   return `${SUPABASE_URL}/storage/v1/object/public/card-images/${cardId}.jpg`;
 }
 
+// Deduplicated within a single render (called by both generateMetadata + page)
+const getCardMeta = cache(async (cardId: string) => {
+  try {
+    const svc = createServiceClient();
+    const { data } = await svc
+      .from("card_shares")
+      .select("name, template, designation")
+      .eq("id", cardId)
+      .single();
+    return data as { name: string | null; template: string; designation: string | null } | null;
+  } catch {
+    return null;
+  }
+});
+
+// ── OG metadata ────────────────────────────────────────────────
+
 export async function generateMetadata({
   searchParams,
 }: {
-  searchParams: { card?: string; t?: string; n?: string; d?: string };
+  searchParams: { card?: string };
 }): Promise<Metadata> {
-  const name   = searchParams.n ? decodeURIComponent(searchParams.n) : null;
-  const isVip  = searchParams.t === "vip";
   const cardId = searchParams.card;
+  const meta   = cardId ? await getCardMeta(cardId) : null;
 
+  const name   = meta?.name   ?? null;
+  const isVip  = meta?.template === "vip";
   const ogImage = cardId ? cardImageUrl(cardId) : null;
 
   const title = name
@@ -49,16 +70,20 @@ export async function generateMetadata({
   };
 }
 
-export default function CardViewPage({
+// ── Page ───────────────────────────────────────────────────────
+
+export default async function CardViewPage({
   searchParams,
 }: {
-  searchParams: { card?: string; t?: string; n?: string; d?: string };
+  searchParams: { card?: string };
 }) {
   const cardId = searchParams.card;
-  const name   = searchParams.n ? decodeURIComponent(searchParams.n) : null;
-  const isVip  = searchParams.t === "vip";
+  const meta   = cardId ? await getCardMeta(cardId) : null;
 
-  const imgUrl = cardId ? cardImageUrl(cardId) : null;
+  const name        = meta?.name        ?? null;
+  const designation = meta?.designation ?? null;
+  const isVip       = meta?.template === "vip";
+  const imgUrl      = cardId ? cardImageUrl(cardId) : null;
 
   return (
     <main id="main-content" className="min-h-screen flex flex-col items-center px-6 py-14 md:py-20">
@@ -67,7 +92,7 @@ export default function CardViewPage({
       <p className="kx-eyebrow mb-4">KHINEXT &apos;26</p>
 
       {/* Title */}
-      <h1 className="font-display font-extrabold text-white text-3xl md:text-4xl -tracking-tight text-center mb-10">
+      <h1 className="font-display font-extrabold text-white text-3xl md:text-4xl -tracking-tight text-center mb-4">
         {name ? (
           <>
             {name}&rsquo;s{" "}
@@ -76,31 +101,30 @@ export default function CardViewPage({
             </span>
           </>
         ) : (
-          <>
-            <span className="kx-accent">Attendance Card</span>
-          </>
+          <span className="kx-accent">Attendance Card</span>
         )}
       </h1>
 
-      {/* Card image */}
+      {designation && (
+        <p className="text-sm mb-8" style={{ color: "#FFB800" }}>{designation}</p>
+      )}
+      {!designation && <div className="mb-8" />}
+
+      {/* Animated card */}
       {imgUrl ? (
-        <div className="w-full max-w-[420px] mx-auto rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10 mb-10">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={imgUrl}
-            alt={name ? `${name}'s KHINEXT '26 attendance card` : "KHINEXT '26 attendance card"}
-            className="w-full h-auto block"
-            fetchPriority="high"
-          />
-        </div>
+        <CardViewCard
+          imgUrl={imgUrl}
+          alt={name ? `${name}'s KHINEXT '26 attendance card` : "KHINEXT '26 attendance card"}
+          isVip={isVip}
+        />
       ) : (
-        <div className="w-full max-w-[420px] mx-auto rounded-2xl border border-white/10 bg-white/[0.03] flex items-center justify-center h-64 mb-10">
+        <div className="w-full max-w-[440px] mx-auto rounded-2xl border border-white/10 bg-white/[0.03] flex items-center justify-center h-64">
           <p className="text-white/35 text-sm">Card not found</p>
         </div>
       )}
 
       {/* Actions */}
-      <div className="flex flex-col items-center gap-4 w-full max-w-[320px]">
+      <div className="flex flex-col items-center gap-3 w-full max-w-[320px] mt-10">
         {imgUrl && (
           <a
             href={imgUrl}
@@ -108,18 +132,16 @@ export default function CardViewPage({
             rel="noopener noreferrer"
             className="kx-btn kx-btn-outline w-full justify-center"
           >
-            <Download size={16} />
+            <Download size={15} />
             Save Card
           </a>
         )}
-
         <Link href="/card-generator" className="kx-btn kx-btn-primary w-full justify-center">
           Create Your Own Card
-          <ArrowRight size={16} />
+          <ArrowRight size={15} />
         </Link>
       </div>
 
-      {/* Footer note */}
       <p className="mt-10 text-xs text-white/25 text-center max-w-xs">
         Asia&apos;s First Multi Domain AI Summit &middot; June 7, 2026 &middot; PC Hotel, Karachi
       </p>

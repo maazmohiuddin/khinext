@@ -534,13 +534,19 @@ async function drawVip(
 
 // ── Upload card image to Supabase ──────────────────────────────
 
-async function uploadCard(canvas: HTMLCanvasElement): Promise<string | null> {
+async function uploadCard(
+  canvas: HTMLCanvasElement,
+  meta: { name: string; template: string; designation: string },
+): Promise<string | null> {
   try {
     const blob = await new Promise<Blob>((res, rej) =>
       canvas.toBlob(b => b ? res(b) : rej(new Error("toBlob")), "image/jpeg", 0.93)
     );
     const form = new FormData();
-    form.append("image", blob, "card.jpg");
+    form.append("image",       blob,            "card.jpg");
+    form.append("name",        meta.name);
+    form.append("template",    meta.template);
+    form.append("designation", meta.designation);
     const resp = await fetch("/api/card/share", { method: "POST", body: form });
     if (!resp.ok) return null;
     const { id } = await resp.json();
@@ -552,13 +558,9 @@ async function uploadCard(canvas: HTMLCanvasElement): Promise<string | null> {
 
 // ── Shareable URL ──────────────────────────────────────────────
 
-function makeShareUrl(s: CardState, cardId?: string): string {
+function makeShareUrl(cardId: string): string {
   const base = typeof window !== "undefined" ? window.location.origin : "https://khinext.com";
-  const p = new URLSearchParams({ t: s.template });
-  if (s.name.trim()) p.set("n", s.name.trim());
-  if (s.designation.trim()) p.set("d", s.designation.trim());
-  if (cardId) p.set("card", cardId);
-  return `${base}/card-view?${p}`;
+  return `${base}/card-view?card=${cardId}`;
 }
 
 // ── VIP Password Modal ─────────────────────────────────────────
@@ -778,9 +780,10 @@ export function CardGenerator() {
     if (!canvas) return;
     setUploading(true);
     await redraw();
-    const cardId = await uploadCard(canvas);
+    const cardId = await uploadCard(canvas, state);
     setUploading(false);
-    const url = makeShareUrl(state, cardId ?? undefined);
+    if (!cardId) return;
+    const url = makeShareUrl(cardId);
     try {
       await navigator.clipboard.writeText(url);
       setLinkCopied(true);
@@ -797,9 +800,10 @@ export function CardGenerator() {
     const win = window.open("about:blank", "_blank", "noopener,width=600,height=480");
     setUploading(true);
     await redraw();
-    const cardId = await uploadCard(canvas);
+    const cardId = await uploadCard(canvas, state);
     setUploading(false);
-    const url = makeShareUrl(state, cardId ?? undefined);
+    if (!cardId) { win?.close(); return; }
+    const url = makeShareUrl(cardId);
     if (win) win.location.href = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
   }
 
@@ -809,9 +813,10 @@ export function CardGenerator() {
     const win = window.open("about:blank", "_blank", "noopener,width=600,height=480");
     setUploading(true);
     await redraw();
-    const cardId = await uploadCard(canvas);
+    const cardId = await uploadCard(canvas, state);
     setUploading(false);
-    const url = makeShareUrl(state, cardId ?? undefined);
+    if (!cardId) { win?.close(); return; }
+    const url = makeShareUrl(cardId);
     if (win) win.location.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
   }
 

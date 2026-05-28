@@ -1,8 +1,10 @@
 /**
  * POST /api/card/share
- * Accepts a JPEG blob (FormData field "image"), stores it in the
- * public "card-images" Supabase Storage bucket, and returns a
- * { id, url } that can be embedded in a shareable link.
+ * Accepts a JPEG blob (FormData field "image") plus optional metadata
+ * (name, template, designation). Stores the image in the public
+ * "card-images" Supabase Storage bucket and persists metadata in
+ * card_shares so the view page can reconstruct the card without
+ * embedding personal data in the URL.
  *
  * No auth required — the bucket is world-readable and the service
  * client is used server-side for the upload.
@@ -28,17 +30,31 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Image too large (max 4 MB)" }, { status: 413 });
   }
 
+  const name        = ((form.get("name")        as string | null) ?? "").trim();
+  const template    = ((form.get("template")    as string | null) ?? "standard").trim();
+  const designation = ((form.get("designation") as string | null) ?? "").trim();
+
   const id  = randomUUID();
   const key = `${id}.jpg`;
   const buf = Buffer.from(await image.arrayBuffer());
 
   const svc = createServiceClient();
-  const { error } = await svc.storage
+
+  const { error: uploadError } = await svc.storage
     .from("card-images")
     .upload(key, buf, { contentType: "image/jpeg", upsert: false });
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (uploadError) {
+    return NextResponse.json({ error: uploadError.message }, { status: 500 });
+  }
+
+  // Store metadata (non-fatal if it fails — image is still usable)
+  const { error: dbError } = await svc
+    .from("card_shares")
+    .insert({ id, name: name || null, template, designation: designation || null });
+
+  if (dbError) {
+    console.error("[card/share] card_shares insert:", dbError.message);
   }
 
   const { data: { publicUrl } } = svc.storage
