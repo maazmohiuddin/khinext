@@ -558,8 +558,7 @@ function makeShareUrl(s: CardState, cardId?: string): string {
   if (s.name.trim()) p.set("n", s.name.trim());
   if (s.designation.trim()) p.set("d", s.designation.trim());
   if (cardId) p.set("card", cardId);
-  p.set("_v", Math.random().toString(36).slice(2, 8));
-  return `${base}/card-generator?${p}`;
+  return `${base}/card-view?${p}`;
 }
 
 // ── VIP Password Modal ─────────────────────────────────────────
