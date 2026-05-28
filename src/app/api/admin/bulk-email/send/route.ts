@@ -16,7 +16,7 @@ import { resolveMx } from "dns/promises";
 
 export const runtime = "nodejs";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://khinext.vercel.app";
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://khinext.vercel.app").replace(/\/$/, "");
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MX_CACHE = new Map<string, boolean>();
 
