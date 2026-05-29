@@ -7,7 +7,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { CardViewCard } from "@/app/card-view/CardViewCard";
 
 const SUPABASE_URL = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/$/, "");
-const SITE_URL     = (process.env.NEXT_PUBLIC_SITE_URL || "https://khinext.com").replace(/\/$/, "");
+const SITE_URL     = (process.env.NEXT_PUBLIC_SITE_URL || "https://khinext.vercel.app").replace(/\/$/, "");
 
 function cardImageUrl(id: string) {
   return `${SUPABASE_URL}/storage/v1/object/public/card-images/${id}.jpg`;

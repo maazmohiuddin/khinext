@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://khinext.com").replace(/\/$/, "");
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://khinext.vercel.app").replace(/\/$/, "");
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);

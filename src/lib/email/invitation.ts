@@ -4,7 +4,7 @@
  */
 import { renderKhinextEmail, type KhinextEmailParams } from "./layout";
 
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://khinext.com").replace(/\/$/, "");
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://khinext.vercel.app").replace(/\/$/, "");
 
 export const INVITATION_SUBJECT     = "You're Invited — Khinext '26 · AI Summit · Karachi";
 export const VIP_INVITATION_SUBJECT = "Your VIP Invitation — Khinext '26 · AI Summit · Karachi";

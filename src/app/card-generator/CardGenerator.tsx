@@ -803,7 +803,10 @@ export function CardGenerator() {
     const card = await uploadCard(canvas, state);
     setUploading(false);
     if (!card) { win?.close(); return; }
-    if (win) win.location.href = `/api/share/linkedin?c=${encodeURIComponent(card.slug)}`;
+    // Must use absolute URL — relative URLs don't resolve from about:blank
+    const origin = window.location.origin;
+    const shareUrl = `${origin}/c/${encodeURIComponent(card.slug)}`;
+    if (win) win.location.href = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
   }
 
   async function handleShareFacebook() {
@@ -815,7 +818,9 @@ export function CardGenerator() {
     const card = await uploadCard(canvas, state);
     setUploading(false);
     if (!card) { win?.close(); return; }
-    if (win) win.location.href = `/api/share/facebook?c=${encodeURIComponent(card.slug)}`;
+    const origin = window.location.origin;
+    const shareUrl = `${origin}/c/${encodeURIComponent(card.slug)}`;
+    if (win) win.location.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
   }
 
   const accent     = isVip ? "#FFB800"              : "#316BFF";
