@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
-import { KxMark } from "@/components/ui/KxMark";
+import Image from "next/image";
 import type { Submission } from "@/lib/types";
 
 export function EmailPreview({
@@ -81,7 +81,13 @@ export function EmailPreview({
                   }}
                 />
                 <div className="flex items-center gap-3 mb-5">
-                  <KxMark size={36} />
+                  <Image
+                    src="/brand/Khinext1.png"
+                    alt="Khinext"
+                    width={36}
+                    height={36}
+                    style={{ borderRadius: 9 }}
+                  />
                   <span className="font-display text-xl font-bold tracking-tight">
                     Khi<em className="text-[#4A8FFF] font-extrabold" style={{ fontStyle: "italic" }}>next</em>
                   </span>

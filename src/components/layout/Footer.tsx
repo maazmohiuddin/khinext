@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { KxMark } from "@/components/ui/KxMark";
+import Image from "next/image";
 
 export function Footer() {
   return (
@@ -9,7 +9,13 @@ export function Footer() {
     >
       <div className="max-w-page mx-auto px-6 md:px-14 py-12 grid md:grid-cols-3 gap-8 items-center">
         <div className="flex items-center gap-3">
-          <KxMark size={32} />
+          <Image
+            src="/brand/Khinext1.png"
+            alt="Khinext"
+            width={32}
+            height={32}
+            style={{ borderRadius: 8 }}
+          />
           <span className="font-display text-lg font-bold tracking-tight">
             Khi<em className="text-khi-blue font-extrabold">next</em>
           </span>
