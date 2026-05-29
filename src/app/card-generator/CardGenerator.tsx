@@ -13,6 +13,7 @@ interface CardState {
   name: string;
   designation: string;
   photoDataUrl: string | null;
+  photoOffset: { x: number; y: number };
 }
 
 // ── Size catalogue ─────────────────────────────────────────────
@@ -72,11 +73,15 @@ function loadDataUrlImage(src: string): Promise<HTMLImageElement> {
 function drawCircleImage(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement,
-  cx: number, cy: number, radius: number
+  cx: number, cy: number, radius: number,
+  offsetFracX = 0, offsetFracY = 0
 ) {
   const nw = img.naturalWidth, nh = img.naturalHeight;
   const minDim = Math.min(nw, nh);
-  const sx = (nw - minDim) / 2, sy = (nh - minDim) / 2;
+  const sxBase = (nw - minDim) / 2;
+  const syBase = (nh - minDim) / 2;
+  const sx = Math.max(0, Math.min(nw - minDim, sxBase * (1 - offsetFracX)));
+  const sy = Math.max(0, Math.min(nh - minDim, syBase * (1 - offsetFracY)));
   ctx.save();
   ctx.beginPath();
   ctx.arc(cx, cy, radius, 0, Math.PI * 2);
@@ -317,7 +322,7 @@ async function drawStandard(
     try {
       const imgEl = await loadDataUrlImage(s.photoDataUrl);
       if (gen !== genRef.current) return;
-      drawCircleImage(ctx, imgEl, px, py, pr);
+      drawCircleImage(ctx, imgEl, px, py, pr, s.photoOffset.x, s.photoOffset.y);
     } catch { drawPhotoPlaceholder(ctx, px, py, pr, false); }
   } else {
     drawPhotoPlaceholder(ctx, px, py, pr, false);
@@ -471,7 +476,7 @@ async function drawVip(
     try {
       const imgEl = await loadDataUrlImage(s.photoDataUrl);
       if (gen !== genRef.current) return;
-      drawCircleImage(ctx, imgEl, px, py, pr);
+      drawCircleImage(ctx, imgEl, px, py, pr, s.photoOffset.x, s.photoOffset.y);
     } catch { drawPhotoPlaceholder(ctx, px, py, pr, true); }
   } else {
     drawPhotoPlaceholder(ctx, px, py, pr, true);
@@ -637,12 +642,15 @@ export function CardGenerator() {
   const canvasRef    = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const drawGenRef   = useRef(0);
+  const dragRef      = useRef<HTMLDivElement>(null);
+  const isDragging   = useRef(false);
 
   const [state, setState] = useState<CardState>({
     template: "standard",
     name: "",
     designation: "",
     photoDataUrl: null,
+    photoOffset: { x: 0, y: 0 },
   });
 
   const [sizeKey,      setSizeKey]      = useState<SizeKey>("square");
@@ -745,13 +753,38 @@ export function CardGenerator() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) =>
-      setState(s => ({ ...s, photoDataUrl: ev.target?.result as string }));
+      setState(s => ({ ...s, photoDataUrl: ev.target?.result as string, photoOffset: { x: 0, y: 0 } }));
     reader.readAsDataURL(file);
   }
 
   function removePhoto() {
-    setState(s => ({ ...s, photoDataUrl: null }));
+    setState(s => ({ ...s, photoDataUrl: null, photoOffset: { x: 0, y: 0 } }));
     if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  function handlePhotoPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    isDragging.current = true;
+  }
+
+  function handlePhotoPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!isDragging.current) return;
+    const sensitivity = 120; // lower = more sensitive
+    setState(s => ({
+      ...s,
+      photoOffset: {
+        x: Math.max(-1, Math.min(1, s.photoOffset.x + e.movementX / sensitivity)),
+        y: Math.max(-1, Math.min(1, s.photoOffset.y + e.movementY / sensitivity)),
+      },
+    }));
+  }
+
+  function handlePhotoPointerUp() {
+    isDragging.current = false;
+  }
+
+  function resetPhotoOffset() {
+    setState(s => ({ ...s, photoOffset: { x: 0, y: 0 } }));
   }
 
   async function handleDownload() {
@@ -936,21 +969,60 @@ export function CardGenerator() {
             <div className="kx-card !p-6 !rounded-2xl">
               <p className="kx-label block mb-3">Your Photo</p>
               {state.photoDataUrl ? (
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 border-2"
-                    style={{ borderColor: accent }}>
+                <div className="flex flex-col items-center gap-3">
+                  {/* Draggable circle preview */}
+                  <div
+                    onPointerDown={handlePhotoPointerDown}
+                    onPointerMove={handlePhotoPointerMove}
+                    onPointerUp={handlePhotoPointerUp}
+                    onPointerLeave={handlePhotoPointerUp}
+                    className="rounded-full overflow-hidden flex-shrink-0 border-2 select-none touch-none"
+                    style={{
+                      width: 140,
+                      height: 140,
+                      borderColor: accent,
+                      cursor: "grab",
+                      boxShadow: `0 0 0 4px ${accentMute}`,
+                    }}
+                  >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={state.photoDataUrl} alt="Preview" className="w-full h-full object-cover" />
+                    <img
+                      src={state.photoDataUrl}
+                      alt="Preview"
+                      draggable={false}
+                      className="w-full h-full object-cover"
+                      style={{
+                        objectPosition: `${50 - state.photoOffset.x * 50}% ${50 - state.photoOffset.y * 50}%`,
+                        pointerEvents: "none",
+                      }}
+                    />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-white/75">Photo uploaded</p>
-                    <p className="text-xs text-white/35 mt-0.5">Auto-cropped to circle</p>
+
+                  <p className="text-[11px] text-white/35 text-center leading-tight">
+                    Drag to reposition
+                  </p>
+
+                  {/* Actions row */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={resetPhotoOffset}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-white/45 hover:text-white border border-white/10 hover:border-white/25"
+                    >
+                      Center
+                    </button>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-white/45 hover:text-white border border-white/10 hover:border-white/25"
+                    >
+                      Replace
+                    </button>
+                    <button
+                      onClick={removePhoto}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-red-400/60 hover:text-red-400 border border-red-500/15 hover:border-red-500/35"
+                    >
+                      Remove
+                    </button>
                   </div>
-                  <button onClick={removePhoto}
-                    className="p-2 rounded-full hover:bg-white/10 transition-colors text-white/35 hover:text-white"
-                    aria-label="Remove photo">
-                    <X size={15} />
-                  </button>
                 </div>
               ) : (
                 <button onClick={() => fileInputRef.current?.click()}
