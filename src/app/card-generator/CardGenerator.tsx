@@ -136,24 +136,6 @@ function drawSpaced(
   }
 }
 
-// ── Partner logo ───────────────────────────────────────────────
-
-let partnerCache: HTMLImageElement | null = null;
-let partnerPromise: Promise<HTMLImageElement> | null = null;
-
-function getPartnerImg(): Promise<HTMLImageElement> {
-  if (partnerCache) return Promise.resolve(partnerCache);
-  if (partnerPromise) return partnerPromise;
-  partnerPromise = new Promise((resolve, reject) => {
-    const img = new window.Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => { partnerCache = img; resolve(img); };
-    img.onerror = reject;
-    img.src = "/brand/partner-logo.png";
-  });
-  return partnerPromise;
-}
-
 // Draw name with the last word styled like kx-accent:
 // italic, blue (#4579FF), with a canvas shadow glow.
 function drawAccentName(

@@ -8,6 +8,7 @@ import {
   useTransform,
   animate,
 } from "framer-motion";
+import { SpotlightCard } from "@/components/ui/spotlight-card";
 
 interface Props {
   imgUrl: string;
@@ -89,7 +90,11 @@ export function CardViewCard({ imgUrl, alt, isVip }: Props) {
         }}
       />
 
-      {/* ── Card with 3-D tilt ── */}
+      {/* ── Card with 3-D tilt + spotlight border ── */}
+      <SpotlightCard
+        glowColor={isVip ? "gold" : "blue"}
+        className="rounded-2xl w-full"
+      >
       <motion.div
         ref={wrapRef}
         onMouseMove={onMouseMove}
@@ -105,7 +110,7 @@ export function CardViewCard({ imgUrl, alt, isVip }: Props) {
         initial={{ opacity: 0, scale: 0.90, y: 28 }}
         animate={{ opacity: 1, scale: 1,    y: 0  }}
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-        className="relative rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10 cursor-default select-none"
+        className="relative rounded-2xl overflow-hidden shadow-2xl cursor-default select-none"
       >
         {/* Card image */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -146,6 +151,7 @@ export function CardViewCard({ imgUrl, alt, isVip }: Props) {
           }}
         />
       </motion.div>
+      </SpotlightCard>
     </div>
   );
 }
