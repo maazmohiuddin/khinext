@@ -305,21 +305,11 @@ async function drawStandard(
   blueGrad.addColorStop(0.75, "#4579FF");
   blueGrad.addColorStop(1,    "#1A3B8F");
   ctx.fillStyle = blueGrad;
-  fitText(ctx, "DELEGATE", W / 2, r(258), W - r(80),
+  fitText(ctx, "DELEGATE", W / 2, r(218), W - r(80),
     sz => `900 ${sz}px "Helvetica Now Display", "Helvetica", sans-serif`, r(90), 40);
 
-  // Blue accent line below DELEGATE
-  const ul = ctx.createLinearGradient(0, 0, W, 0);
-  ul.addColorStop(0,   "transparent");
-  ul.addColorStop(0.2, "rgba(49,107,255,0.35)");
-  ul.addColorStop(0.5, "rgba(143,175,255,0.55)");
-  ul.addColorStop(0.8, "rgba(49,107,255,0.35)");
-  ul.addColorStop(1,   "transparent");
-  ctx.fillStyle = ul;
-  ctx.fillRect(0, r(316), W, 1.5);
-
-  // ── Photo — centre at 540, radius 150 ──
-  const px = W / 2, py = r(540), pr = r(150);
+  // ── Photo — centre at 480, radius 150 (67px balanced gap above & below) ──
+  const px = W / 2, py = r(480), pr = r(150);
 
   // Halo disc (not full-canvas rect)
   const haloGrad = ctx.createRadialGradient(px, py, pr, px, py, pr + r(60));
@@ -355,16 +345,16 @@ async function drawStandard(
 
   // Name — last word gets kx-accent style (blue italic glow)
   const nameText = s.name.trim() || "Your Name";
-  drawAccentName(ctx, nameText, W / 2, r(730), 860, r(56), 26);
+  drawAccentName(ctx, nameText, W / 2, r(725), 860, r(56), 26);
 
   const hasDesig = s.designation.trim().length > 0;
   if (hasDesig) {
     ctx.fillStyle = "rgba(143,175,255,0.88)";
-    fitText(ctx, s.designation.trim(), W / 2, r(774), 820,
+    fitText(ctx, s.designation.trim(), W / 2, r(768), 820,
       (sz) => `400 ${sz}px "Helvetica Now Display", "Helvetica", sans-serif`, r(27), 18);
   }
 
-  const divY = hasDesig ? r(808) : r(768);
+  const divY = hasDesig ? r(802) : r(762);
 
   const dg = ctx.createLinearGradient(W / 2 - 70, 0, W / 2 + 70, 0);
   dg.addColorStop(0, "transparent");
