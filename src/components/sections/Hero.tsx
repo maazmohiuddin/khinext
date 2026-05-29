@@ -1,109 +1,44 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
+import { useRef } from "react";
+import { ShaderAnimation } from "@/components/ui/shader-animation";
 
 export function Hero() {
   const reduced = useReducedMotion();
   const initial = reduced ? false : { opacity: 0, y: 28 };
 
   const sectionRef = useRef<HTMLElement>(null);
-  const imageRef = useRef<HTMLDivElement>(null);
-  const gridRef = useRef<HTMLDivElement>(null);
 
-  // Scroll-tied parallax for the photographic layer
   const { scrollYProgress } = useScroll({
     target: sectionRef,
     offset: ["start start", "end start"],
   });
-  const imageY = useTransform(scrollYProgress, [0, 1], ["0%", reduced ? "0%" : "18%"]);
-  const imageScale = useTransform(scrollYProgress, [0, 1], [1, reduced ? 1 : 1.08]);
   const contentY = useTransform(scrollYProgress, [0, 1], ["0%", reduced ? "0%" : "-12%"]);
   const contentOpacity = useTransform(scrollYProgress, [0, 0.8], [1, reduced ? 1 : 0.2]);
-
-  // Mouse parallax — counter-move the glass-hands + grid based on cursor
-  useEffect(() => {
-    const section = sectionRef.current;
-    if (!section) return;
-    if (window.matchMedia("(pointer: coarse), (prefers-reduced-motion: reduce)").matches) return;
-
-    let raf = 0;
-    const handle = (e: MouseEvent) => {
-      const r = section.getBoundingClientRect();
-      const x = (e.clientX - r.left) / r.width - 0.5;
-      const y = (e.clientY - r.top) / r.height - 0.5;
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
-        if (imageRef.current) {
-          imageRef.current.style.transform = `translate3d(${x * -22}px, ${y * -16}px, 0) scale(1.04)`;
-        }
-        if (gridRef.current) {
-          gridRef.current.style.transform = `translate3d(${x * 14}px, ${y * 10}px, 0)`;
-        }
-      });
-    };
-    section.addEventListener("mousemove", handle);
-    return () => {
-      cancelAnimationFrame(raf);
-      section.removeEventListener("mousemove", handle);
-    };
-  }, []);
 
   return (
     <section
       ref={sectionRef}
       aria-labelledby="hero-title"
-      className="relative min-h-[calc(100svh-76px)] grid place-items-center text-center px-5 md:px-10 py-20 md:py-24 overflow-hidden isolate bg-khi-ink-soft"
+      className="relative min-h-[calc(100svh-76px)] grid place-items-center text-center px-5 md:px-10 py-20 md:py-24 overflow-hidden isolate bg-khi-ink"
     >
-      {/* photographic background (parallax + mouse follow) */}
-      <motion.div
-        ref={imageRef}
-        aria-hidden="true"
-        className="absolute inset-0 -z-30 transition-transform duration-300 ease-out"
-        style={{
-          y: imageY,
-          scale: imageScale,
-          backgroundImage: "url('/brand/glass-hands.png')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          opacity: 0.72,
-          maskImage: "radial-gradient(ellipse 90% 100% at 50% 60%, #000 30%, transparent 95%)",
-          WebkitMaskImage: "radial-gradient(ellipse 90% 100% at 50% 60%, #000 30%, transparent 95%)",
-          willChange: "transform",
-        }}
-      />
-      {/* mesh blue glow */}
+      {/* Shader background */}
+      <div className="absolute inset-0 -z-30 overflow-hidden" aria-hidden="true">
+        <ShaderAnimation />
+      </div>
+
+      {/* Dark readability overlay — fades edges to ink, keeps centre luminous */}
       <div
         aria-hidden="true"
         className="absolute inset-0 -z-20 pointer-events-none"
         style={{
-          background: "radial-gradient(closest-side at 88% 30%, rgba(60,40,140,0.35) 0%, transparent 55%), radial-gradient(closest-side at 8% 70%, rgba(30,50,120,0.32) 0%, transparent 50%)",
-          filter: "blur(70px)",
-          mixBlendMode: "soft-light",
-          opacity: 0.6,
-        }}
-      />
-      {/* faint blueprint grid (mouse follow) */}
-      <div
-        ref={gridRef}
-        aria-hidden="true"
-        className="absolute inset-0 -z-20 pointer-events-none animate-grid-drift transition-transform duration-300 ease-out"
-        style={{
-          backgroundImage: "linear-gradient(rgba(49,107,255,0.16) 1px, transparent 1px), linear-gradient(90deg, rgba(49,107,255,0.16) 1px, transparent 1px)",
-          backgroundSize: "56px 56px",
-          maskImage: "radial-gradient(ellipse 85% 65% at 50% 42%, #000 0%, transparent 82%)",
-          WebkitMaskImage: "radial-gradient(ellipse 85% 65% at 50% 42%, #000 0%, transparent 82%)",
-          opacity: 0.18,
-        }}
-      />
-      {/* top centered glow */}
-      <div
-        aria-hidden="true"
-        className="absolute left-1/2 -translate-x-1/2 top-[6%] w-[740px] max-w-full h-[420px] -z-10 pointer-events-none animate-hero-float"
-        style={{
-          background: "radial-gradient(ellipse, rgba(49,107,255,0.30) 0%, transparent 70%)",
+          background: [
+            "radial-gradient(ellipse 110% 70% at 50% 50%, rgba(2,4,10,0.18) 0%, rgba(2,4,10,0.78) 100%)",
+            "linear-gradient(to bottom, rgba(2,4,10,0.55) 0%, rgba(2,4,10,0.12) 30%, rgba(2,4,10,0.12) 70%, rgba(2,4,10,0.72) 100%)",
+          ].join(", "),
         }}
       />
 
