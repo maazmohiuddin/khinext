@@ -1,17 +1,21 @@
 /**
  * POST /api/admin/bulk-email/send
- * Sends "You Are Invited" emails with per-recipient open-pixel tracking.
- * Creates bulk_email_logs + email_send_records rows. Admin-only.
+ * – Normal send: blue-accented invitation, CTA → /card-generator (standard cards)
+ * – VIP send (includeVipToken:true): gold-accented invitation, CTA → /card-generator?t=vip&token=…
  */
 import { NextResponse } from "next/server";
+import { randomBytes } from "crypto";
 import { createServerSupabaseClient, createServiceClient } from "@/lib/supabase/server";
-import { renderInvitationEmail, INVITATION_SUBJECT, type CustomInvitationParams } from "@/lib/email/invitation";
+import {
+  renderInvitationEmail, INVITATION_SUBJECT, VIP_INVITATION_SUBJECT,
+  VIP_CARD_BODY, type CustomInvitationParams,
+} from "@/lib/email/invitation";
 import { sendRawEmail, injectTrackingPixel } from "@/lib/smtp";
 import { resolveMx } from "dns/promises";
 
 export const runtime = "nodejs";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://khinext.vercel.app";
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://khinext.vercel.app").replace(/\/$/, "");
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MX_CACHE = new Map<string, boolean>();
 
@@ -39,7 +43,7 @@ export async function POST(req: Request) {
   if (!isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   let body: {
-    emails?: unknown; subject?: unknown;
+    emails?: unknown; subject?: unknown; includeVipToken?: unknown;
     headline?: unknown; bodyText?: unknown; ctaLabel?: unknown; ctaUrl?: unknown;
   };
   try { body = await req.json(); } catch {
@@ -61,19 +65,25 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "No valid email addresses provided", invalid }, { status: 400 });
   }
 
+  const includeVipToken = body.includeVipToken === true;
+
+  const defaultSubject = includeVipToken ? VIP_INVITATION_SUBJECT : INVITATION_SUBJECT;
   const subject = typeof body.subject === "string" && body.subject.trim()
-    ? body.subject.trim() : INVITATION_SUBJECT;
+    ? body.subject.trim() : defaultSubject;
 
   const custom: CustomInvitationParams = {
+    isVip: includeVipToken,
     ...(typeof body.headline === "string" && body.headline.trim() ? { headline: body.headline.trim() } : {}),
     ...(typeof body.bodyText === "string" && body.bodyText.trim() ? { bodyText: body.bodyText.trim() } : {}),
     ...(typeof body.ctaLabel === "string" && body.ctaLabel.trim() ? { ctaLabel: body.ctaLabel.trim() } : {}),
-    ...(typeof body.ctaUrl === "string" && body.ctaUrl.trim() ? { ctaUrl: body.ctaUrl.trim() } : {}),
+    // For normal emails only: allow a custom CTA URL override
+    ...(!includeVipToken && typeof body.ctaUrl === "string" && body.ctaUrl.trim()
+      ? { ctaUrl: body.ctaUrl.trim() }
+      : {}),
   };
 
   const svc = createServiceClient();
 
-  // 1. Create the log row first to get log_id
   const { data: log, error: logErr } = await svc
     .from("bulk_email_logs")
     .insert({
@@ -93,24 +103,21 @@ export async function POST(req: Request) {
   }
   const logId = log.id as string;
 
-  // 2. Render base HTML once (pixel injected per-recipient)
-  const baseHtml = renderInvitationEmail(custom);
-  const plainText = baseHtml
+  // For normal emails, render once (all recipients get the same HTML)
+  const baseHtml   = includeVipToken ? null : renderInvitationEmail(custom);
+  const plainText  = (baseHtml ?? renderInvitationEmail(custom))
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
     .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 
-  // 3. Send per-recipient with tracking
-  const sentList: string[] = [];
+  const sentList:   string[] = [];
   const failedList: { email: string; error: string }[] = [];
 
   for (const email of valid) {
-    // MX check (domain-level cache)
-    const domain = email.split("@")[1];
+    const domain  = email.split("@")[1];
     const mxValid = await checkMx(domain);
 
-    // Create send record → get record_id for pixel URL
     const { data: rec } = await svc
       .from("email_send_records")
       .insert({ log_id: logId, email, delivery_status: "pending", mx_valid: mxValid })
@@ -118,11 +125,31 @@ export async function POST(req: Request) {
       .single();
 
     const recordId = rec?.id as string | undefined;
+    const pixelUrl = recordId ? `${SITE_URL}/api/track/open?rid=${recordId}` : null;
 
-    // Inject tracking pixel if we have a record ID
-    const html = recordId
-      ? injectTrackingPixel(baseHtml, `${SITE_URL}/api/track/open?rid=${recordId}`)
-      : baseHtml;
+    let html: string;
+
+    if (includeVipToken && recordId) {
+      const token     = randomBytes(24).toString("hex");
+      const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+      const tokenUrl  = `${SITE_URL}/card-generator?t=vip&token=${token}`;
+
+      await svc.from("vip_invite_tokens").insert({
+        token, email, log_id: logId, record_id: recordId, expires_at: expiresAt,
+      });
+
+      html = renderInvitationEmail({
+        ...custom,
+        isVip:    true,
+        ctaLabel: custom.ctaLabel ?? "Create Your VIP Card",
+        ctaUrl:   tokenUrl,
+        bodyText: custom.bodyText ?? VIP_CARD_BODY,
+      });
+    } else {
+      html = baseHtml!;
+    }
+
+    if (pixelUrl) html = injectTrackingPixel(html, pixelUrl);
 
     try {
       const result = await sendRawEmail({ to: email, subject, html, text: plainText });
@@ -145,7 +172,6 @@ export async function POST(req: Request) {
     }
   }
 
-  // 4. Update log with final counts
   await svc.from("bulk_email_logs").update({
     sent_count: sentList.length,
     failed_count: failedList.length,

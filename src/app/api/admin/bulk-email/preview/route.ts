@@ -1,7 +1,7 @@
 /**
  * GET/POST /api/admin/bulk-email/preview
  * Returns rendered invitation HTML for the preview iframe.
- * POST body can include custom params to preview edits live.
+ * Pass isVip:true in POST body to preview the gold VIP variant.
  */
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -37,10 +37,7 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   let custom: CustomInvitationParams = {};
-  try {
-    custom = await req.json();
-  } catch {
-    // fall through with defaults
-  }
+  try { custom = await req.json(); } catch { /* fall through */ }
+
   return htmlResponse(renderInvitationEmail(custom));
 }
