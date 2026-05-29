@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerSupabaseClient, createServiceClient } from "@/lib/supabase/server";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
 import { PageHero } from "@/components/ui/PageHero";
-import type { Registration, Submission } from "@/lib/types";
+import type { CardShare, Registration, Submission } from "@/lib/types";
 
 export const metadata: Metadata = {
   title: "Admin Dashboard — Khinext '26",
@@ -36,19 +36,23 @@ export default async function AdminPage() {
     );
   }
 
-  const [subsRes, regsRes] = await Promise.all([
+  const svc = createServiceClient();
+  const [subsRes, regsRes, cardsRes] = await Promise.all([
     supabase.from("submissions").select("*").order("created_at", { ascending: false }),
     supabase.from("registrations").select("*").order("created_at", { ascending: false }),
+    svc.from("card_shares").select("id, slug, name, template, designation, created_at").order("created_at", { ascending: false }),
   ]);
 
   const submissions = (subsRes.data ?? []) as Submission[];
   const registrations = (regsRes.data ?? []) as Registration[];
+  const cardShares = (cardsRes.data ?? []) as CardShare[];
 
   return (
     <AdminDashboard
       adminEmail={user.email ?? ""}
       initialSubmissions={submissions}
       initialRegistrations={registrations}
+      initialCardShares={cardShares}
     />
   );
 }

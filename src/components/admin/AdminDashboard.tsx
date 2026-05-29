@@ -4,25 +4,29 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { LogOut, Mail } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import type { Registration, Submission, SubmissionStatus } from "@/lib/types";
+import type { CardShare, Registration, Submission, SubmissionStatus } from "@/lib/types";
 import { SubmissionsTable } from "./SubmissionsTable";
 import { RegistrationsTable } from "./RegistrationsTable";
+import { CardSharesTable } from "./CardSharesTable";
 import { Toast } from "./Toast";
 import { LiveBadge, type LiveStatus } from "./LiveBadge";
 
-type Tab = "submissions" | "registrations";
+type Tab = "submissions" | "registrations" | "cards";
 
 export function AdminDashboard({
   adminEmail,
   initialSubmissions,
   initialRegistrations,
+  initialCardShares,
 }: {
   adminEmail: string;
   initialSubmissions: Submission[];
   initialRegistrations: Registration[];
+  initialCardShares: CardShare[];
 }) {
   const [submissions, setSubmissions] = useState<Submission[]>(initialSubmissions);
   const [registrations, setRegistrations] = useState<Registration[]>(initialRegistrations);
+  const [cardShares, setCardShares] = useState<CardShare[]>(initialCardShares);
   const [tab, setTab] = useState<Tab>("submissions");
   const [filter, setFilter] = useState<"all" | SubmissionStatus>("all");
   const [toast, setToast] = useState<string | null>(null);
@@ -62,6 +66,17 @@ export function AdminDashboard({
           }
           if (payload.eventType === "UPDATE") return curr.map(r => r.id === (payload.new as Registration).id ? (payload.new as Registration) : r);
           if (payload.eventType === "DELETE") return curr.filter(r => r.id !== (payload.old as Registration).id);
+          return curr;
+        });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "card_shares" }, payload => {
+        setCardShares(curr => {
+          if (payload.eventType === "INSERT") {
+            const next = payload.new as CardShare;
+            if (subscribedRef.current) showToast(`New card generated · ${next.name ?? "Anonymous"}`);
+            return [next, ...curr];
+          }
+          if (payload.eventType === "DELETE") return curr.filter(c => c.id !== (payload.old as CardShare).id);
           return curr;
         });
       })
@@ -149,12 +164,13 @@ export function AdminDashboard({
       </header>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-8">
         {[
           { label: "Total Submissions", val: submissions.length,   color: "#316BFF" },
           { label: "Pending Review",    val: counts.pending,        color: "#FFD06B" },
           { label: "Approved",          val: counts.approved,       color: "#51FFD5" },
           { label: "Registrations",     val: registrations.length,  color: "rgba(255,255,255,0.7)" },
+          { label: "Cards Generated",   val: cardShares.length,     color: "#BF00FF" },
         ].map(c => (
           <div key={c.label} className="kx-card !p-5">
             <div className="font-display text-3xl md:text-4xl font-extrabold leading-none -tracking-tight" style={{ color: c.color }}>
@@ -168,7 +184,7 @@ export function AdminDashboard({
       {/* Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div role="tablist" aria-label="Dashboard sections" className="inline-flex gap-1 rounded-full bg-white/[0.04] border border-white/10 p-1">
-          {(["submissions", "registrations"] as const).map(t => (
+          {(["submissions", "registrations", "cards"] as const).map(t => (
             <button
               key={t}
               role="tab"
@@ -180,7 +196,9 @@ export function AdminDashboard({
             >
               {t === "submissions"
                 ? `Submissions (${submissions.length})`
-                : `Registrations (${registrations.length})`}
+                : t === "registrations"
+                ? `Registrations (${registrations.length})`
+                : `Cards (${cardShares.length})`}
             </button>
           ))}
         </div>
@@ -212,8 +230,10 @@ export function AdminDashboard({
       {/* Tables */}
       {tab === "submissions" ? (
         <SubmissionsTable items={filteredSubs} onDecide={decide} />
-      ) : (
+      ) : tab === "registrations" ? (
         <RegistrationsTable items={registrations} />
+      ) : (
+        <CardSharesTable items={cardShares} />
       )}
 
       {toast && <Toast message={toast} />}

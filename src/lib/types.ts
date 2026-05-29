@@ -40,6 +40,15 @@ export interface Submission {
   created_at: string;
 }
 
+export interface CardShare {
+  id: string;
+  slug: string;
+  name: string | null;
+  template: string;
+  designation: string | null;
+  created_at: string;
+}
+
 export const DOMAINS = [
   { key: "health",    color: "#51FFD5", title: "AI in Health & Pharma",   desc: "AI-assisted diagnostics, drug discovery, telemedicine — built for low-bandwidth clinics in South Asia." },
   { key: "cities",    color: "#00EAEE", title: "Smart Cities",            desc: "Urban mobility, energy grids and civic infrastructure powered by real-time AI inference." },
