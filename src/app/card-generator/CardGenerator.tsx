@@ -559,8 +559,8 @@ async function uploadCard(
 // ── Shareable URL ──────────────────────────────────────────────
 
 function makeShareUrl(slug: string): string {
-  const base = typeof window !== "undefined" ? window.location.origin : "https://khinext.com";
-  return `${base}/c/${slug}`;
+  const base = typeof window !== "undefined" ? window.location.origin : "https://khinext.vercel.app";
+  return `${base}/go/${slug}`;
 }
 
 // ── VIP Password Modal ─────────────────────────────────────────
@@ -652,6 +652,20 @@ export function CardGenerator() {
 
   const { W: CW, H: CH } = SIZES[sizeKey];
   const isVip = state.template === "vip";
+
+  // All required fields must be filled + photo uploaded before download/share
+  const isCardReady =
+    !!state.photoDataUrl &&
+    !!state.name.trim() &&
+    (!isVip || !!state.designation.trim());
+
+  const readinessHint = !state.photoDataUrl
+    ? "Upload a photo first"
+    : !state.name.trim()
+    ? "Enter your name"
+    : isVip && !state.designation.trim()
+    ? "Enter your designation"
+    : null;
 
   // Pre-fill from URL params on first mount; validate VIP token if present
   useEffect(() => {
@@ -805,7 +819,7 @@ export function CardGenerator() {
     if (!card) { win?.close(); return; }
     // Must use absolute URL — relative URLs don't resolve from about:blank
     const origin = window.location.origin;
-    const shareUrl = `${origin}/c/${encodeURIComponent(card.slug)}`;
+    const shareUrl = `${origin}/go/${encodeURIComponent(card.slug)}`;
     if (win) win.location.href = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
   }
 
@@ -819,7 +833,7 @@ export function CardGenerator() {
     setUploading(false);
     if (!card) { win?.close(); return; }
     const origin = window.location.origin;
-    const shareUrl = `${origin}/c/${encodeURIComponent(card.slug)}`;
+    const shareUrl = `${origin}/go/${encodeURIComponent(card.slug)}`;
     if (win) win.location.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
   }
 
@@ -1017,23 +1031,33 @@ export function CardGenerator() {
               </div>
             </div>
 
+            {/* Readiness hint — shown when card isn't ready */}
+            {readinessHint && (
+              <div className="flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-2.5">
+                <span className="text-amber-400 text-base leading-none">↑</span>
+                <p className="text-[12px] text-amber-300/80">
+                  {readinessHint} to unlock download &amp; sharing
+                </p>
+              </div>
+            )}
+
             {/* Download */}
-            <button onClick={handleDownload} disabled={downloading}
-              className="kx-btn kx-btn-primary w-full justify-center disabled:opacity-60">
+            <button onClick={handleDownload} disabled={downloading || !isCardReady}
+              className="kx-btn kx-btn-primary w-full justify-center disabled:opacity-40 disabled:cursor-not-allowed">
               <Download size={16} />
               {downloading ? "Generating…" : `Download ${fmt.toUpperCase()}`}
             </button>
 
             {/* Share via device */}
-            <button onClick={handleShare}
-              className="kx-btn kx-btn-outline w-full justify-center">
+            <button onClick={handleShare} disabled={!isCardReady}
+              className="kx-btn kx-btn-outline w-full justify-center disabled:opacity-40 disabled:cursor-not-allowed">
               {shared ? <Check size={16} /> : <Share2 size={16} />}
               {shared ? "Shared!" : "Share via device"}
             </button>
 
             {/* Copy unique link */}
-            <button onClick={handleCopyLink} disabled={uploading}
-              className={`kx-btn w-full justify-center transition-all disabled:opacity-60 ${
+            <button onClick={handleCopyLink} disabled={uploading || !isCardReady}
+              className={`kx-btn w-full justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
                 linkCopied
                   ? "bg-emerald-500/15 border border-emerald-500/30 text-emerald-400"
                   : "kx-btn-outline"
@@ -1046,8 +1070,8 @@ export function CardGenerator() {
             <div>
               <p className="text-xs text-white/30 text-center mb-3">Share on</p>
               <div className="flex items-stretch gap-2">
-                <button onClick={handleShareLinkedIn} disabled={uploading}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-white/12 hover:border-[#0077B5] hover:bg-[#0077B5]/10 transition-all text-xs text-white/45 hover:text-white font-medium disabled:opacity-50">
+                <button onClick={handleShareLinkedIn} disabled={uploading || !isCardReady}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-white/12 hover:border-[#0077B5] hover:bg-[#0077B5]/10 transition-all text-xs text-white/45 hover:text-white font-medium disabled:opacity-40 disabled:cursor-not-allowed">
                   {uploading
                     ? <Loader2 size={13} className="animate-spin" />
                     : <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
@@ -1057,8 +1081,8 @@ export function CardGenerator() {
                   LinkedIn
                 </button>
 
-                <button onClick={handleShareFacebook} disabled={uploading}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-white/12 hover:border-[#1877F2] hover:bg-[#1877F2]/10 transition-all text-xs text-white/45 hover:text-white font-medium disabled:opacity-50">
+                <button onClick={handleShareFacebook} disabled={uploading || !isCardReady}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-white/12 hover:border-[#1877F2] hover:bg-[#1877F2]/10 transition-all text-xs text-white/45 hover:text-white font-medium disabled:opacity-40 disabled:cursor-not-allowed">
                   {uploading
                     ? <Loader2 size={13} className="animate-spin" />
                     : <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
@@ -1068,9 +1092,9 @@ export function CardGenerator() {
                   Facebook
                 </button>
 
-                <button onClick={handleDownload}
+                <button onClick={handleDownload} disabled={!isCardReady}
                   title="Download then share on Instagram"
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-white/12 hover:border-[#E1306C] hover:bg-[#E1306C]/10 transition-all text-xs text-white/45 hover:text-white font-medium">
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-white/12 hover:border-[#E1306C] hover:bg-[#E1306C]/10 transition-all text-xs text-white/45 hover:text-white font-medium disabled:opacity-40 disabled:cursor-not-allowed">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
                   </svg>

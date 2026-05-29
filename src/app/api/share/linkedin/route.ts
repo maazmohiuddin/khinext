@@ -7,7 +7,7 @@ export async function GET(req: Request) {
   const slug = searchParams.get("c");
   if (!slug) return NextResponse.json({ error: "Missing c param" }, { status: 400 });
 
-  const cardUrl = `${SITE_URL}/c/${encodeURIComponent(slug)}`;
+  const cardUrl = `${SITE_URL}/go/${encodeURIComponent(slug)}`;
   const target  = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(cardUrl)}`;
 
   return NextResponse.redirect(target, { status: 302 });

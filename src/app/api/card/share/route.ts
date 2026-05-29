@@ -29,7 +29,7 @@ export async function POST(req: Request) {
   const designation = ((form.get("designation") as string | null) ?? "").trim();
 
   const id   = randomUUID();
-  const slug = randomBytes(6).toString("base64url"); // 8 URL-safe chars
+  const slug = randomBytes(4).toString("base64url"); // exactly 6 URL-safe chars
   const key  = `${id}.jpg`;
   const buf  = Buffer.from(await image.arrayBuffer());
 
