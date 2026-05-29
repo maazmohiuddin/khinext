@@ -7,7 +7,9 @@ import {
   CheckCircle2, XCircle, AlertCircle, Loader2, Eye, EyeOff, Key,
 } from "lucide-react";
 import Link from "next/link";
-import { INVITATION_SUBJECT, DEFAULT_CTA_URL } from "@/lib/email/invitation";
+import {
+  INVITATION_SUBJECT, VIP_INVITATION_SUBJECT, DEFAULT_CTA_URL,
+} from "@/lib/email/invitation";
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -170,7 +172,7 @@ function RecordRow({ rec }: { rec: SendRecord }) {
 
 // ── Email Preview ──────────────────────────────────────────────
 
-function EmailPreview({ fields }: { fields: EmailFields }) {
+function EmailPreview({ fields, isVip }: { fields: EmailFields; isVip: boolean }) {
   const [open, setOpen] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -183,13 +185,19 @@ function EmailPreview({ fields }: { fields: EmailFields }) {
         const res = await fetch("/api/admin/bulk-email/preview", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ headline: fields.headline, bodyText: fields.bodyText, ctaLabel: fields.ctaLabel, ctaUrl: fields.ctaUrl }),
+          body: JSON.stringify({
+            isVip,
+            headline: fields.headline,
+            bodyText: fields.bodyText,
+            ctaLabel: fields.ctaLabel,
+            ctaUrl: fields.ctaUrl,
+          }),
         });
         if (iframeRef.current) iframeRef.current.srcdoc = await res.text();
       } catch { /* ignore */ }
     }, 400);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [open, fields]);
+  }, [open, fields, isVip]);
 
   return (
     <div className="rounded-2xl border border-white/10 overflow-hidden">
@@ -200,7 +208,7 @@ function EmailPreview({ fields }: { fields: EmailFields }) {
       </button>
       {open && (
         <div className="border-t border-white/10 p-4">
-          <p className="text-xs text-white/40 mb-3">Subject: <span className="text-white/70 font-medium">{fields.subject || INVITATION_SUBJECT}</span></p>
+          <p className="text-xs text-white/40 mb-3">Subject: <span className="text-white/70 font-medium">{fields.subject || (isVip ? VIP_INVITATION_SUBJECT : INVITATION_SUBJECT)}</span></p>
           <iframe ref={iframeRef} title="Email Preview" className="w-full rounded-xl border border-white/10" style={{ height: 560, background: "#fff" }} />
         </div>
       )}
@@ -311,19 +319,23 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
 
   function setField(k: keyof EmailFields, v: string) { setFields(f => ({ ...f, [k]: v })); }
 
-  // When VIP token is toggled on, pre-fill CTA defaults
+  // Toggle switches the entire email mode: subject, headline, CTA label, body hint
   function handleVipToggle(on: boolean) {
     setIncludeVipToken(on);
     if (on) {
       setFields(f => ({
         ...f,
-        ctaLabel: f.ctaLabel || "Create Your VIP Card",
-        ctaUrl: "",
+        subject:  f.subject  === INVITATION_SUBJECT     ? VIP_INVITATION_SUBJECT : f.subject,
+        headline: f.headline === "You are invited."     ? "You are VIP."         : f.headline,
+        ctaLabel: f.ctaLabel === "Claim Your Spot" || f.ctaLabel === "" ? "Create Your VIP Card" : f.ctaLabel,
+        ctaUrl: "",  // always auto-generated per recipient for VIP
       }));
     } else {
       setFields(f => ({
         ...f,
-        ctaLabel: f.ctaLabel === "Create Your VIP Card" ? "" : f.ctaLabel,
+        subject:  f.subject  === VIP_INVITATION_SUBJECT ? INVITATION_SUBJECT : f.subject,
+        headline: f.headline === "You are VIP."         ? "You are invited."  : f.headline,
+        ctaLabel: f.ctaLabel === "Create Your VIP Card" ? ""                  : f.ctaLabel,
         ctaUrl: f.ctaUrl || "",
       }));
     }
@@ -446,7 +458,7 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label className="kx-label block mb-1.5">Subject Line</label>
-                    <input value={fields.subject} onChange={e => setField("subject", e.target.value)} placeholder={INVITATION_SUBJECT} className="kx-input w-full rounded-xl text-sm" />
+                    <input value={fields.subject} onChange={e => setField("subject", e.target.value)} placeholder={includeVipToken ? VIP_INVITATION_SUBJECT : INVITATION_SUBJECT} className="kx-input w-full rounded-xl text-sm" />
                   </div>
                   <div>
                     <label className="kx-label block mb-1.5">Headline</label>
@@ -508,7 +520,7 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
           </div>
 
           {/* Preview */}
-          <EmailPreview fields={fields} />
+          <EmailPreview fields={fields} isVip={includeVipToken} />
 
           {/* Input phase */}
           {phase === "input" && (

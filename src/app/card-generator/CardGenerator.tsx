@@ -537,7 +537,7 @@ async function drawVip(
 async function uploadCard(
   canvas: HTMLCanvasElement,
   meta: { name: string; template: string; designation: string },
-): Promise<string | null> {
+): Promise<{ id: string; slug: string } | null> {
   try {
     const blob = await new Promise<Blob>((res, rej) =>
       canvas.toBlob(b => b ? res(b) : rej(new Error("toBlob")), "image/jpeg", 0.93)
@@ -549,8 +549,8 @@ async function uploadCard(
     form.append("designation", meta.designation);
     const resp = await fetch("/api/card/share", { method: "POST", body: form });
     if (!resp.ok) return null;
-    const { id } = await resp.json();
-    return id as string;
+    const { id, slug } = await resp.json();
+    return { id, slug } as { id: string; slug: string };
   } catch {
     return null;
   }
@@ -558,9 +558,9 @@ async function uploadCard(
 
 // ── Shareable URL ──────────────────────────────────────────────
 
-function makeShareUrl(cardId: string): string {
+function makeShareUrl(slug: string): string {
   const base = typeof window !== "undefined" ? window.location.origin : "https://khinext.com";
-  return `${base}/card-view?card=${cardId}`;
+  return `${base}/c/${slug}`;
 }
 
 // ── VIP Password Modal ─────────────────────────────────────────
@@ -780,10 +780,10 @@ export function CardGenerator() {
     if (!canvas) return;
     setUploading(true);
     await redraw();
-    const cardId = await uploadCard(canvas, state);
+    const card = await uploadCard(canvas, state);
     setUploading(false);
-    if (!cardId) return;
-    const url = makeShareUrl(cardId);
+    if (!card) return;
+    const url = makeShareUrl(card.slug);
     try {
       await navigator.clipboard.writeText(url);
       setLinkCopied(true);
@@ -793,18 +793,17 @@ export function CardGenerator() {
     }
   }
 
-  // Open popup synchronously (user gesture), navigate after async upload
+  // Open popup synchronously (user gesture), then navigate after async upload
   async function handleShareLinkedIn() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const win = window.open("about:blank", "_blank", "noopener,width=600,height=480");
     setUploading(true);
     await redraw();
-    const cardId = await uploadCard(canvas, state);
+    const card = await uploadCard(canvas, state);
     setUploading(false);
-    if (!cardId) { win?.close(); return; }
-    const url = makeShareUrl(cardId);
-    if (win) win.location.href = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
+    if (!card) { win?.close(); return; }
+    if (win) win.location.href = `/api/share/linkedin?c=${encodeURIComponent(card.slug)}`;
   }
 
   async function handleShareFacebook() {
@@ -813,11 +812,10 @@ export function CardGenerator() {
     const win = window.open("about:blank", "_blank", "noopener,width=600,height=480");
     setUploading(true);
     await redraw();
-    const cardId = await uploadCard(canvas, state);
+    const card = await uploadCard(canvas, state);
     setUploading(false);
-    if (!cardId) { win?.close(); return; }
-    const url = makeShareUrl(cardId);
-    if (win) win.location.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+    if (!card) { win?.close(); return; }
+    if (win) win.location.href = `/api/share/facebook?c=${encodeURIComponent(card.slug)}`;
   }
 
   const accent     = isVip ? "#FFB800"              : "#316BFF";
