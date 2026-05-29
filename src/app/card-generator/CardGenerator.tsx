@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Upload, Download, Share2, Check, X, ArrowLeft, Link2, Loader2, Lock } from "lucide-react";
+import { Upload, Download, Share2, Check, ArrowLeft, Link2, Loader2, Lock } from "lucide-react";
 import Link from "next/link";
 
 // ── Types ──────────────────────────────────────────────────────
@@ -642,8 +642,7 @@ export function CardGenerator() {
   const canvasRef    = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const drawGenRef   = useRef(0);
-  const dragRef      = useRef<HTMLDivElement>(null);
-  const isDragging   = useRef(false);
+const isDragging   = useRef(false);
 
   const [state, setState] = useState<CardState>({
     template: "standard",
