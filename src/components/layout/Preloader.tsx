@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { KxMark } from "@/components/ui/KxMark";
+import Image from "next/image";
 
 /**
  * Branded preloader. Shows on first paint, fades out once:
@@ -60,18 +60,25 @@ export function Preloader() {
       }}
     >
       <div className="flex flex-col items-center gap-7">
-        {/* Logo mark with glow + spin halo */}
+        {/* Logo with glow */}
         <div className="relative grid place-items-center">
           <div
             aria-hidden="true"
-            className="absolute inset-[-32px] rounded-full animate-pulse-slow"
+            className="absolute inset-[-40px] rounded-full animate-pulse-slow"
             style={{
-              background: "radial-gradient(ellipse at center, rgba(49,107,255,0.45) 0%, transparent 65%)",
-              filter: "blur(18px)",
+              background: "radial-gradient(ellipse at center, rgba(49,107,255,0.5) 0%, transparent 65%)",
+              filter: "blur(22px)",
             }}
           />
-          <div className="animate-mark-float">
-            <KxMark size={72} />
+          <div className="animate-mark-float relative">
+            <Image
+              src="/brand/Khinext1.png"
+              alt="Khinext"
+              width={96}
+              height={96}
+              priority
+              style={{ borderRadius: 22, filter: "drop-shadow(0 8px 32px rgba(49,107,255,0.5))" }}
+            />
           </div>
         </div>
 
@@ -104,14 +111,14 @@ export function Preloader() {
 
       <style jsx>{`
         @keyframes markFloat {
-          0%, 100% { transform: translateY(0) rotate(-2deg); }
-          50%      { transform: translateY(-6px) rotate(2deg); }
+          0%, 100% { transform: translateY(0) scale(1); }
+          50%      { transform: translateY(-7px) scale(1.03); }
         }
         :global(.animate-mark-float) { animation: markFloat 2.6s ease-in-out infinite; }
 
         @keyframes pulseSlow {
           0%, 100% { opacity: 0.55; transform: scale(1); }
-          50%      { opacity: 0.85; transform: scale(1.08); }
+          50%      { opacity: 0.9; transform: scale(1.1); }
         }
         :global(.animate-pulse-slow) { animation: pulseSlow 2.4s ease-in-out infinite; }
       `}</style>
