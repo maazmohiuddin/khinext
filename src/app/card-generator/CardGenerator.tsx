@@ -283,14 +283,6 @@ async function drawStandard(
     ctx.drawImage(logo, (W - lw) / 2, r(52), lw, lh);
   } catch { /* unavailable */ }
 
-  // Accent line under logo
-  const al = ctx.createLinearGradient(W / 2 - 90, 0, W / 2 + 90, 0);
-  al.addColorStop(0, "transparent");
-  al.addColorStop(0.5, "rgba(49,107,255,0.65)");
-  al.addColorStop(1, "transparent");
-  ctx.fillStyle = al;
-  ctx.fillRect(W / 2 - 90, r(138), 180, 1.5);
-
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillStyle = "rgba(255,255,255,0.38)";
@@ -305,7 +297,7 @@ async function drawStandard(
   blueGrad.addColorStop(0.75, "#4579FF");
   blueGrad.addColorStop(1,    "#1A3B8F");
   ctx.fillStyle = blueGrad;
-  fitText(ctx, "DELEGATE", W / 2, r(218), W - r(80),
+  fitText(ctx, "DELEGATE", W / 2, r(230), W - r(80),
     sz => `900 ${sz}px "Helvetica Now Display", "Helvetica", sans-serif`, r(90), 40);
 
   // ── Photo — centre at 480, radius 150 (67px balanced gap above & below) ──
@@ -350,11 +342,11 @@ async function drawStandard(
   const hasDesig = s.designation.trim().length > 0;
   if (hasDesig) {
     ctx.fillStyle = "rgba(143,175,255,0.88)";
-    fitText(ctx, s.designation.trim(), W / 2, r(768), 820,
+    fitText(ctx, s.designation.trim(), W / 2, r(778), 820,
       (sz) => `400 ${sz}px "Helvetica Now Display", "Helvetica", sans-serif`, r(27), 18);
   }
 
-  const divY = hasDesig ? r(802) : r(762);
+  const divY = hasDesig ? r(812) : r(768);
 
   const dg = ctx.createLinearGradient(W / 2 - 70, 0, W / 2 + 70, 0);
   dg.addColorStop(0, "transparent");
@@ -374,7 +366,7 @@ async function drawStandard(
   ctx.fillStyle = "rgba(143,175,255,0.80)";
   ctx.fillText("PC Hotel, Karachi  ·  June 7, 2026  ·  khinext.com", W / 2, tY + r(38));
 
-  await drawPartnerLogo(ctx, W / 2, tY + r(68), tY + r(118), r(42), false, gen, genRef);
+  await drawPartnerLogo(ctx, W / 2, tY + r(78), tY + r(128), r(42), false, gen, genRef);
   if (gen !== genRef.current) return;
 
   // Bottom bar
