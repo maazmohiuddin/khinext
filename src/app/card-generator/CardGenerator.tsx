@@ -293,13 +293,30 @@ async function drawStandard(
 
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillStyle = "rgba(255,255,255,0.40)";
-  ctx.font = `700 ${r(23)}px "Helvetica Now Display", "Helvetica", sans-serif`;
-  drawSpaced(ctx, "I AM ATTENDING", W / 2, r(174), r(21));
+  ctx.fillStyle = "rgba(255,255,255,0.38)";
+  ctx.font = `700 ${r(22)}px "Helvetica Now Display", "Helvetica", sans-serif`;
+  drawSpaced(ctx, "I AM ATTENDING AS A", W / 2, r(160), r(19.5));
 
-  ctx.font = `900 ${r(86)}px "Helvetica Now Display", "Helvetica", sans-serif`;
-  ctx.fillStyle = "#FFFFFF";
-  ctx.fillText("KHINEXT", W / 2, r(270));
+  // DELEGATE — blue gradient matching the standard theme
+  const blueGrad = ctx.createLinearGradient(r(120), 0, W - r(120), 0);
+  blueGrad.addColorStop(0,    "#1A3B8F");
+  blueGrad.addColorStop(0.25, "#4579FF");
+  blueGrad.addColorStop(0.5,  "#FFFFFF");
+  blueGrad.addColorStop(0.75, "#4579FF");
+  blueGrad.addColorStop(1,    "#1A3B8F");
+  ctx.fillStyle = blueGrad;
+  fitText(ctx, "DELEGATE", W / 2, r(258), W - r(80),
+    sz => `900 ${sz}px "Helvetica Now Display", "Helvetica", sans-serif`, r(90), 40);
+
+  // Blue accent line below DELEGATE
+  const ul = ctx.createLinearGradient(0, 0, W, 0);
+  ul.addColorStop(0,   "transparent");
+  ul.addColorStop(0.2, "rgba(49,107,255,0.35)");
+  ul.addColorStop(0.5, "rgba(143,175,255,0.55)");
+  ul.addColorStop(0.8, "rgba(49,107,255,0.35)");
+  ul.addColorStop(1,   "transparent");
+  ctx.fillStyle = ul;
+  ctx.fillRect(0, r(316), W, 1.5);
 
   // ── Photo — centre at 540, radius 150 ──
   const px = W / 2, py = r(540), pr = r(150);
@@ -338,25 +355,36 @@ async function drawStandard(
 
   // Name — last word gets kx-accent style (blue italic glow)
   const nameText = s.name.trim() || "Your Name";
-  drawAccentName(ctx, nameText, W / 2, r(758), 860, r(56), 26);
+  drawAccentName(ctx, nameText, W / 2, r(730), 860, r(56), 26);
+
+  const hasDesig = s.designation.trim().length > 0;
+  if (hasDesig) {
+    ctx.fillStyle = "rgba(143,175,255,0.88)";
+    fitText(ctx, s.designation.trim(), W / 2, r(774), 820,
+      (sz) => `400 ${sz}px "Helvetica Now Display", "Helvetica", sans-serif`, r(27), 18);
+  }
+
+  const divY = hasDesig ? r(808) : r(768);
 
   const dg = ctx.createLinearGradient(W / 2 - 70, 0, W / 2 + 70, 0);
   dg.addColorStop(0, "transparent");
   dg.addColorStop(0.5, "rgba(49,107,255,0.60)");
   dg.addColorStop(1, "transparent");
   ctx.fillStyle = dg;
-  ctx.fillRect(W / 2 - 70, r(792), 140, 1.5);
+  ctx.fillRect(W / 2 - 70, divY, 140, 1.5);
 
-  ctx.font = `400 ${r(21)}px "Helvetica", sans-serif`;
-  ctx.fillStyle = "rgba(255,255,255,0.46)";
+  const tY = divY + r(36);
+
+  ctx.font = `400 ${r(20)}px "Helvetica", sans-serif`;
+  ctx.fillStyle = "rgba(255,255,255,0.44)";
   ctx.textAlign = "center";
-  ctx.fillText("Asia's First Multi Domain AI and Innovation Summit", W / 2, r(826));
+  ctx.fillText("Asia's First Multi Domain AI and Innovation Summit", W / 2, tY);
 
-  ctx.font = `700 ${r(19)}px "Helvetica", sans-serif`;
+  ctx.font = `700 ${r(18)}px "Helvetica", sans-serif`;
   ctx.fillStyle = "rgba(143,175,255,0.80)";
-  ctx.fillText("PC Hotel, Karachi  ·  June 7, 2026  ·  khinext.com", W / 2, r(864));
+  ctx.fillText("PC Hotel, Karachi  ·  June 7, 2026  ·  khinext.com", W / 2, tY + r(38));
 
-  await drawPartnerLogo(ctx, W / 2, r(898), r(966), r(44), false, gen, genRef);
+  await drawPartnerLogo(ctx, W / 2, tY + r(68), tY + r(118), r(42), false, gen, genRef);
   if (gen !== genRef.current) return;
 
   // Bottom bar
@@ -970,23 +998,24 @@ export function CardGenerator() {
                 className="kx-input w-full rounded-xl" />
             </div>
 
-            {/* Designation — VIP only */}
-            {isVip && (
-              <div className="kx-card !p-6 !rounded-2xl"
-                style={{ borderColor: "rgba(255,184,0,0.18)" }}>
-                <label htmlFor="card-designation"
-                  className="block mb-2 text-[11px] font-bold uppercase"
-                  style={{ color: "#FFB800", letterSpacing: "0.14em" }}>
-                  Designation / Title
-                </label>
-                <input id="card-designation" type="text" value={state.designation}
-                  onChange={e => setState(s => ({ ...s, designation: e.target.value }))}
-                  placeholder="CEO · AI Research Director" maxLength={55}
-                  className="kx-input w-full rounded-xl"
-                  style={{ borderColor: "rgba(255,184,0,0.20)" }} />
-                <p className="text-xs text-white/32 mt-2">Appears in gold below your name</p>
-              </div>
-            )}
+            {/* Designation — shown for all templates */}
+            <div className="kx-card !p-6 !rounded-2xl"
+              style={{ borderColor: isVip ? "rgba(255,184,0,0.18)" : "rgba(49,107,255,0.18)" }}>
+              <label htmlFor="card-designation"
+                className="block mb-2 text-[11px] font-bold uppercase"
+                style={{ color: isVip ? "#FFB800" : "#8FAFFF", letterSpacing: "0.14em" }}>
+                Designation / Title{!isVip && <span className="ml-1.5 font-normal normal-case opacity-50">(optional)</span>}
+              </label>
+              <input id="card-designation" type="text" value={state.designation}
+                onChange={e => setState(s => ({ ...s, designation: e.target.value }))}
+                placeholder={isVip ? "CEO · AI Research Director" : "Founder · Speaker · Engineer"}
+                maxLength={55}
+                className="kx-input w-full rounded-xl"
+                style={{ borderColor: isVip ? "rgba(255,184,0,0.20)" : "rgba(49,107,255,0.20)" }} />
+              <p className="text-xs text-white/32 mt-2">
+                {isVip ? "Appears in gold below your name" : "Appears in blue below your name"}
+              </p>
+            </div>
 
             {/* Card summary */}
             <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4 text-xs text-white/38 space-y-1.5">
@@ -1001,9 +1030,9 @@ export function CardGenerator() {
                 </>
               ) : (
                 <>
-                  <p>✦ &ldquo;I am attending KHINEXT&rdquo;</p>
+                  <p>✦ &ldquo;I am attending as a Delegate&rdquo;</p>
                   <p>✦ Your photo · Blue ring frame</p>
-                  <p>✦ Your name</p>
+                  <p>✦ Your name + optional designation</p>
                 </>
               )}
               <p>✦ Asia&apos;s First Multi Domain AI Summit</p>
