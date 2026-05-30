@@ -850,7 +850,7 @@ const isDragging   = useRef(false);
   async function handleShareLinkedIn() {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const win = window.open("about:blank", "_blank", "noopener,width=600,height=480");
+    const win = window.open("about:blank", "_blank", "width=600,height=480");
     setUploading(true);
     await redraw();
     const card = await uploadCard(canvas, state);
@@ -865,7 +865,7 @@ const isDragging   = useRef(false);
   async function handleShareFacebook() {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const win = window.open("about:blank", "_blank", "noopener,width=600,height=480");
+    const win = window.open("about:blank", "_blank", "width=600,height=480");
     setUploading(true);
     await redraw();
     const card = await uploadCard(canvas, state);
