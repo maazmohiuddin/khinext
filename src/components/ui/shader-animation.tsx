@@ -97,18 +97,34 @@ export function ShaderAnimation() {
     window.addEventListener("resize", resize, false)
 
     let id = 0
+    let running = true
+
     const animate = () => {
+      if (!running) return
       id = requestAnimationFrame(animate)
       uniforms.time.value += 0.05
       renderer.render(scene, camera)
       if (sceneRef.current) sceneRef.current.animationId = id
     }
 
+    const onVisibility = () => {
+      if (document.hidden) {
+        running = false
+        cancelAnimationFrame(id)
+      } else {
+        running = true
+        animate()
+      }
+    }
+
     sceneRef.current = { renderer, animationId: 0 }
+    document.addEventListener("visibilitychange", onVisibility)
     animate()
 
     return () => {
+      running = false
       window.removeEventListener("resize", resize)
+      document.removeEventListener("visibilitychange", onVisibility)
       cancelAnimationFrame(id)
       if (container.contains(renderer.domElement)) container.removeChild(renderer.domElement)
       renderer.dispose()

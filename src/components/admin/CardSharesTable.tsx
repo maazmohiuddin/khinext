@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ExternalLink, Copy, Check, ChevronDown, Image as ImageIcon } from "lucide-react";
+import { ExternalLink, Copy, Check, ChevronDown, Image as ImageIcon, Search } from "lucide-react";
 import type { CardShare } from "@/lib/types";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://khinext.vercel.app";
@@ -204,6 +204,8 @@ function CardRow({ id, slug, name, designation, template, created_at }: CardShar
 }
 
 export function CardSharesTable({ items }: { items: CardShare[] }) {
+  const [query, setQuery] = useState("");
+
   if (items.length === 0) {
     return (
       <div className="kx-card !p-16 text-center">
@@ -213,22 +215,44 @@ export function CardSharesTable({ items }: { items: CardShare[] }) {
     );
   }
 
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? items.filter(c =>
+        (c.name ?? "").toLowerCase().includes(q) ||
+        (c.designation ?? "").toLowerCase().includes(q)
+      )
+    : items;
+
   const vipCount = items.filter(c => c.template === "vip").length;
   const stdCount = items.length - vipCount;
 
   return (
     <div>
-      {/* Sub-stats */}
-      <div className="flex gap-4 mb-4">
-        {[
-          { label: "VIP cards", val: vipCount, color: "#FFB800" },
-          { label: "Standard cards", val: stdCount, color: "#7FA8FF" },
-        ].map(s => (
-          <div key={s.label} className="flex items-center gap-2">
-            <span className="text-xl font-extrabold font-display leading-none" style={{ color: s.color }}>{s.val}</span>
-            <span className="text-xs text-white/35">{s.label}</span>
-          </div>
-        ))}
+      {/* Sub-stats + search */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div className="flex gap-4">
+          {[
+            { label: "VIP cards", val: vipCount, color: "#FFB800" },
+            { label: "Standard cards", val: stdCount, color: "#7FA8FF" },
+          ].map(s => (
+            <div key={s.label} className="flex items-center gap-2">
+              <span className="text-xl font-extrabold font-display leading-none" style={{ color: s.color }}>{s.val}</span>
+              <span className="text-xs text-white/35">{s.label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Search */}
+        <div className="flex items-center gap-2 rounded-xl px-3 py-2" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+          <Search size={13} className="text-white/30 flex-shrink-0" />
+          <input
+            type="text"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Search by name…"
+            className="bg-transparent text-xs text-white placeholder-white/25 outline-none w-40"
+          />
+        </div>
       </div>
 
       {/* Table */}
@@ -244,9 +268,11 @@ export function CardSharesTable({ items }: { items: CardShare[] }) {
         </div>
 
         {/* Rows */}
-        {items.map(card => (
-          <CardRow key={card.id} {...card} />
-        ))}
+        {filtered.length === 0 ? (
+          <div className="px-5 py-10 text-center text-sm text-white/30">No results for &ldquo;{query}&rdquo;</div>
+        ) : (
+          filtered.map(card => <CardRow key={card.id} {...card} />)
+        )}
       </div>
     </div>
   );

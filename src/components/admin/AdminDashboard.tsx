@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { LogOut, Mail } from "lucide-react";
+import { LogOut, Mail, Download } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { CardShare, Registration, Submission, SubmissionStatus } from "@/lib/types";
@@ -118,6 +118,49 @@ export function AdminDashboard({
     [submissions, filter]
   );
 
+  function exportCsv(filename: string, rows: string[][], headers: string[]) {
+    const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const lines = [headers.map(escape).join(","), ...rows.map(r => r.map(escape).join(","))];
+    const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function exportCards() {
+    exportCsv(
+      `khinext-cards-${new Date().toISOString().slice(0, 10)}.csv`,
+      cardShares.map(c => [
+        c.name ?? "",
+        c.designation ?? "",
+        c.template,
+        new Date(c.created_at).toLocaleString("en-GB"),
+        `https://khinext.vercel.app/go/${c.slug}`,
+      ]),
+      ["Name", "Designation", "Template", "Generated At", "Share URL"],
+    );
+  }
+
+  function exportRegistrations() {
+    exportCsv(
+      `khinext-registrations-${new Date().toISOString().slice(0, 10)}.csv`,
+      registrations.map(r => [
+        r.full_name,
+        r.email,
+        r.phone ?? "",
+        r.organisation ?? "",
+        r.role,
+        r.track,
+        r.referral ?? "",
+        new Date(r.created_at).toLocaleString("en-GB"),
+        r.confirmed_at ? new Date(r.confirmed_at).toLocaleString("en-GB") : "",
+      ]),
+      ["Name", "Email", "Phone", "Organisation", "Role", "Track", "Referral", "Registered At", "Confirmed At"],
+    );
+  }
+
   async function decide(submissionId: string, decision: "approved" | "rejected") {
     const res = await fetch(`/api/admin/submissions/${submissionId}/decide`, {
       method: "POST",
@@ -203,6 +246,16 @@ export function AdminDashboard({
           ))}
         </div>
 
+        {tab === "cards" && (
+          <button onClick={exportCards} className="kx-btn-outline !py-2 !px-4 !text-xs flex items-center gap-1.5">
+            <Download size={13} /> Export CSV
+          </button>
+        )}
+        {tab === "registrations" && (
+          <button onClick={exportRegistrations} className="kx-btn-outline !py-2 !px-4 !text-xs flex items-center gap-1.5">
+            <Download size={13} /> Export CSV
+          </button>
+        )}
         {tab === "submissions" && (
           <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Filter by status">
             {(["all", "pending", "approved", "rejected"] as const).map(f => {
