@@ -1068,7 +1068,7 @@ const isDragging   = useRef(false);
               </AnimatePresence>
               <input ref={fileInputRef} type="file" accept="image/*"
                 className="sr-only" onChange={handlePhotoUpload} />
-            </div>
+            </motion.div>
 
             {/* Name */}
             <motion.div className="kx-card !p-6 !rounded-2xl"
