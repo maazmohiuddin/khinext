@@ -798,6 +798,8 @@ const isDragging   = useRef(false);
     a.download = `khinext-${state.template}-card-${sizeKey}.${fmt}`;
     a.click();
     setDownloading(false);
+    // Record to card_shares in background — non-blocking
+    uploadCard(canvas, state).catch(() => {});
   }
 
   async function handleShare() {
