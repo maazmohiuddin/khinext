@@ -103,7 +103,7 @@ export function RegisterForm() {
   }
 
   return (
-    <motion.form onSubmit={onSubmit} className="mx-auto max-w-[640px] flex flex-col gap-5" noValidate initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}>
+    <form onSubmit={onSubmit} className="mx-auto max-w-[640px] flex flex-col gap-5" noValidate>
       <div className="grid md:grid-cols-2 gap-4">
         <Field label="Full Name" htmlFor="r-name" required>
           <Input
@@ -195,6 +195,6 @@ export function RegisterForm() {
           Free to attend. Your details are used only for event logistics.
         </p>
       </div>
-    </motion.form>
+    </form>
   );
 }

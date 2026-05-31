@@ -27,7 +27,7 @@ export function Preloader() {
       setProgress(p => Math.min(p + Math.random() * 18 + 6, 92));
     }, 80);
 
-    const maxWait = window.setTimeout(finish, reduced ? 200 : 1400);
+    const maxWait = window.setTimeout(finish, reduced ? 200 : 600);
 
     const onLoad = () => {
       window.clearInterval(tick);

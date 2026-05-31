@@ -120,7 +120,7 @@ export function SubmitForm() {
   }
 
   return (
-    <motion.form onSubmit={onSubmit} className="mx-auto max-w-[640px] flex flex-col gap-5" noValidate initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}>
+    <form onSubmit={onSubmit} className="mx-auto max-w-[640px] flex flex-col gap-5" noValidate>
       <div className="grid md:grid-cols-2 gap-4">
         <Field label="Full Name" htmlFor="s-name" required>
           <Input id="s-name" type="text" placeholder="Ahmed Raza" autoComplete="name" required value={form.fullName} onChange={e => set("fullName", e.target.value)} />
@@ -236,6 +236,6 @@ export function SubmitForm() {
           By submitting you agree to Khinext's submission guidelines. Applications reviewed within 7–10 working days.
         </p>
       </div>
-    </motion.form>
+    </form>
   );
 }
