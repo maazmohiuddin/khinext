@@ -50,7 +50,7 @@ export default function GamingPage() {
       <section className="kx-section !py-10">
         <Reveal>
           <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 md:p-8 grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-2">
-            <Info icon={<Calendar size={18} />} label="When"  value="Saturday, 7 June 2026" />
+            <Info icon={<Calendar size={18} />} label="When"  value="Sunday, 7 June 2026" />
             <Info icon={<MapPin   size={18} />} label="Where" value="Karachi Expo Centre · Hall B" />
             <Info icon={<Users    size={18} />} label="Open to" value="Players · viewers · creators" />
           </div>

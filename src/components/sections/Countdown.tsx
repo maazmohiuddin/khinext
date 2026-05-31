@@ -76,7 +76,7 @@ export function Countdown() {
             The future starts in <span className="kx-accent">T-minus.</span>
           </h2>
           <p className="mt-4 max-w-[520px] mx-auto text-white/55 leading-relaxed">
-            Saturday, 7 June 2026 · Karachi, Pakistan.<br className="hidden sm:inline" />
+            Sunday, 7 June 2026 · Karachi, Pakistan.<br className="hidden sm:inline" />
             One day. Seven domains. A decade of shifts.
           </p>
         </Reveal>

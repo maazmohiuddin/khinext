@@ -31,7 +31,7 @@ export const INVITATION_BODY_PARAMS: KhinextEmailParams = {
   body: STANDARD_BODY,
   details: [
     { label: "Event",    value: "Khinext '26 — AI Summit" },
-    { label: "Date",     value: "Saturday, 7 June 2026" },
+    { label: "Date",     value: "Sunday, 7 June 2026" },
     { label: "Location", value: "Karachi, Pakistan" },
     { label: "Format",   value: "In-Person · Multi-Domain" },
     { label: "Tracks",   value: "AI Expo · Gaming Arena · 7 Domains" },
@@ -55,7 +55,7 @@ export const VIP_INVITATION_BODY_PARAMS: KhinextEmailParams = {
   body: `<p style="margin:0 0 18px">${VIP_CARD_BODY}</p>`,
   details: [
     { label: "Event",    value: "Khinext '26 — AI Summit" },
-    { label: "Date",     value: "Saturday, 7 June 2026" },
+    { label: "Date",     value: "Sunday, 7 June 2026" },
     { label: "Location", value: "Karachi, Pakistan" },
     { label: "Access",   value: "VIP Delegate · 48-hour link" },
   ],

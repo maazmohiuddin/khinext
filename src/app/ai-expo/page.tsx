@@ -50,7 +50,7 @@ export default function AIExpoPage() {
       <section className="kx-section !py-10">
         <Reveal>
           <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 md:p-8 grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-2">
-            <Info icon={<Calendar size={18} />} label="When"  value="Saturday, 7 June 2026" />
+            <Info icon={<Calendar size={18} />} label="When"  value="Sunday, 7 June 2026" />
             <Info icon={<MapPin   size={18} />} label="Where" value="Karachi Expo Centre · Hall A" />
             <Info icon={<Sparkles size={18} />} label="Format" value="Keynotes + demos + labs" />
           </div>
@@ -127,7 +127,7 @@ export default function AIExpoPage() {
               Reserve your <span className="kx-accent">seat.</span>
             </h2>
             <p className="mt-4 max-w-[520px] mx-auto text-white/60">
-              The AI Expo runs from 09:00 to 20:00 on Saturday, 7 June 2026.
+              The AI Expo runs from 09:00 to 20:00 on Sunday, 7 June 2026.
               Free entry — registration required.
             </p>
             <div className="mt-7 flex gap-3 flex-wrap justify-center">
