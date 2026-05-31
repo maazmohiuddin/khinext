@@ -1,5 +1,5 @@
 /**
- * Transactional email — now sent via SMTP (nodemailer) instead of Resend.
+ * Transactional email via nodemailer SMTP.
  * Server-only — never import from a client component.
  */
 import nodemailer from "nodemailer";
@@ -12,9 +12,7 @@ function createTransport() {
   const pass = process.env.SMTP_PASS;
   if (!pass) throw new Error("SMTP_PASS is not configured.");
   return nodemailer.createTransport({
-    host,
-    port,
-    secure: true,
+    host, port, secure: true,
     auth: { user, pass },
     tls: { rejectUnauthorized: false },
   });
@@ -33,14 +31,8 @@ export async function sendKhinextEmail(p: SendKhinextEmailParams) {
   const transport = createTransport();
   const html = renderKhinextEmail(p);
   const text = p.text ?? stripHtml(p.body);
-  return transport.sendMail({
-    from: FROM,
-    to: Array.isArray(p.to) ? p.to.join(", ") : p.to,
-    replyTo: FROM_ADDRESS,
-    subject: p.subject,
-    html,
-    text,
-  });
+  const to = Array.isArray(p.to) ? p.to.join(", ") : p.to;
+  return transport.sendMail({ from: FROM, to, replyTo: FROM_ADDRESS, subject: p.subject, html, text });
 }
 
 // ─────────────────────────────────────────────────────────────
