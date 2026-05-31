@@ -194,6 +194,13 @@
   filter: brightness(0) invert(1) drop-shadow(0 0 12px rgba(49,107,255,0.6));
 }
 
+/* Custom scrollbar — brand-tinted */
+::-webkit-scrollbar              { width: 6px; height: 6px; }
+::-webkit-scrollbar-track        { background: rgba(4,11,28,0.8); }
+::-webkit-scrollbar-thumb        { background: rgba(49,107,255,0.35); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover  { background: rgba(69,121,255,0.65); }
+* { scrollbar-width: thin; scrollbar-color: rgba(49,107,255,0.35) rgba(4,11,28,0.8); }
+
 /* Skip-to-content link (a11y) */
 .skip-link {
   position: absolute;
