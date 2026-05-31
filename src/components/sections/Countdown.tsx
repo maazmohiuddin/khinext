@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Reveal } from "@/components/ui/Reveal";
 
 // 7 June 2026 00:00 Pakistan time (UTC+5)
@@ -107,10 +107,20 @@ export function Countdown() {
                 />
                 {/* Number */}
                 <div
-                  className="font-display font-extrabold text-white tabular-nums leading-none"
-                  style={{ fontSize: "clamp(40px,6vw,72px)", letterSpacing: "-0.045em" }}
+                  className="font-display font-extrabold text-white tabular-nums leading-none overflow-hidden"
+                  style={{ fontSize: "clamp(40px,6vw,72px)", letterSpacing: "-0.045em", height: "1em" }}
                 >
-                  {isLive ? String(c.value).padStart(2, "0") : "--"}
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    <motion.div
+                      key={isLive ? c.value : "loading"}
+                      initial={reduced ? { y: 0, opacity: 1 } : { y: "100%", opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={reduced ? { y: 0, opacity: 1 } : { y: "-100%", opacity: 0 }}
+                      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                    >
+                      {isLive ? String(c.value).padStart(2, "0") : "--"}
+                    </motion.div>
+                  </AnimatePresence>
                 </div>
                 {/* Label */}
                 <div

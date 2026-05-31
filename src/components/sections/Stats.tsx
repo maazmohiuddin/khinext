@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useInView } from "framer-motion";
-import { Reveal } from "@/components/ui/Reveal";
+import { motion, useInView, useReducedMotion } from "framer-motion";
 
 const STATS = [
   { target: 10000, fmt: (n: number) => `${Math.floor(n / 1000)}K`, acc: "+", label: "Attendees" },
@@ -11,7 +10,17 @@ const STATS = [
   { target: 50,    fmt: (n: number) => `${Math.floor(n)}`,         acc: "+", label: "Sessions" },
 ] as const;
 
+const container = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.1 } },
+};
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show:   { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } },
+};
+
 export function Stats() {
+  const reduced = useReducedMotion();
   return (
     <section
       aria-labelledby="stats-title"
@@ -25,24 +34,29 @@ export function Stats() {
             "radial-gradient(ellipse 60% 100% at 50% 50%, rgba(49,107,255,0.06) 0%, transparent 70%)",
         }}
       />
-      <h2 id="stats-title" className="sr-only">Khinext '26 by the numbers</h2>
-      <Reveal>
-        <ul className="grid grid-cols-2 lg:grid-cols-4 max-w-page mx-auto">
-          {STATS.map((s, i) => (
-            <li
-              key={s.label}
-              className={`text-center py-10 md:py-12 px-5 ${
-                i < STATS.length - 1 ? "lg:border-r lg:border-white/10" : ""
-              } ${i < 2 ? "md:border-b-0 border-b border-white/10 lg:border-b-0" : ""} ${
-                i === 0 ? "border-r border-white/10" : ""
-              } ${i === 2 ? "border-r border-white/10 lg:border-r" : ""}`}
-            >
-              <Counter target={s.target} fmt={s.fmt} acc={s.acc} />
-              <div className="mt-2 text-xs md:text-sm text-white/45 tracking-wide">{s.label}</div>
-            </li>
-          ))}
-        </ul>
-      </Reveal>
+      <h2 id="stats-title" className="sr-only">Khinext &apos;26 by the numbers</h2>
+      <motion.ul
+        className="grid grid-cols-2 lg:grid-cols-4 max-w-page mx-auto"
+        variants={reduced ? undefined : container}
+        initial={reduced ? false : "hidden"}
+        whileInView="show"
+        viewport={{ once: true, margin: "-80px" }}
+      >
+        {STATS.map((s, i) => (
+          <motion.li
+            key={s.label}
+            variants={reduced ? undefined : item}
+            className={`text-center py-10 md:py-12 px-5 ${
+              i < STATS.length - 1 ? "lg:border-r lg:border-white/10" : ""
+            } ${i < 2 ? "md:border-b-0 border-b border-white/10 lg:border-b-0" : ""} ${
+              i === 0 ? "border-r border-white/10" : ""
+            } ${i === 2 ? "border-r border-white/10 lg:border-r" : ""}`}
+          >
+            <Counter target={s.target} fmt={s.fmt} acc={s.acc} />
+            <div className="mt-2 text-xs md:text-sm text-white/45 tracking-wide">{s.label}</div>
+          </motion.li>
+        ))}
+      </motion.ul>
     </section>
   );
 }

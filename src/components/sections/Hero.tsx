@@ -100,14 +100,18 @@ export function Hero() {
           transition={{ duration: 0.6, delay: 0.45, ease: [0.22, 1, 0.36, 1] }}
           className="mt-10 flex gap-3 flex-wrap justify-center"
         >
-          <Link href="/register" className="kx-btn-primary">
-            Register Now
-            <ArrowRight size={16} aria-hidden="true" />
-          </Link>
-          <Link href="/ai-expo" className="kx-btn-outline">
-            <Sparkles size={15} aria-hidden="true" />
-            Explore AI Expo
-          </Link>
+          <motion.div whileTap={{ scale: 0.96 }}>
+            <Link href="/register" className="kx-btn-primary animate-btn-glow">
+              Register Now
+              <ArrowRight size={16} aria-hidden="true" />
+            </Link>
+          </motion.div>
+          <motion.div whileTap={{ scale: 0.96 }}>
+            <Link href="/ai-expo" className="kx-btn-outline">
+              <Sparkles size={15} aria-hidden="true" />
+              Explore AI Expo
+            </Link>
+          </motion.div>
         </motion.div>
 
         {/* scroll cue */}
