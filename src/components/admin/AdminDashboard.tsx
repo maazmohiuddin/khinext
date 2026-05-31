@@ -1,32 +1,37 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { LogOut, Mail } from "lucide-react";
+import { LogOut, Mail, Inbox } from "lucide-react";
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import type { CardShare, Registration, Submission, SubmissionStatus } from "@/lib/types";
+import type { CardShare, ContactMessage, Registration, Submission, SubmissionStatus } from "@/lib/types";
 import { SubmissionsTable } from "./SubmissionsTable";
 import { RegistrationsTable } from "./RegistrationsTable";
 import { CardSharesTable } from "./CardSharesTable";
+import { AdminInbox } from "./AdminInbox";
 import { Toast } from "./Toast";
 import { LiveBadge, type LiveStatus } from "./LiveBadge";
 
-type Tab = "submissions" | "registrations" | "cards";
+type Tab = "submissions" | "registrations" | "cards" | "inbox";
 
 export function AdminDashboard({
   adminEmail,
   initialSubmissions,
   initialRegistrations,
   initialCardShares,
+  initialMessages,
 }: {
   adminEmail: string;
   initialSubmissions: Submission[];
   initialRegistrations: Registration[];
   initialCardShares: CardShare[];
+  initialMessages: ContactMessage[];
 }) {
   const [submissions, setSubmissions] = useState<Submission[]>(initialSubmissions);
   const [registrations, setRegistrations] = useState<Registration[]>(initialRegistrations);
   const [cardShares, setCardShares] = useState<CardShare[]>(initialCardShares);
+  const [unreadCount, setUnreadCount] = useState(() => initialMessages.filter(m => m.status === "new").length);
   const [tab, setTab] = useState<Tab>("submissions");
   const [filter, setFilter] = useState<"all" | SubmissionStatus>("all");
   const [toast, setToast] = useState<string | null>(null);
@@ -79,6 +84,17 @@ export function AdminDashboard({
           if (payload.eventType === "DELETE") return curr.filter(c => c.id !== (payload.old as CardShare).id);
           return curr;
         });
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "contact_messages" }, payload => {
+        const msg = payload.new as ContactMessage;
+        if (subscribedRef.current) {
+          showToast(`New message · ${msg.name}`);
+          setUnreadCount(n => n + 1);
+        }
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "contact_messages" }, payload => {
+        const upd = payload.new as ContactMessage;
+        if (upd.status !== "new") setUnreadCount(n => Math.max(0, n - 1));
       })
       .subscribe(status => {
         if (status === "SUBSCRIBED") {
@@ -184,13 +200,13 @@ export function AdminDashboard({
       {/* Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div role="tablist" aria-label="Dashboard sections" className="inline-flex gap-1 rounded-full bg-white/[0.04] border border-white/10 p-1">
-          {(["submissions", "registrations", "cards"] as const).map(t => (
+          {(["submissions", "registrations", "cards", "inbox"] as const).map(t => (
             <button
               key={t}
               role="tab"
               aria-selected={tab === t}
               onClick={() => setTab(t)}
-              className={`px-4 py-2 rounded-full text-xs font-medium transition-colors duration-200 ease-soft ${
+              className={`relative px-4 py-2 rounded-full text-xs font-medium transition-colors duration-200 ease-soft ${
                 tab === t ? "bg-khi-blue text-white" : "text-white/60 hover:text-white"
               }`}
             >
@@ -198,7 +214,23 @@ export function AdminDashboard({
                 ? `Submissions (${submissions.length})`
                 : t === "registrations"
                 ? `Registrations (${registrations.length})`
-                : `Cards (${cardShares.length})`}
+                : t === "cards"
+                ? `Cards (${cardShares.length})`
+                : (
+                  <span className="flex items-center gap-1.5">
+                    <Inbox size={11} />
+                    Inbox
+                    {unreadCount > 0 && (
+                      <motion.span
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold bg-khi-blue-bright text-white"
+                      >
+                        {unreadCount}
+                      </motion.span>
+                    )}
+                  </span>
+                )}
             </button>
           ))}
         </div>
@@ -227,13 +259,15 @@ export function AdminDashboard({
         )}
       </div>
 
-      {/* Tables */}
+      {/* Tables / Inbox */}
       {tab === "submissions" ? (
         <SubmissionsTable items={filteredSubs} onDecide={decide} />
       ) : tab === "registrations" ? (
         <RegistrationsTable items={registrations} />
-      ) : (
+      ) : tab === "cards" ? (
         <CardSharesTable items={cardShares} />
+      ) : (
+        <AdminInbox initialMessages={initialMessages} />
       )}
 
       {toast && <Toast message={toast} />}

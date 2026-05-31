@@ -128,6 +128,68 @@ export async function sendSubmissionDecision(p: SubmissionDecisionParams) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Contact form — admin notification + reply
+// ─────────────────────────────────────────────────────────────
+
+interface ContactNotificationParams {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  messageId: string;
+}
+
+export async function sendContactNotification(p: ContactNotificationParams) {
+  return sendKhinextEmail({
+    to: FROM_ADDRESS,
+    subject: `New query: ${p.subject}`,
+    preheader: `New contact message from ${p.name} <${p.email}>`,
+    eyebrow: "Contact · New Message",
+    headline: `New query <em data-accent>received.</em>`,
+    body: `
+      <p style="margin:0 0 18px">A new contact message has been submitted via the Khinext website.</p>
+      <p style="margin:0 0 6px"><strong style="color:#040B1C">From:</strong> ${escapeHtml(p.name)} &lt;${escapeHtml(p.email)}&gt;</p>
+      <p style="margin:0 0 18px"><strong style="color:#040B1C">Subject:</strong> ${escapeHtml(p.subject)}</p>
+      <blockquote style="margin:0 0 18px;padding:14px 18px;border-left:3px solid #316BFF;background:rgba(49,107,255,0.06);border-radius:0 8px 8px 0;color:#333;font-style:italic;">
+        ${escapeHtml(p.message).replace(/\n/g, "<br>")}
+      </blockquote>
+    `,
+    details: [{ label: "Message ID", value: `C-${p.messageId.slice(0, 8).toUpperCase()}` }],
+    footerNote: "Reply directly from the Admin Inbox at khinext.com/admin",
+  });
+}
+
+interface ContactReplyParams {
+  to: string;
+  toName: string;
+  subject: string;
+  originalMessage: string;
+  replyText: string;
+}
+
+export async function sendContactReply(p: ContactReplyParams) {
+  return sendKhinextEmail({
+    to: p.to,
+    subject: `Re: ${p.subject}`,
+    preheader: `A reply from the Khinext '26 team regarding your query.`,
+    eyebrow: "Khinext '26 · Reply",
+    headline: `We've <em data-accent>replied.</em>`,
+    greeting: `Hi <strong style="color:#040B1C">${escapeHtml(p.toName)}</strong>,`,
+    body: `
+      <p style="margin:0 0 18px">${escapeHtml(p.replyText).replace(/\n/g, "<br>")}</p>
+      <p style="margin:18px 0 6px;font-size:12px;color:#888;border-top:1px solid #eee;padding-top:14px;">
+        <strong>Your original message:</strong>
+      </p>
+      <blockquote style="margin:0;padding:12px 16px;border-left:3px solid #ccc;background:#f9f9f9;border-radius:0 6px 6px 0;color:#666;font-size:13px;font-style:italic;">
+        ${escapeHtml(p.originalMessage).replace(/\n/g, "<br>")}
+      </blockquote>
+    `,
+    details: [],
+    footerNote: "You're receiving this reply because you contacted the Khinext '26 team.",
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────
 
