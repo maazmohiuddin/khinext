@@ -547,7 +547,7 @@ async function drawVip(
 async function uploadCard(
   canvas: HTMLCanvasElement,
   meta: { name: string; template: string; designation: string },
-): Promise<{ id: string; slug: string } | null> {
+): Promise<{ id: string; slug: string } | { error: string } | null> {
   try {
     const blob = await new Promise<Blob>((res, rej) =>
       canvas.toBlob(b => b ? res(b) : rej(new Error("toBlob")), "image/jpeg", 0.93)
@@ -558,7 +558,10 @@ async function uploadCard(
     form.append("template",    meta.template);
     form.append("designation", meta.designation);
     const resp = await fetch("/api/card/share", { method: "POST", body: form });
-    if (!resp.ok) return null;
+    if (!resp.ok) {
+      const body = await resp.json().catch(() => ({}));
+      return { error: body.error ?? "Upload failed" };
+    }
     const { id, slug } = await resp.json();
     return { id, slug } as { id: string; slug: string };
   } catch {
@@ -661,6 +664,7 @@ const isDragging   = useRef(false);
   const [shared,       setShared]       = useState(false);
   const [linkCopied,   setLinkCopied]   = useState(false);
   const [fmt,          setFmt]          = useState<"jpeg" | "png">("jpeg");
+  const [shareError,   setShareError]   = useState<string | null>(null);
 
   const { W: CW, H: CH } = SIZES[sizeKey];
   const isVip = state.template === "vip";
@@ -828,6 +832,11 @@ const isDragging   = useRef(false);
     await handleDownload();
   }
 
+  function showShareError(msg: string) {
+    setShareError(msg);
+    setTimeout(() => setShareError(null), 5000);
+  }
+
   async function handleCopyLink() {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -836,6 +845,7 @@ const isDragging   = useRef(false);
     const card = await uploadCard(canvas, state);
     setUploading(false);
     if (!card) return;
+    if ("error" in card) { showShareError(card.error); return; }
     const url = makeShareUrl(card.slug);
     try {
       await navigator.clipboard.writeText(url);
@@ -856,6 +866,7 @@ const isDragging   = useRef(false);
     const card = await uploadCard(canvas, state);
     setUploading(false);
     if (!card) { win?.close(); return; }
+    if ("error" in card) { win?.close(); showShareError(card.error); return; }
     // Must use absolute URL — relative URLs don't resolve from about:blank
     const origin = window.location.origin;
     const shareUrl = `${origin}/go/${encodeURIComponent(card.slug)}`;
@@ -871,6 +882,7 @@ const isDragging   = useRef(false);
     const card = await uploadCard(canvas, state);
     setUploading(false);
     if (!card) { win?.close(); return; }
+    if ("error" in card) { win?.close(); showShareError(card.error); return; }
     const origin = window.location.origin;
     const shareUrl = `${origin}/go/${encodeURIComponent(card.slug)}`;
     if (win) win.location.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
@@ -1117,6 +1129,14 @@ const isDragging   = useRef(false);
                 <p className="text-[12px] text-amber-300/80">
                   {readinessHint} to unlock download &amp; sharing
                 </p>
+              </div>
+            )}
+
+            {/* Share / rate-limit error */}
+            {shareError && (
+              <div className="flex items-start gap-2 rounded-xl border border-red-500/25 bg-red-500/[0.07] px-4 py-2.5">
+                <span className="text-red-400 text-base leading-none mt-0.5">⚠</span>
+                <p className="text-[12px] text-red-300/90">{shareError}</p>
               </div>
             )}
 

@@ -47,6 +47,7 @@ export interface CardShare {
   template: string;
   designation: string | null;
   created_at: string;
+  ip_address?: string | null;
 }
 
 export const DOMAINS = [
