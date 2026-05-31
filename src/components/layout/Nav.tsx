@@ -92,31 +92,42 @@ export function Nav() {
                     {l.label}
                     <ChevronDown size={13} aria-hidden="true" className={`transition-transform duration-200 ${tracksOpen ? "rotate-180" : ""}`} />
                   </button>
-                  <div
-                    role="menu"
-                    aria-label="Tracks"
-                    className={`absolute left-1/2 -translate-x-1/2 top-full pt-3 transition-all duration-200 ease-soft ${
-                      tracksOpen ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 -translate-y-1 pointer-events-none"
-                    }`}
-                  >
-                    <ul className="rounded-2xl bg-khi-ink/95 backdrop-blur-xl border border-white/10 p-1.5 min-w-[180px] shadow-2xl">
-                      {l.children.map(c => (
-                        <li key={c.href}>
-                          <Link
-                            href={c.href}
-                            role="menuitem"
-                            className={`block px-4 py-2.5 rounded-xl text-sm transition-colors duration-200 ease-soft ${
-                              pathname.startsWith(c.href)
-                                ? "bg-khi-blue/15 text-khi-blue-soft"
-                                : "text-white/70 hover:bg-white/5 hover:text-white"
-                            }`}
-                          >
-                            {c.label}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                  <AnimatePresence>
+                    {tracksOpen && (
+                      <motion.div
+                        role="menu"
+                        aria-label="Tracks"
+                        className="absolute left-1/2 -translate-x-1/2 top-full pt-3 z-50"
+                        initial={{ opacity: 0, y: -6, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -6, scale: 0.96 }}
+                        transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                      >
+                        <ul className="rounded-2xl bg-khi-ink/95 backdrop-blur-xl border border-white/10 p-1.5 min-w-[180px] shadow-2xl">
+                          {l.children.map(c => (
+                            <motion.li
+                              key={c.href}
+                              initial={{ opacity: 0, x: -6 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                            >
+                              <Link
+                                href={c.href}
+                                role="menuitem"
+                                className={`block px-4 py-2.5 rounded-xl text-sm transition-colors duration-200 ease-soft ${
+                                  pathname.startsWith(c.href)
+                                    ? "bg-khi-blue/15 text-khi-blue-soft"
+                                    : "text-white/70 hover:bg-white/5 hover:text-white"
+                                }`}
+                              >
+                                {c.label}
+                              </Link>
+                            </motion.li>
+                          ))}
+                        </ul>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </li>
               );
             }
@@ -131,13 +142,21 @@ export function Nav() {
                   aria-current={active ? "page" : undefined}
                 >
                   {l.label}
-                  <span
-                    aria-hidden="true"
-                    className={`absolute left-0 -bottom-1.5 h-[1px] transition-[width] duration-300 ease-soft ${
-                      active ? "w-full" : "w-0 group-hover:w-1/2"
-                    }`}
-                    style={{ background: "linear-gradient(90deg, #4579FF, transparent)" }}
-                  />
+                  {active ? (
+                    <motion.span
+                      layoutId="nav-underline"
+                      aria-hidden="true"
+                      className="absolute left-0 -bottom-1.5 h-[1px] w-full"
+                      style={{ background: "linear-gradient(90deg, #4579FF, transparent)" }}
+                      transition={{ type: "spring", stiffness: 420, damping: 36 }}
+                    />
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      className="absolute left-0 -bottom-1.5 h-[1px] w-0 group-hover:w-1/2 transition-[width] duration-300 ease-soft"
+                      style={{ background: "linear-gradient(90deg, #4579FF, transparent)" }}
+                    />
+                  )}
                 </Link>
               </li>
             );
@@ -174,20 +193,25 @@ export function Nav() {
             role="dialog"
             aria-label="Mobile navigation"
           >
-            <ul className="flex flex-col gap-1 p-6">
+            <motion.ul
+              className="flex flex-col gap-1 p-6"
+              variants={{ hidden: {}, show: { transition: { staggerChildren: 0.06, delayChildren: 0.04 } } }}
+              initial="hidden"
+              animate="show"
+            >
               <MobileLink href="/" label="Home" />
-              <li className="mt-2 mb-1 px-1 text-[10px] font-bold uppercase text-white/30" style={{ letterSpacing: "0.22em" }}>Tracks</li>
+              <motion.li variants={mobileItem} className="mt-2 mb-1 px-1 text-[10px] font-bold uppercase text-white/30" style={{ letterSpacing: "0.22em" }}>Tracks</motion.li>
               <MobileLink href="/ai-expo" label="AI Expo" indented />
               <MobileLink href="/gaming"  label="Gaming"  indented />
-              <li className="mt-3" />
+              <motion.li variants={mobileItem} className="mt-1" />
               <MobileLink href="/card-generator" label="My Card" />
               <MobileLink href="/submit" label="Submit" />
-              <li className="mt-4">
+              <motion.li variants={mobileItem} className="mt-4">
                 <Link href="/register" className="kx-btn-primary w-full justify-center">
                   Register Now
                 </Link>
-              </li>
-            </ul>
+              </motion.li>
+            </motion.ul>
           </motion.div>
         )}
       </AnimatePresence>
@@ -195,15 +219,20 @@ export function Nav() {
   );
 }
 
+const mobileItem = {
+  hidden: { opacity: 0, x: -14 },
+  show: { opacity: 1, x: 0, transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] as const } },
+};
+
 function MobileLink({ href, label, indented }: { href: string; label: string; indented?: boolean }) {
   return (
-    <li>
+    <motion.li variants={mobileItem}>
       <Link
         href={href}
-        className={`block py-3 ${indented ? "pl-4" : ""} text-xl font-display font-bold text-white/80 hover:text-white`}
+        className={`block py-3 ${indented ? "pl-4" : ""} text-xl font-display font-bold text-white/80 hover:text-white transition-colors`}
       >
         {label}
       </Link>
-    </li>
+    </motion.li>
   );
 }

@@ -122,7 +122,7 @@ export default function AIExpoPage() {
       {/* CTA */}
       <section className="kx-section">
         <Reveal>
-          <div className="rounded-3xl border border-khi-blue/30 bg-gradient-to-br from-khi-blue/15 via-transparent to-transparent p-8 md:p-12 text-center">
+          <div className="kx-banner rounded-3xl border border-khi-blue/30 bg-gradient-to-br from-khi-blue/15 via-transparent to-transparent p-8 md:p-12 text-center">
             <h2 className="font-display text-[clamp(28px,4vw,44px)] font-extrabold text-white -tracking-tight">
               Reserve your <span className="kx-accent">seat.</span>
             </h2>

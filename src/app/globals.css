@@ -113,16 +113,34 @@
 
   /* Buttons */
   .kx-btn {
-    @apply inline-flex items-center gap-2 rounded-full font-medium leading-none transition-all duration-200 ease-soft;
+    @apply inline-flex items-center gap-2 rounded-full font-medium leading-none transition-all duration-200 ease-soft relative overflow-hidden;
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-khi-blue-bright focus-visible:ring-offset-2 focus-visible:ring-offset-khi-ink;
   }
   .kx-btn-primary {
     @apply kx-btn bg-khi-blue text-white px-7 py-3.5 text-sm;
     box-shadow: 0 6px 22px rgba(49,107,255,0.32);
   }
+  .kx-btn-primary::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.18) 50%, transparent 60%);
+    transform: translateX(-120%);
+    transition: transform 0.55s ease;
+    pointer-events: none;
+  }
+  .kx-btn-primary:hover:not(:disabled)::after {
+    transform: translateX(120%);
+  }
   .kx-btn-primary:hover:not(:disabled) {
     @apply bg-khi-blue-bright -translate-y-0.5;
     box-shadow: 0 14px 36px rgba(49,107,255,0.5);
+  }
+  .kx-btn-primary:active:not(:disabled) {
+    transform: scale(0.97);
+    transition-duration: 0.08s;
+    box-shadow: 0 4px 14px rgba(49,107,255,0.22);
   }
   .kx-btn-primary:disabled {
     @apply opacity-50 cursor-not-allowed;
@@ -135,15 +153,45 @@
     border-color: var(--border-blue);
     @apply text-white;
   }
+  .kx-btn-outline:active {
+    transform: scale(0.97);
+    transition-duration: 0.08s;
+  }
 
   /* Card */
   .kx-card {
-    @apply rounded-2xl p-7 transition-all duration-200 ease-soft;
+    @apply rounded-2xl p-7 transition-all duration-300 ease-soft;
     background: rgba(255,255,255,0.04);
     border: 1px solid var(--border-default);
   }
   .kx-card:hover {
     border-color: var(--border-blue);
+    transform: translateY(-3px);
+    box-shadow: 0 20px 48px rgba(0,0,0,0.35), 0 0 0 0.5px rgba(49,107,255,0.22);
+  }
+
+  /* CTA banner */
+  .kx-banner {
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.4s var(--ease-soft), box-shadow 0.4s var(--ease-soft);
+  }
+  .kx-banner:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 28px 64px rgba(49,107,255,0.16);
+  }
+  .kx-banner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.04) 50%, transparent 70%);
+    transform: translateX(-100%);
+    transition: transform 0.9s ease;
+    pointer-events: none;
+  }
+  .kx-banner:hover::before {
+    transform: translateX(100%);
   }
 
   /* Form fields */
