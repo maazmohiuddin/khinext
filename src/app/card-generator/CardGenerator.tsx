@@ -665,6 +665,13 @@ const isDragging   = useRef(false);
   const [linkCopied,   setLinkCopied]   = useState(false);
   const [fmt,          setFmt]          = useState<"jpeg" | "png">("jpeg");
   const [shareError,   setShareError]   = useState<string | null>(null);
+  const [lastUpload,   setLastUpload]   = useState<{
+    slug: string;
+    name: string;
+    designation: string;
+    template: string;
+    photoDataUrl: string | null;
+  } | null>(null);
 
   const { W: CW, H: CH } = SIZES[sizeKey];
   const isVip = state.template === "vip";
@@ -802,8 +809,21 @@ const isDragging   = useRef(false);
     a.download = `khinext-${state.template}-card-${sizeKey}.${fmt}`;
     a.click();
     setDownloading(false);
-    // Record to card_shares in background — non-blocking
-    uploadCard(canvas, state).catch(() => {});
+    // Record to card_shares in background — skip if inputs haven't changed since last upload
+    const snap = state;
+    if (
+      !lastUpload ||
+      lastUpload.name !== snap.name ||
+      lastUpload.designation !== snap.designation ||
+      lastUpload.template !== snap.template ||
+      lastUpload.photoDataUrl !== snap.photoDataUrl
+    ) {
+      uploadCard(canvas, snap).then(result => {
+        if (result && !("error" in result)) {
+          setLastUpload({ slug: result.slug, name: snap.name, designation: snap.designation, template: snap.template, photoDataUrl: snap.photoDataUrl });
+        }
+      }).catch(() => {});
+    }
   }
 
   async function handleShare() {
@@ -837,13 +857,38 @@ const isDragging   = useRef(false);
     setTimeout(() => setShareError(null), 5000);
   }
 
+  // Returns cached slug if name/designation/template/photo are unchanged,
+  // otherwise uploads a new card and updates the cache.
+  async function getOrUploadCard(canvas: HTMLCanvasElement): Promise<{ slug: string } | { error: string } | null> {
+    if (
+      lastUpload &&
+      lastUpload.name === state.name &&
+      lastUpload.designation === state.designation &&
+      lastUpload.template === state.template &&
+      lastUpload.photoDataUrl === state.photoDataUrl
+    ) {
+      return { slug: lastUpload.slug };
+    }
+    setUploading(true);
+    await redraw();
+    const result = await uploadCard(canvas, state);
+    setUploading(false);
+    if (result && !("error" in result)) {
+      setLastUpload({
+        slug: result.slug,
+        name: state.name,
+        designation: state.designation,
+        template: state.template,
+        photoDataUrl: state.photoDataUrl,
+      });
+    }
+    return result;
+  }
+
   async function handleCopyLink() {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    setUploading(true);
-    await redraw();
-    const card = await uploadCard(canvas, state);
-    setUploading(false);
+    const card = await getOrUploadCard(canvas);
     if (!card) return;
     if ("error" in card) { showShareError(card.error); return; }
     const url = makeShareUrl(card.slug);
@@ -861,10 +906,7 @@ const isDragging   = useRef(false);
     const canvas = canvasRef.current;
     if (!canvas) return;
     const win = window.open("about:blank", "_blank", "width=600,height=480");
-    setUploading(true);
-    await redraw();
-    const card = await uploadCard(canvas, state);
-    setUploading(false);
+    const card = await getOrUploadCard(canvas);
     if (!card) { win?.close(); return; }
     if ("error" in card) { win?.close(); showShareError(card.error); return; }
     // Must use absolute URL — relative URLs don't resolve from about:blank
@@ -877,10 +919,7 @@ const isDragging   = useRef(false);
     const canvas = canvasRef.current;
     if (!canvas) return;
     const win = window.open("about:blank", "_blank", "width=600,height=480");
-    setUploading(true);
-    await redraw();
-    const card = await uploadCard(canvas, state);
-    setUploading(false);
+    const card = await getOrUploadCard(canvas);
     if (!card) { win?.close(); return; }
     if ("error" in card) { win?.close(); showShareError(card.error); return; }
     const origin = window.location.origin;
