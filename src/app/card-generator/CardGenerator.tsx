@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Upload, Download, Share2, Check, ArrowLeft, Link2, Loader2, Lock } from "lucide-react";
 import Link from "next/link";
 
@@ -927,20 +928,30 @@ const isDragging   = useRef(false);
           <button
             role="tab" aria-selected={!isVip}
             onClick={() => setState(s => ({ ...s, template: "standard" }))}
-            className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all ${
-              !isVip ? "bg-khi-blue text-white shadow-lg" : "text-white/50 hover:text-white"
-            }`}>
-            Standard
+            className="relative px-5 py-2.5 rounded-full text-sm font-semibold transition-colors">
+            {!isVip && (
+              <motion.div layoutId="card-tab-pill"
+                className="absolute inset-0 rounded-full bg-khi-blue shadow-lg"
+                transition={{ type: "spring", stiffness: 500, damping: 35 }} />
+            )}
+            <span className={`relative z-10 transition-colors ${!isVip ? "text-white" : "text-white/50 hover:text-white"}`}>
+              Standard
+            </span>
           </button>
           <button
             role="tab" aria-selected={isVip}
             onClick={handleVipTabClick}
-            className={`inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-semibold transition-all ${
-              isVip ? "text-white shadow-lg" : "text-white/50 hover:text-white"
-            }`}
-            style={isVip ? { background: "linear-gradient(135deg,#5C3D00,#B8860B,#5C3D00)" } : {}}>
-            {tokenState === "validating" ? <Loader2 size={11} className="animate-spin opacity-60" /> : (!vipUnlocked && <Lock size={11} className="opacity-60" />)}
-            {vipUnlocked ? "✦" : ""} VIP Delegate
+            className="relative inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-semibold transition-colors">
+            {isVip && (
+              <motion.div layoutId="card-tab-pill"
+                className="absolute inset-0 rounded-full shadow-lg"
+                style={{ background: "linear-gradient(135deg,#5C3D00,#B8860B,#5C3D00)" }}
+                transition={{ type: "spring", stiffness: 500, damping: 35 }} />
+            )}
+            <span className={`relative z-10 inline-flex items-center gap-1.5 transition-colors ${isVip ? "text-white" : "text-white/50 hover:text-white"}`}>
+              {tokenState === "validating" ? <Loader2 size={11} className="animate-spin opacity-60" /> : (!vipUnlocked && <Lock size={11} className="opacity-60" />)}
+              {vipUnlocked ? "✦" : ""} VIP Delegate
+            </span>
           </button>
         </div>
 
@@ -976,13 +987,22 @@ const isDragging   = useRef(false);
         <div className="grid lg:grid-cols-[400px_1fr] gap-8 items-start">
 
           {/* ── Controls panel ── */}
-          <div className="space-y-4">
+          <motion.div className="space-y-4"
+            initial="hidden" animate="show"
+            variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07 } } }}>
 
             {/* Photo upload */}
-            <div className="kx-card !p-6 !rounded-2xl">
+            <motion.div className="kx-card !p-6 !rounded-2xl"
+              variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22,1,0.36,1] } } }}>
               <p className="kx-label block mb-3">Your Photo</p>
+              <AnimatePresence mode="wait" initial={false}>
               {state.photoDataUrl ? (
-                <div className="flex flex-col items-center gap-3">
+                <motion.div key="has-photo"
+                  initial={{ opacity: 0, scale: 0.88 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.88 }}
+                  transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                  className="flex flex-col items-center gap-3">
                   {/* Draggable circle preview */}
                   <div
                     onPointerDown={handlePhotoPointerDown}
@@ -1036,9 +1056,14 @@ const isDragging   = useRef(false);
                       Remove
                     </button>
                   </div>
-                </div>
+                </motion.div>
               ) : (
-                <button onClick={() => fileInputRef.current?.click()}
+                <motion.button key="no-photo"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.18 }}
+                  onClick={() => fileInputRef.current?.click()}
                   className="w-full flex flex-col items-center gap-3 py-8 rounded-xl border-2 border-dashed border-white/12 hover:border-white/28 transition-colors group">
                   <div className="w-12 h-12 rounded-full flex items-center justify-center"
                     style={{ background: accentMute }}>
@@ -1050,23 +1075,26 @@ const isDragging   = useRef(false);
                     </p>
                     <p className="text-xs text-white/30 mt-1">JPG or PNG · Best with a headshot</p>
                   </div>
-                </button>
+                </motion.button>
               )}
+              </AnimatePresence>
               <input ref={fileInputRef} type="file" accept="image/*"
                 className="sr-only" onChange={handlePhotoUpload} />
-            </div>
+            </motion.div>
 
             {/* Name */}
-            <div className="kx-card !p-6 !rounded-2xl">
+            <motion.div className="kx-card !p-6 !rounded-2xl"
+              variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22,1,0.36,1] } } }}>
               <label htmlFor="card-name" className="kx-label block mb-2">Your Name</label>
               <input id="card-name" type="text" value={state.name}
                 onChange={e => setState(s => ({ ...s, name: e.target.value }))}
                 placeholder="Dr. Ayesha Khan" maxLength={50}
                 className="kx-input w-full rounded-xl" />
-            </div>
+            </motion.div>
 
             {/* Designation — shown for all templates */}
-            <div className="kx-card !p-6 !rounded-2xl"
+            <motion.div className="kx-card !p-6 !rounded-2xl"
+              variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22,1,0.36,1] } } }}
               style={{ borderColor: isVip ? "rgba(255,184,0,0.18)" : "rgba(49,107,255,0.18)" }}>
               <label htmlFor="card-designation"
                 className="block mb-2 text-[11px] font-bold uppercase"
@@ -1082,10 +1110,11 @@ const isDragging   = useRef(false);
               <p className="text-xs text-white/32 mt-2">
                 {isVip ? "Appears in gold below your name" : "Appears in blue below your name"}
               </p>
-            </div>
+            </motion.div>
 
             {/* Card summary */}
-            <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4 text-xs text-white/38 space-y-1.5">
+            <motion.div className="rounded-xl bg-white/[0.03] border border-white/10 p-4 text-xs text-white/38 space-y-1.5"
+              variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22,1,0.36,1] } } }}>
               <p className="text-white/55 font-semibold mb-2.5">
                 {isVip ? "VIP Delegate" : "Standard"} card includes:
               </p>
@@ -1105,7 +1134,7 @@ const isDragging   = useRef(false);
               <p>✦ Asia&apos;s First Multi Domain AI Summit</p>
               <p>✦ PC Hotel, Karachi · June 7, 2026 · khinext.com</p>
               <p>✦ Partnered by Sports &amp; Youth Affairs Dept</p>
-            </div>
+            </motion.div>
 
             {/* Format toggle */}
             <div className="flex items-center gap-3">
@@ -1141,18 +1170,20 @@ const isDragging   = useRef(false);
             )}
 
             {/* Download */}
-            <button onClick={handleDownload} disabled={downloading || !isCardReady}
+            <motion.button onClick={handleDownload} disabled={downloading || !isCardReady}
+              whileTap={{ scale: 0.97 }}
               className="kx-btn kx-btn-primary w-full justify-center disabled:opacity-40 disabled:cursor-not-allowed">
               <Download size={16} />
               {downloading ? "Generating…" : `Download ${fmt.toUpperCase()}`}
-            </button>
+            </motion.button>
 
             {/* Share via device */}
-            <button onClick={handleShare} disabled={!isCardReady}
+            <motion.button onClick={handleShare} disabled={!isCardReady}
+              whileTap={{ scale: 0.97 }}
               className="kx-btn kx-btn-outline w-full justify-center disabled:opacity-40 disabled:cursor-not-allowed">
               {shared ? <Check size={16} /> : <Share2 size={16} />}
               {shared ? "Shared!" : "Share via device"}
-            </button>
+            </motion.button>
 
             {/* Copy unique link */}
             <button onClick={handleCopyLink} disabled={uploading || !isCardReady}
@@ -1204,7 +1235,7 @@ const isDragging   = useRef(false);
                 LinkedIn &amp; Facebook show your card as a link preview · Instagram: download then post
               </p>
             </div>
-          </div>
+          </motion.div>
 
           {/* ── Canvas preview ── */}
           <div className="sticky top-6">

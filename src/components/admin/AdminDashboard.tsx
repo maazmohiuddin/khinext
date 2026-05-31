@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { LogOut, Mail } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -12,6 +13,22 @@ import { Toast } from "./Toast";
 import { LiveBadge, type LiveStatus } from "./LiveBadge";
 
 type Tab = "submissions" | "registrations" | "cards";
+
+function CountUp({ value }: { value: number }) {
+  const [displayed, setDisplayed] = useState(0);
+  useEffect(() => {
+    if (value === 0) { setDisplayed(0); return; }
+    const duration = 700;
+    const start = performance.now();
+    const step = (now: number) => {
+      const p = Math.min((now - start) / duration, 1);
+      setDisplayed(Math.round((1 - Math.pow(1 - p, 3)) * value));
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, [value]);
+  return <>{displayed}</>;
+}
 
 export function AdminDashboard({
   adminEmail,
@@ -171,13 +188,16 @@ export function AdminDashboard({
           { label: "Approved",          val: counts.approved,       color: "#51FFD5" },
           { label: "Registrations",     val: registrations.length,  color: "rgba(255,255,255,0.7)" },
           { label: "Cards Generated",   val: cardShares.length,     color: "#BF00FF" },
-        ].map(c => (
-          <div key={c.label} className="kx-card !p-5">
+        ].map((c, i) => (
+          <motion.div key={c.label} className="kx-card !p-5"
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: i * 0.06, ease: [0.22,1,0.36,1] }}>
             <div className="font-display text-3xl md:text-4xl font-extrabold leading-none -tracking-tight" style={{ color: c.color }}>
-              {c.val}
+              <CountUp value={c.val} />
             </div>
             <div className="mt-2 text-[11px] md:text-xs text-white/45">{c.label}</div>
-          </div>
+          </motion.div>
         ))}
       </div>
 
@@ -190,15 +210,20 @@ export function AdminDashboard({
               role="tab"
               aria-selected={tab === t}
               onClick={() => setTab(t)}
-              className={`px-4 py-2 rounded-full text-xs font-medium transition-colors duration-200 ease-soft ${
-                tab === t ? "bg-khi-blue text-white" : "text-white/60 hover:text-white"
-              }`}
+              className="relative px-4 py-2 rounded-full text-xs font-medium transition-colors"
             >
-              {t === "submissions"
-                ? `Submissions (${submissions.length})`
-                : t === "registrations"
-                ? `Registrations (${registrations.length})`
-                : `Cards (${cardShares.length})`}
+              {tab === t && (
+                <motion.div layoutId="admin-tab-pill"
+                  className="absolute inset-0 rounded-full bg-khi-blue"
+                  transition={{ type: "spring", stiffness: 500, damping: 35 }} />
+              )}
+              <span className={`relative z-10 transition-colors ${tab === t ? "text-white" : "text-white/60 hover:text-white"}`}>
+                {t === "submissions"
+                  ? `Submissions (${submissions.length})`
+                  : t === "registrations"
+                  ? `Registrations (${registrations.length})`
+                  : `Cards (${cardShares.length})`}
+              </span>
             </button>
           ))}
         </div>
@@ -228,6 +253,12 @@ export function AdminDashboard({
       </div>
 
       {/* Tables */}
+      <AnimatePresence mode="wait">
+        <motion.div key={tab}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}>
       {tab === "submissions" ? (
         <SubmissionsTable items={filteredSubs} onDecide={decide} />
       ) : tab === "registrations" ? (
@@ -235,6 +266,8 @@ export function AdminDashboard({
       ) : (
         <CardSharesTable items={cardShares} />
       )}
+        </motion.div>
+      </AnimatePresence>
 
       {toast && <Toast message={toast} />}
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { ExternalLink, Copy, Check, ChevronDown, Image as ImageIcon } from "lucide-react";
 import type { CardShare } from "@/lib/types";
 
@@ -129,7 +130,15 @@ function CardRow({ id, slug, name, designation, template, created_at }: CardShar
       </button>
 
       {/* Expanded detail panel */}
+      <AnimatePresence initial={false}>
       {expanded && (
+        <motion.div
+          key="detail"
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          className="overflow-hidden">
         <div className="mx-5 mb-4 mt-1 rounded-xl overflow-hidden" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
           <div className="flex flex-col sm:flex-row gap-0">
 
@@ -198,7 +207,9 @@ function CardRow({ id, slug, name, designation, template, created_at }: CardShar
 
           </div>
         </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }
