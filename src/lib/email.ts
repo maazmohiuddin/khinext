@@ -59,14 +59,14 @@ export async function sendRegistrationConfirmation(p: RegistrationConfirmationPa
     greeting: `Hi <strong style="color:#040B1C">${escapeHtml(p.fullName)}</strong>,`,
     body: `
       <p style="margin:0 0 18px">You're officially registered for <strong style="color:#040B1C">Khinext '26</strong> — Pakistan's first multi-domain AI Summit. We can't wait to host you in Karachi.</p>
-      <p style="margin:0 0 18px"><strong style="color:#040B1C">What's next?</strong> Save the date — Saturday, 7 June 2026. You'll receive a venue + agenda update closer to the event. If your plans change, reply to this email and we'll sort it out.</p>
+      <p style="margin:0 0 18px"><strong style="color:#040B1C">What's next?</strong> Save the date — Sunday, 7 June 2026. You'll receive a venue + agenda update closer to the event. If your plans change, reply to this email and we'll sort it out.</p>
     `,
     details: [
       { label: "Registration ID", value: shortId },
       { label: "Attendee",        value: p.fullName },
       { label: "Track",           value: p.track },
       { label: "Role",            value: p.role },
-      { label: "Event",           value: "Sat · 7 June 2026 · Karachi" },
+      { label: "Event",           value: "Sun · 7 June 2026 · Karachi" },
     ],
     footerNote: "You're receiving this because you registered for Khinext '26.",
   });
@@ -113,7 +113,7 @@ export async function sendSubmissionDecision(p: SubmissionDecisionParams) {
     details: [
       { label: "Project",  value: p.projectName },
       { label: "Decision", value: approved ? "✓ Approved" : "✗ Not selected" },
-      { label: "Event",    value: "Sat · 7 June 2026 · Karachi" },
+      { label: "Event",    value: "Sun · 7 June 2026 · Karachi" },
     ],
     footerNote: "You're receiving this because you submitted a project to Khinext '26 AI Expo.",
   });

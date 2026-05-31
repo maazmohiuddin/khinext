@@ -2,7 +2,7 @@ import { Reveal } from "@/components/ui/Reveal";
 import { CalendarDays, MapPin, Ticket, Users } from "lucide-react";
 
 const DATES = [
-  { icon: CalendarDays, label: "Date",     value: "Sat · 7 June 2026" },
+  { icon: CalendarDays, label: "Date",     value: "Sun · 7 June 2026" },
   { icon: MapPin,       label: "Venue",    value: "Karachi, Pakistan" },
   { icon: Users,        label: "Capacity", value: "10,000+ attendees" },
   { icon: Ticket,       label: "Tracks",   value: "AI Expo + Gaming" },
