@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Paperclip, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { DOMAINS } from "@/lib/types";
 import { Field, Input, Textarea } from "@/components/ui/Field";
@@ -119,7 +120,7 @@ export function SubmitForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="mx-auto max-w-[640px] flex flex-col gap-5" noValidate>
+    <motion.form onSubmit={onSubmit} className="mx-auto max-w-[640px] flex flex-col gap-5" noValidate initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}>
       <div className="grid md:grid-cols-2 gap-4">
         <Field label="Full Name" htmlFor="s-name" required>
           <Input id="s-name" type="text" placeholder="Ahmed Raza" autoComplete="name" required value={form.fullName} onChange={e => set("fullName", e.target.value)} />
@@ -166,8 +167,8 @@ export function SubmitForm() {
         </Field>
         <Field label="Supporting File (optional)" htmlFor="s-file" error={fileError ?? undefined} hint="PDF, PPT, ZIP — max 5 MB">
           <div
-            className={`rounded-2xl border border-dashed px-5 py-7 text-center bg-white/[0.02] transition-colors duration-200 ease-soft ${
-              drag ? "border-khi-blue bg-khi-blue/5" : "border-white/15 hover:border-khi-blue/40"
+            className={`rounded-2xl border border-dashed px-5 py-7 text-center bg-white/[0.02] transition-all duration-200 ease-soft ${
+              drag ? "border-khi-blue bg-khi-blue/5 ring-2 ring-khi-blue/40" : "border-white/15 hover:border-khi-blue/40"
             }`}
             onClick={() => fileRef.current?.click()}
             onKeyDown={e => (e.key === "Enter" || e.key === " ") && fileRef.current?.click()}
@@ -194,20 +195,24 @@ export function SubmitForm() {
             <div className="font-display text-sm font-bold text-white">
               {file ? "File attached" : "Drop file or click to browse"}
             </div>
-            {file && (
-              <div className="mt-3 inline-flex items-center gap-2.5 rounded-full bg-khi-blue/10 border border-khi-blue/30 px-3.5 py-1.5 text-xs text-khi-blue-soft">
-                <Paperclip size={12} aria-hidden="true" />
-                <span className="max-w-[140px] truncate">{file.name}</span>
-                <button
-                  type="button"
-                  aria-label="Remove file"
-                  className="text-white/60 hover:text-white"
-                  onClick={e => { e.stopPropagation(); setFile(null); }}
+            <AnimatePresence>
+              {file && (
+                <motion.div
+                  key="file-badge"
+                  initial={{ opacity: 0, scale: 0.85, y: 6 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.85, y: 6 }}
+                  transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                  className="mt-3 inline-flex items-center gap-2.5 rounded-full bg-khi-blue/10 border border-khi-blue/30 px-3.5 py-1.5 text-xs text-khi-blue-soft"
                 >
-                  <X size={12} aria-hidden="true" />
-                </button>
-              </div>
-            )}
+                  <Paperclip size={12} aria-hidden="true" />
+                  <span className="max-w-[140px] truncate">{file.name}</span>
+                  <button type="button" aria-label="Remove file" className="text-white/60 hover:text-white" onClick={e => { e.stopPropagation(); setFile(null); }}>
+                    <X size={12} aria-hidden="true" />
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </Field>
       </div>
@@ -217,18 +222,20 @@ export function SubmitForm() {
       )}
 
       <div className="pt-3 border-t border-white/10">
-        <button
-          type="submit"
-          className="kx-btn-primary w-full justify-center !px-7 !py-4 !text-[15px]"
-          disabled={submitting || !form.fullName || !form.email || !form.project || !form.category || !form.description}
-        >
-          {submitting ? "Submitting…" : "Submit AI Project"}
-          {!submitting && <ArrowRight size={16} aria-hidden="true" />}
-        </button>
+        <motion.div whileTap={{ scale: 0.98 }}>
+          <button
+            type="submit"
+            className="kx-btn-primary w-full justify-center !px-7 !py-4 !text-[15px]"
+            disabled={submitting || !form.fullName || !form.email || !form.project || !form.category || !form.description}
+          >
+            {submitting ? "Submitting…" : "Submit AI Project"}
+            {!submitting && <ArrowRight size={16} aria-hidden="true" />}
+          </button>
+        </motion.div>
         <p className="mt-3 text-center text-[11px] text-white/30">
           By submitting you agree to Khinext's submission guidelines. Applications reviewed within 7–10 working days.
         </p>
       </div>
-    </form>
+    </motion.form>
   );
 }

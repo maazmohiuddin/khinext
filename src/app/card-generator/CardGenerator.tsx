@@ -676,6 +676,11 @@ const isDragging   = useRef(false);
   const { W: CW, H: CH } = SIZES[sizeKey];
   const isVip = state.template === "vip";
 
+  const stateRef = useRef(state);
+  const sizeRef  = useRef({ CW, CH });
+  stateRef.current = state;
+  sizeRef.current  = { CW, CH };
+
   // All required fields must be filled + photo uploaded before download/share
   const isCardReady =
     !!state.photoDataUrl &&
@@ -735,18 +740,27 @@ const isDragging   = useRef(false);
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    const s = stateRef.current;
+    const { CW: w, CH: h } = sizeRef.current;
     const genId = ++drawGenRef.current;
     if (typeof document !== "undefined") await document.fonts.ready;
     if (genId !== drawGenRef.current) return;
-    ctx.clearRect(0, 0, CW, CH);
-    if (state.template === "standard") {
-      await drawStandard(ctx, state, CW, CH, genId, drawGenRef);
+    ctx.clearRect(0, 0, w, h);
+    if (s.template === "standard") {
+      await drawStandard(ctx, s, w, h, genId, drawGenRef);
     } else {
-      await drawVip(ctx, state, CW, CH, genId, drawGenRef);
+      await drawVip(ctx, s, w, h, genId, drawGenRef);
     }
-  }, [state, CW, CH]);
+  }, []); // stable — reads state from refs
 
-  useEffect(() => { redraw(); }, [redraw]);
+  // Immediate redraw for layout/visual changes
+  useEffect(() => { redraw(); }, [redraw, state.template, state.photoDataUrl, state.photoOffset.x, state.photoOffset.y, CW, CH]);
+
+  // Debounced redraw for text input
+  useEffect(() => {
+    const id = window.setTimeout(redraw, 180);
+    return () => window.clearTimeout(id);
+  }, [redraw, state.name, state.designation]);
 
   // ── Handlers ────────────────────────────────────────────────
 
@@ -764,6 +778,11 @@ const isDragging   = useRef(false);
     const reader = new FileReader();
     reader.onload = (ev) =>
       setState(s => ({ ...s, photoDataUrl: ev.target?.result as string, photoOffset: { x: 0, y: 0 } }));
+    reader.onerror = () => {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      setShareError("Photo failed to load — please try a different file.");
+      setTimeout(() => setShareError(null), 5000);
+    };
     reader.readAsDataURL(file);
   }
 
@@ -849,6 +868,8 @@ const isDragging   = useRef(false);
         if ((err as Error).name === "AbortError") return;
       }
     }
+    setShareError("Device sharing unavailable — downloading instead.");
+    setTimeout(() => setShareError(null), 3000);
     await handleDownload();
   }
 
@@ -1181,7 +1202,7 @@ const isDragging   = useRef(false);
 
             {/* Download */}
             <button onClick={handleDownload} disabled={downloading || !isCardReady}
-              className="kx-btn kx-btn-primary w-full justify-center disabled:opacity-40 disabled:cursor-not-allowed">
+              className={`kx-btn kx-btn-primary w-full justify-center disabled:opacity-40 disabled:cursor-not-allowed ${isCardReady ? "animate-btn-glow" : ""}`}>
               <Download size={16} />
               {downloading ? "Generating…" : `Download ${fmt.toUpperCase()}`}
             </button>

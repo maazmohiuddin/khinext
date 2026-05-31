@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import type { RegistrationTrack } from "@/lib/types";
 import { TRACK_LABELS } from "@/lib/types";
@@ -102,7 +103,7 @@ export function RegisterForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="mx-auto max-w-[640px] flex flex-col gap-5" noValidate>
+    <motion.form onSubmit={onSubmit} className="mx-auto max-w-[640px] flex flex-col gap-5" noValidate initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}>
       <div className="grid md:grid-cols-2 gap-4">
         <Field label="Full Name" htmlFor="r-name" required>
           <Input
@@ -180,18 +181,20 @@ export function RegisterForm() {
       )}
 
       <div className="pt-3 border-t border-white/10">
-        <button
-          type="submit"
-          className="kx-btn-primary w-full justify-center !px-7 !py-4 !text-[15px]"
-          disabled={submitting || !form.fullName || !form.email || !form.role}
-        >
-          {submitting ? "Registering…" : "Register for Khinext '26"}
-          {!submitting && <ArrowRight size={16} aria-hidden="true" />}
-        </button>
+        <motion.div whileTap={{ scale: 0.98 }}>
+          <button
+            type="submit"
+            className="kx-btn-primary w-full justify-center !px-7 !py-4 !text-[15px]"
+            disabled={submitting || !form.fullName || !form.email || !form.role}
+          >
+            {submitting ? "Registering…" : "Register for Khinext '26"}
+            {!submitting && <ArrowRight size={16} aria-hidden="true" />}
+          </button>
+        </motion.div>
         <p className="mt-3 text-center text-[11px] text-white/30">
           Free to attend. Your details are used only for event logistics.
         </p>
       </div>
-    </form>
+    </motion.form>
   );
 }

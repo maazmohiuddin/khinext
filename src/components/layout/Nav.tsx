@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, ChevronDown } from "lucide-react";
 
 type NavLink = { label: string; href: string; children?: NavLink[] };
@@ -19,7 +20,6 @@ const LINKS: NavLink[] = [
   },
   { label: "My Card",  href: "/card-generator" },
   { label: "Submit",   href: "/submit" },
-  { label: "Admin",    href: "/admin" },
 ];
 
 export function Nav() {
@@ -125,7 +125,7 @@ export function Nav() {
               <li key={l.href}>
                 <Link
                   href={l.href}
-                  className={`relative text-sm transition-colors duration-200 ease-soft hover:text-white ${
+                  className={`group relative text-sm transition-colors duration-200 ease-soft hover:text-white ${
                     active ? "text-white" : "text-white/45"
                   }`}
                   aria-current={active ? "page" : undefined}
@@ -134,7 +134,7 @@ export function Nav() {
                   <span
                     aria-hidden="true"
                     className={`absolute left-0 -bottom-1.5 h-[1px] transition-[width] duration-300 ease-soft ${
-                      active ? "w-full" : "w-0"
+                      active ? "w-full" : "w-0 group-hover:w-1/2"
                     }`}
                     style={{ background: "linear-gradient(90deg, #4579FF, transparent)" }}
                   />
@@ -162,30 +162,35 @@ export function Nav() {
       </nav>
 
       {/* Mobile sheet */}
-      {open && (
-        <div
-          id="mobile-nav"
-          className="md:hidden fixed inset-x-0 top-[72px] bottom-0 bg-khi-ink/95 backdrop-blur-2xl z-40 animate-in fade-in overflow-y-auto"
-          role="dialog"
-          aria-label="Mobile navigation"
-        >
-          <ul className="flex flex-col gap-1 p-6">
-            <MobileLink href="/" label="Home" />
-            <li className="mt-2 mb-1 px-1 text-[10px] font-bold uppercase text-white/30" style={{ letterSpacing: "0.22em" }}>Tracks</li>
-            <MobileLink href="/ai-expo" label="AI Expo" indented />
-            <MobileLink href="/gaming"  label="Gaming"  indented />
-            <li className="mt-3" />
-            <MobileLink href="/card-generator" label="My Card" />
-            <MobileLink href="/submit" label="Submit" />
-            <MobileLink href="/admin" label="Admin" />
-            <li className="mt-4">
-              <Link href="/register" className="kx-btn-primary w-full justify-center">
-                Register Now
-              </Link>
-            </li>
-          </ul>
-        </div>
-      )}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            id="mobile-nav"
+            className="md:hidden fixed inset-x-0 top-[72px] bottom-0 bg-khi-ink/95 backdrop-blur-2xl z-40 overflow-y-auto"
+            role="dialog"
+            aria-label="Mobile navigation"
+          >
+            <ul className="flex flex-col gap-1 p-6">
+              <MobileLink href="/" label="Home" />
+              <li className="mt-2 mb-1 px-1 text-[10px] font-bold uppercase text-white/30" style={{ letterSpacing: "0.22em" }}>Tracks</li>
+              <MobileLink href="/ai-expo" label="AI Expo" indented />
+              <MobileLink href="/gaming"  label="Gaming"  indented />
+              <li className="mt-3" />
+              <MobileLink href="/card-generator" label="My Card" />
+              <MobileLink href="/submit" label="Submit" />
+              <li className="mt-4">
+                <Link href="/register" className="kx-btn-primary w-full justify-center">
+                  Register Now
+                </Link>
+              </li>
+            </ul>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 }
