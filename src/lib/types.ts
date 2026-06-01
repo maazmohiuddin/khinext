@@ -52,6 +52,8 @@ export interface CardShare {
 
 export type ContactStatus = "new" | "read" | "replied";
 
+export type ContactSource = "contact_form" | "email";
+
 export interface ContactMessage {
   id: string;
   name: string;
@@ -59,6 +61,8 @@ export interface ContactMessage {
   subject: string;
   message: string;
   status: ContactStatus;
+  source: ContactSource;
+  imap_message_id: string | null;
   reply_text: string | null;
   replied_at: string | null;
   created_at: string;

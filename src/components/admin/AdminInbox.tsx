@@ -2,10 +2,9 @@
 
 import { useEffect, useRef, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Send, MailOpen, Mail, Reply, RefreshCw, Inbox, ChevronRight, X, CheckCheck } from "lucide-react";
+import { Search, Send, MailOpen, Mail, Reply, RefreshCw, Inbox, ChevronRight, X, CheckCheck, AtSign, Globe } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import type { ContactMessage, ContactStatus } from "@/lib/types";
-import { AnimatePresence as AP } from "framer-motion";
+import type { ContactMessage, ContactSource, ContactStatus } from "@/lib/types";
 import { Toast } from "./Toast";
 
 function timeAgo(iso: string) {
@@ -28,6 +27,21 @@ const STATUS_STYLE: Record<ContactStatus, string> = {
   replied: "bg-[#51FFD5]/10 text-[#51FFD5] border-[#51FFD5]/30",
 };
 
+const SOURCE_LABEL: Record<ContactSource, string> = {
+  contact_form: "Form",
+  email: "Email",
+};
+
+const SOURCE_STYLE: Record<ContactSource, string> = {
+  contact_form: "bg-[#BF00FF]/10 text-[#D580FF] border-[#BF00FF]/30",
+  email:        "bg-[#FFB800]/10 text-[#FFD06B] border-[#FFB800]/30",
+};
+
+const SOURCE_ICON: Record<ContactSource, React.ReactNode> = {
+  contact_form: <Globe size={9} />,
+  email:        <AtSign size={9} />,
+};
+
 interface ToastState { message: string; type: "success" | "error" | "info" }
 
 export function AdminInbox({ initialMessages }: { initialMessages: ContactMessage[] }) {
@@ -38,6 +52,7 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
   const [replyText, setReplyText] = useState("");
   const [sending, setSending] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
   const replyRef = useRef<HTMLTextAreaElement>(null);
 
@@ -54,7 +69,8 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
         if (payload.eventType === "INSERT") {
           const msg = payload.new as ContactMessage;
           setMessages(p => [msg, ...p]);
-          showToast(`New message from ${msg.name}`, "info");
+          const src = msg.source === "email" ? "📧 Email" : "📝 Form";
+          showToast(`${src} · ${msg.name}`, "info");
         }
         if (payload.eventType === "UPDATE") {
           const upd = payload.new as ContactMessage;
@@ -66,7 +82,25 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
     return () => { supabase.removeChannel(ch); };
   }, []);
 
-  // Auto-mark as read when opened
+  async function syncInbox() {
+    setSyncing(true);
+    try {
+      const res = await fetch("/api/admin/inbox/sync", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        showToast(`Sync failed: ${data.error}`, "error");
+      } else if (data.imported === 0) {
+        showToast("Inbox up to date — no new emails.", "info");
+      } else {
+        showToast(`Synced ${data.imported} new email${data.imported > 1 ? "s" : ""} from inbox.`, "success");
+      }
+    } catch {
+      showToast("Sync failed — network error.", "error");
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   async function selectMessage(msg: ContactMessage) {
     setSelected(msg);
     setReplyText("");
@@ -140,31 +174,49 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
           </div>
         </div>
 
-        {/* Filter pills */}
-        <div className="flex gap-1.5 flex-wrap">
-          {(["all", "new", "read", "replied"] as const).map(f => (
-            <motion.button
-              key={f}
-              whileTap={{ scale: 0.94 }}
-              onClick={() => setFilter(f)}
-              className={`relative px-3.5 py-1.5 rounded-full text-[11px] font-semibold capitalize transition-colors duration-200 border ${
-                filter === f
-                  ? "border-khi-blue/55 text-khi-blue-soft"
-                  : "bg-white/[0.03] border-white/10 text-white/45 hover:border-khi-blue/30 hover:text-white/70"
-              }`}
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Sync button */}
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={syncInbox}
+            disabled={syncing}
+            className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold border border-white/15 bg-white/[0.04] text-white/60 hover:text-white hover:border-white/30 transition-colors disabled:opacity-50"
+          >
+            <motion.span
+              animate={syncing ? { rotate: 360 } : { rotate: 0 }}
+              transition={syncing ? { duration: 1, repeat: Infinity, ease: "linear" } : {}}
             >
-              {filter === f && (
-                <motion.span
-                  layoutId="inbox-filter-pill"
-                  className="absolute inset-0 rounded-full bg-khi-blue/15"
-                  transition={{ type: "spring", stiffness: 420, damping: 35 }}
-                />
-              )}
-              <span className="relative">
-                {f === "all" ? `All (${counts.all})` : f === "new" ? `New (${counts.new})` : f === "read" ? `Read (${counts.read})` : `Replied (${counts.replied})`}
-              </span>
-            </motion.button>
-          ))}
+              <RefreshCw size={12} />
+            </motion.span>
+            {syncing ? "Syncing…" : "Sync Inbox"}
+          </motion.button>
+
+          {/* Filter pills */}
+          <div className="flex gap-1.5 flex-wrap">
+            {(["all", "new", "read", "replied"] as const).map(f => (
+              <motion.button
+                key={f}
+                whileTap={{ scale: 0.94 }}
+                onClick={() => setFilter(f)}
+                className={`relative px-3.5 py-1.5 rounded-full text-[11px] font-semibold capitalize transition-colors duration-200 border ${
+                  filter === f
+                    ? "border-khi-blue/55 text-khi-blue-soft"
+                    : "bg-white/[0.03] border-white/10 text-white/45 hover:border-khi-blue/30 hover:text-white/70"
+                }`}
+              >
+                {filter === f && (
+                  <motion.span
+                    layoutId="inbox-filter-pill"
+                    className="absolute inset-0 rounded-full bg-khi-blue/15"
+                    transition={{ type: "spring", stiffness: 420, damping: 35 }}
+                  />
+                )}
+                <span className="relative">
+                  {f === "all" ? `All (${counts.all})` : f === "new" ? `New (${counts.new})` : f === "read" ? `Read (${counts.read})` : `Replied (${counts.replied})`}
+                </span>
+              </motion.button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -173,7 +225,6 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
 
         {/* ── Left: Message list ── */}
         <div className="border-b md:border-b-0 md:border-r border-white/10 flex flex-col">
-          {/* Search */}
           <div className="p-3 border-b border-white/[0.06]">
             <div className="relative">
               <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
@@ -186,7 +237,6 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
             </div>
           </div>
 
-          {/* List */}
           <div className="overflow-y-auto flex-1" style={{ maxHeight: 520 }}>
             {filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-40 gap-2 text-white/30">
@@ -220,7 +270,13 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
                               {msg.name}
                             </span>
                           </div>
-                          <span className="text-[10px] text-white/30 flex-shrink-0">{timeAgo(msg.created_at)}</span>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase border ${SOURCE_STYLE[msg.source ?? "contact_form"]}`}>
+                              {SOURCE_ICON[msg.source ?? "contact_form"]}
+                              {SOURCE_LABEL[msg.source ?? "contact_form"]}
+                            </span>
+                            <span className="text-[10px] text-white/30">{timeAgo(msg.created_at)}</span>
+                          </div>
                         </div>
                         <p className={`text-xs truncate mb-1 ${msg.status === "new" ? "text-white/80" : "text-white/50"}`}>{msg.subject}</p>
                         <div className="flex items-center justify-between gap-2">
@@ -249,16 +305,19 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
               transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
               className="flex flex-col h-full"
             >
-              {/* Message header */}
               <div className="px-6 py-4 border-b border-white/[0.06] flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     <h3 className="font-display font-semibold text-white text-sm">{selected.subject}</h3>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${SOURCE_STYLE[selected.source ?? "contact_form"]}`}>
+                      {SOURCE_ICON[selected.source ?? "contact_form"]}
+                      {SOURCE_LABEL[selected.source ?? "contact_form"]}
+                    </span>
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${STATUS_STYLE[selected.status]}`}>
                       {STATUS_LABEL[selected.status]}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-white/40">
+                  <div className="flex items-center gap-3 text-xs text-white/40 flex-wrap">
                     <span className="flex items-center gap-1">
                       <MailOpen size={11} />
                       {selected.name}
@@ -269,20 +328,14 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
                     <span>{new Date(selected.created_at).toLocaleString("en-PK", { dateStyle: "medium", timeStyle: "short" })}</span>
                   </div>
                 </div>
-                <button
-                  onClick={() => setSelected(null)}
-                  className="text-white/30 hover:text-white transition-colors flex-shrink-0"
-                  aria-label="Close"
-                >
+                <button onClick={() => setSelected(null)} className="text-white/30 hover:text-white transition-colors flex-shrink-0" aria-label="Close">
                   <X size={16} />
                 </button>
               </div>
 
-              {/* Message body */}
               <div className="px-6 py-5 flex-1 overflow-y-auto">
                 <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">{selected.message}</p>
 
-                {/* Previous reply */}
                 {selected.reply_text && (
                   <motion.div
                     initial={{ opacity: 0, y: 8 }}
@@ -300,7 +353,6 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
                 )}
               </div>
 
-              {/* Reply composer */}
               <div className="px-6 pb-5 pt-3 border-t border-white/[0.06]">
                 <div className="flex items-center gap-2 mb-3">
                   <Reply size={13} className="text-white/40" />
@@ -316,7 +368,6 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
                   className="w-full rounded-xl bg-white/[0.04] border border-white/10 px-4 py-3 text-sm text-white placeholder:text-white/25 outline-none focus:border-khi-blue/50 focus:bg-khi-blue/[0.04] transition-all duration-200 resize-none leading-relaxed"
                 />
 
-                {/* Confirmation bar */}
                 <AnimatePresence>
                   {confirming ? (
                     <motion.div
@@ -347,21 +398,13 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
                             <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
                               <RefreshCw size={11} />
                             </motion.span>
-                          ) : (
-                            <Send size={11} />
-                          )}
+                          ) : <Send size={11} />}
                           {sending ? "Sending…" : "Confirm Send"}
                         </motion.button>
                       </div>
                     </motion.div>
                   ) : (
-                    <motion.div
-                      key="actions"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="mt-3 flex justify-end"
-                    >
+                    <motion.div key="actions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="mt-3 flex justify-end">
                       <motion.button
                         whileTap={{ scale: 0.96 }}
                         onClick={() => { if (replyText.trim()) setConfirming(true); }}
@@ -397,9 +440,9 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
         </AnimatePresence>
       </div>
 
-      <AP>
+      <AnimatePresence>
         {toast && <Toast key={toast.message + toast.type} message={toast.message} type={toast.type} />}
-      </AP>
+      </AnimatePresence>
     </div>
   );
 }
