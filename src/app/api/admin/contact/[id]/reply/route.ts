@@ -40,7 +40,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     return NextResponse.json({ ok: true });
   } catch (e) {
-    console.error("Contact reply error:", e);
-    return NextResponse.json({ error: "Failed to send reply." }, { status: 500 });
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("Contact reply error:", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
