@@ -162,14 +162,14 @@ export function SubmissionsTable({
                               <div>
                                 <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-1.5">Attached File</p>
                                 <a
-                                  href={s.file_path}
+                                  href={`/api/admin/submissions/${s.id}/attachment`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="inline-flex items-center gap-2 text-xs text-khi-blue-soft hover:text-khi-blue-bright transition-colors"
                                   onClick={e => e.stopPropagation()}
                                 >
                                   <FileText size={13} />
-                                  View attachment
+                                  {s.file_path.split(".").pop()?.toUpperCase() ?? "File"} attachment
                                   <ExternalLink size={11} />
                                 </a>
                               </div>
