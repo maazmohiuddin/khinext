@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   Mail, Send, CheckSquare, Square, RefreshCw, ArrowLeft,
   History, ChevronDown, ChevronUp, Edit3, Users,
-  CheckCircle2, XCircle, AlertCircle, Loader2, Eye, EyeOff, Key,
+  CheckCircle2, XCircle, AlertCircle, Loader2, Eye, EyeOff, Key, Trash2, Lock,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -216,6 +216,95 @@ function EmailPreview({ fields, isVip }: { fields: EmailFields; isVip: boolean }
   );
 }
 
+// ── Delete password modal (inline per log) ─────────────────────
+
+const DELETE_PASSWORD = "maaz882000";
+
+function DeleteLogButton({ logId, onDeleted }: { logId: string; onDeleted: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [pw, setPw] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [error, setError] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  function handleOpen(e: React.MouseEvent) {
+    e.stopPropagation();
+    setOpen(true);
+    setPw("");
+    setError("");
+  }
+
+  async function handleConfirm(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (pw !== DELETE_PASSWORD) { setError("Incorrect password."); return; }
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/bulk-email/history?id=${logId}`, { method: "DELETE" });
+      if (!res.ok) { const d = await res.json(); setError(d.error ?? "Delete failed."); setDeleting(false); return; }
+      onDeleted();
+    } catch { setError("Network error."); setDeleting(false); }
+  }
+
+  function handleCancel(e: React.MouseEvent) {
+    e.stopPropagation();
+    setOpen(false);
+  }
+
+  if (!open) {
+    return (
+      <button
+        onClick={handleOpen}
+        title="Delete this log"
+        className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-colors flex-shrink-0"
+      >
+        <Trash2 size={13} />
+      </button>
+    );
+  }
+
+  return (
+    <div
+      onClick={e => e.stopPropagation()}
+      className="flex items-center gap-2 flex-shrink-0"
+    >
+      <Lock size={11} className="text-white/30 flex-shrink-0" />
+      <div className="relative">
+        <input
+          autoFocus
+          type={showPw ? "text" : "password"}
+          value={pw}
+          onChange={e => { setPw(e.target.value); setError(""); }}
+          onKeyDown={e => { if (e.key === "Enter") handleConfirm(e as unknown as React.MouseEvent); if (e.key === "Escape") handleCancel(e as unknown as React.MouseEvent); }}
+          placeholder="Password"
+          className="h-7 w-28 rounded-lg bg-white/[0.06] border border-white/15 px-2 pr-7 text-xs text-white placeholder:text-white/25 outline-none focus:border-red-500/50"
+        />
+        <button
+          type="button"
+          onClick={e => { e.stopPropagation(); setShowPw(v => !v); }}
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/60"
+        >
+          {showPw ? <EyeOff size={10} /> : <Eye size={10} />}
+        </button>
+      </div>
+      {error && <span className="text-[10px] text-red-400">{error}</span>}
+      <button
+        onClick={handleConfirm}
+        disabled={deleting || !pw}
+        className="h-7 px-2.5 rounded-lg bg-red-500/80 hover:bg-red-500 text-white text-[11px] font-semibold disabled:opacity-40 transition-colors flex items-center gap-1"
+      >
+        {deleting ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={10} />}
+        {deleting ? "…" : "Delete"}
+      </button>
+      <button
+        onClick={handleCancel}
+        className="h-7 px-2 rounded-lg text-white/40 hover:text-white text-[11px] border border-white/10 hover:border-white/25 transition-colors"
+      >
+        Cancel
+      </button>
+    </div>
+  );
+}
+
 // ── History Tab ────────────────────────────────────────────────
 
 function HistoryTab() {
@@ -242,38 +331,51 @@ function HistoryTab() {
       {logs.map(log => (
         <div key={log.id} className="kx-card !p-0 !rounded-2xl overflow-hidden">
           {/* Log header row */}
-          <button onClick={() => setExpanded(e => e === log.id ? null : log.id)}
-            className="w-full flex flex-wrap items-center gap-4 px-5 py-4 text-left hover:bg-white/[0.03] transition-colors">
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-white truncate">{log.subject}</p>
-              <p className="text-xs text-white/40 mt-0.5">{fmt(log.sent_at)}</p>
-            </div>
-            <div className="flex items-center gap-4 flex-shrink-0 flex-wrap">
-              <div className="text-center">
-                <p className="text-sm font-bold text-emerald-400">{log.sent_count}</p>
-                <p className="text-[10px] text-white/30">Delivered</p>
+          <div className="flex flex-wrap items-center gap-4 px-5 py-4">
+            <button
+              onClick={() => setExpanded(e => e === log.id ? null : log.id)}
+              className="flex-1 flex flex-wrap items-center gap-4 text-left min-w-0"
+            >
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-white truncate">{log.subject}</p>
+                <p className="text-xs text-white/40 mt-0.5">{fmt(log.sent_at)}</p>
               </div>
-              <div className="text-center">
-                <p className="text-sm font-bold" style={{ color: log.failed_count > 0 ? "#FF6B6B" : "rgba(255,255,255,0.2)" }}>{log.failed_count}</p>
-                <p className="text-[10px] text-white/30">Failed</p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-bold text-blue-300">{log.unique_openers}</p>
-                <p className="text-[10px] text-white/30">Opened</p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-bold text-white/60">{openRate(log)}</p>
-                <p className="text-[10px] text-white/30">Open rate</p>
-              </div>
-              {log.vip_tokens_sent > 0 && (
+              <div className="flex items-center gap-4 flex-shrink-0 flex-wrap">
                 <div className="text-center">
-                  <p className="text-sm font-bold text-amber-400">{log.vip_tokens_sent}</p>
-                  <p className="text-[10px] text-white/30">VIP tokens</p>
+                  <p className="text-sm font-bold text-emerald-400">{log.sent_count}</p>
+                  <p className="text-[10px] text-white/30">Delivered</p>
                 </div>
-              )}
-              {expanded === log.id ? <ChevronUp size={14} className="text-white/30" /> : <ChevronDown size={14} className="text-white/30" />}
-            </div>
-          </button>
+                <div className="text-center">
+                  <p className="text-sm font-bold" style={{ color: log.failed_count > 0 ? "#FF6B6B" : "rgba(255,255,255,0.2)" }}>{log.failed_count}</p>
+                  <p className="text-[10px] text-white/30">Failed</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-bold text-blue-300">{log.unique_openers}</p>
+                  <p className="text-[10px] text-white/30">Opened</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-bold text-white/60">{openRate(log)}</p>
+                  <p className="text-[10px] text-white/30">Open rate</p>
+                </div>
+                {log.vip_tokens_sent > 0 && (
+                  <div className="text-center">
+                    <p className="text-sm font-bold text-amber-400">{log.vip_tokens_sent}</p>
+                    <p className="text-[10px] text-white/30">VIP tokens</p>
+                  </div>
+                )}
+                {expanded === log.id ? <ChevronUp size={14} className="text-white/30" /> : <ChevronDown size={14} className="text-white/30" />}
+              </div>
+            </button>
+
+            {/* Delete button — outside the expand toggle */}
+            <DeleteLogButton
+              logId={log.id}
+              onDeleted={() => {
+                setLogs(prev => prev.filter(l => l.id !== log.id));
+                if (expanded === log.id) setExpanded(null);
+              }}
+            />
+          </div>
 
           {/* Per-recipient records — each row is individually expandable */}
           {expanded === log.id && log.records.length > 0 && (

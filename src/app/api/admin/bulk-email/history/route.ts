@@ -1,7 +1,7 @@
 /**
- * GET /api/admin/bulk-email/history
- * Returns bulk email logs with per-recipient send records, open counts,
- * and VIP token status. Admin-only.
+ * GET  /api/admin/bulk-email/history — list logs
+ * DELETE /api/admin/bulk-email/history?id=<log_id> — delete a log
+ * Admin-only.
  */
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient, createServiceClient } from "@/lib/supabase/server";
@@ -69,4 +69,22 @@ export async function GET() {
   });
 
   return NextResponse.json({ logs: enriched });
+}
+
+export async function DELETE(req: Request) {
+  const supabase = createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { data: isAdmin } = await supabase.rpc("is_admin");
+  if (!isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+
+  const svc = createServiceClient();
+  const { error } = await svc.from("bulk_email_logs").delete().eq("id", id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  return NextResponse.json({ ok: true });
 }
