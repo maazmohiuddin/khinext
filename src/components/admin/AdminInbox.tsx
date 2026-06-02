@@ -82,6 +82,15 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
     return () => { supabase.removeChannel(ch); };
   }, []);
 
+  async function refreshMessages() {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("contact_messages")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (data) setMessages(data as ContactMessage[]);
+  }
+
   async function syncInbox() {
     setSyncing(true);
     try {
@@ -91,7 +100,9 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
         showToast(`Sync failed: ${data.error}`, "error");
       } else if (data.imported === 0) {
         showToast("Inbox up to date — no new emails.", "info");
+        await refreshMessages();
       } else {
+        await refreshMessages();
         showToast(`Synced ${data.imported} new email${data.imported > 1 ? "s" : ""} from inbox.`, "success");
       }
     } catch {
