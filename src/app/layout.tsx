@@ -4,6 +4,7 @@ import { Nav } from "@/components/layout/Nav";
 import { Footer } from "@/components/layout/Footer";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Preloader } from "@/components/layout/Preloader";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   title: "Khinext '26 — Pakistan's First Multi-Domain AI Summit",
@@ -34,6 +35,7 @@ export default function RootLayout({
         <Nav />
         <PageTransition>{children}</PageTransition>
         <Footer />
+        <Analytics />
       </body>
     </html>
   );
