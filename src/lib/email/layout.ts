@@ -235,9 +235,9 @@ const TYPE_BADGE: Partial<Record<SessionType, { label: string; bg: string; color
 
 // Panel icon filenames keyed by accent colour
 const PANEL_ICON_FILE: Record<string, string> = {
-  red:    "panel-icon-red.png",
-  teal:   "panel-icon-teal.png",
-  orange: "panel-icon-orange.png",
+  red:    "Lifestyle.png",
+  teal:   "SmartCities.png",
+  orange: "Future.png",
 };
 
 function renderSessionBadge(row: AgendaRow, siteUrl: string): string {
@@ -254,7 +254,7 @@ function renderSessionBadge(row: AgendaRow, siteUrl: string): string {
 
   // Fireside rows: Khinext brand icon
   if (row.type === "fireside") {
-    return `<img src="${siteUrl}/brand/fireside-icon.png" width="28" height="28" alt="Fireside" style="display:inline-block;vertical-align:middle;margin-right:8px;border-radius:5px;border:0" />`;
+    return `<img src="${siteUrl}/brand/Firechat.png" width="28" height="28" alt="Fireside" style="display:inline-block;vertical-align:middle;margin-right:8px;border-radius:5px;border:0" />`;
   }
 
   const bg = row.type === "panel" && row.accent ? ACCENT_COLOR[row.accent] : def.bg;
