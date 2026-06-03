@@ -80,6 +80,8 @@ export interface CustomInvitationParams {
   includeAgenda?: boolean;
 }
 
+const SITE_URL_INV = (process.env.NEXT_PUBLIC_SITE_URL || "https://khinext.vercel.app").replace(/\/$/, "");
+
 export function buildInvitationParams(custom?: CustomInvitationParams): KhinextEmailParams {
   const isVip = custom?.isVip === true;
   const base = isVip ? VIP_INVITATION_BODY_PARAMS : INVITATION_BODY_PARAMS;
@@ -90,6 +92,15 @@ export function buildInvitationParams(custom?: CustomInvitationParams): KhinextE
 
   const agendaSuffix = custom?.includeAgenda ? renderAgendaBlock() : "";
 
+  // When agenda is included and no custom CTA, switch to a registration CTA
+  const agendaCtaLabel = "Haven't registered yet? Register here";
+  const agendaCtaUrl   = `${SITE_URL_INV}/register`;
+
+  const ctaLabel = custom?.ctaLabel
+    ?? (custom?.includeAgenda ? agendaCtaLabel : base.cta!.label);
+  const ctaUrl = custom?.ctaUrl
+    ?? (custom?.includeAgenda ? agendaCtaUrl : base.cta!.url);
+
   return {
     ...base,
     headline: custom?.headline
@@ -98,10 +109,7 @@ export function buildInvitationParams(custom?: CustomInvitationParams): KhinextE
           : `<em data-accent>${custom.headline}</em>`)
       : base.headline,
     body: mainBody + agendaSuffix,
-    cta: {
-      label: custom?.ctaLabel ?? base.cta!.label,
-      url:   custom?.ctaUrl   ?? base.cta!.url,
-    },
+    cta: { label: ctaLabel, url: ctaUrl },
   };
 }
 

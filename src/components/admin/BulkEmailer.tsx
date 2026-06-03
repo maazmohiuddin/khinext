@@ -217,6 +217,126 @@ function EmailPreview({ fields, isVip, includeAgenda }: { fields: EmailFields; i
   );
 }
 
+// ── Import from previous sends ─────────────────────────────────
+
+function PreviousSendsImporter({ onAdd }: { onAdd: (emails: string[]) => void }) {
+  const [open, setOpen]       = useState(false);
+  const [logs, setLogs]       = useState<EmailLog[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [picked, setPicked]   = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!open || logs.length > 0) return;
+    setLoading(true);
+    fetch("/api/admin/bulk-email/history")
+      .then(r => r.json())
+      .then(d => { setLogs(d.logs ?? []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [open, logs.length]);
+
+  function emailsFor(log: EmailLog) { return (log.records as SendRecord[]).map(r => r.email); }
+
+  function toggleLog(log: EmailLog) {
+    const emails = emailsFor(log);
+    const allOn  = emails.every(e => picked.has(e));
+    setPicked(prev => {
+      const next = new Set(prev);
+      if (allOn) emails.forEach(e => next.delete(e));
+      else       emails.forEach(e => next.add(e));
+      return next;
+    });
+  }
+
+  function toggleEmail(email: string) {
+    setPicked(prev => { const n = new Set(prev); n.has(email) ? n.delete(email) : n.add(email); return n; });
+  }
+
+  function handleAdd() {
+    onAdd(Array.from(picked));
+    setPicked(new Set());
+    setOpen(false);
+  }
+
+  return (
+    <div className="rounded-2xl border border-white/10 overflow-hidden">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between px-5 py-4 bg-white/[0.03] hover:bg-white/[0.06] transition-colors text-sm font-medium text-white/70"
+      >
+        <span className="flex items-center gap-2"><History size={15} />Import from Previous Sends</span>
+        {open ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+      </button>
+
+      {open && (
+        <div className="border-t border-white/10">
+          {loading && (
+            <div className="flex items-center justify-center py-8 gap-2 text-white/30 text-sm">
+              <Loader2 size={14} className="animate-spin" />Loading…
+            </div>
+          )}
+          {!loading && logs.length === 0 && (
+            <p className="text-sm text-white/30 text-center py-8">No previous sends found.</p>
+          )}
+          {!loading && logs.length > 0 && (
+            <>
+              <div className="divide-y divide-white/[0.04] max-h-64 overflow-y-auto">
+                {logs.map(log => {
+                  const emails  = emailsFor(log);
+                  const allOn   = emails.length > 0 && emails.every(e => picked.has(e));
+                  const someOn  = emails.some(e => picked.has(e));
+                  const isExp   = expanded === log.id;
+                  return (
+                    <div key={log.id}>
+                      <div className="flex items-center gap-3 px-5 py-3 hover:bg-white/[0.02] transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={allOn}
+                          ref={el => { if (el) el.indeterminate = someOn && !allOn; }}
+                          onChange={() => toggleLog(log)}
+                          className="accent-khi-blue w-4 h-4 flex-shrink-0"
+                        />
+                        <button
+                          onClick={() => setExpanded(e => e === log.id ? null : log.id)}
+                          className="flex-1 min-w-0 text-left flex items-center gap-2"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-semibold text-white/80 truncate">{log.subject}</p>
+                            <p className="text-[10px] text-white/35">{fmt(log.sent_at)} · {log.sent_count} sent</p>
+                          </div>
+                          {isExp ? <ChevronUp size={11} className="text-white/30 flex-shrink-0" /> : <ChevronDown size={11} className="text-white/30 flex-shrink-0" />}
+                        </button>
+                      </div>
+                      {isExp && (
+                        <div className="px-10 pb-3 bg-white/[0.01] space-y-0.5">
+                          {emails.map(email => (
+                            <label key={email} className="flex items-center gap-2 py-1 px-1 cursor-pointer hover:bg-white/[0.03] rounded">
+                              <input type="checkbox" checked={picked.has(email)} onChange={() => toggleEmail(email)} className="accent-khi-blue w-3.5 h-3.5 flex-shrink-0" />
+                              <span className="text-xs font-mono text-white/55">{email}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {picked.size > 0 && (
+                <div className="px-5 py-3 border-t border-white/10 flex items-center justify-between gap-4">
+                  <p className="text-xs text-white/50">{picked.size} email{picked.size !== 1 ? "s" : ""} selected</p>
+                  <button onClick={handleAdd} className="kx-btn kx-btn-primary !py-2 !px-4 !text-xs">
+                    <Users size={12} />Add to Recipients
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Delete password modal (inline per log) ─────────────────────
 
 const DELETE_PASSWORD = "maaz882000";
@@ -650,19 +770,35 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
 
           {/* Input phase */}
           {phase === "input" && (
-            <div className="kx-card !p-0 !rounded-2xl overflow-hidden">
-              <div className="flex items-center gap-2 px-5 py-4 border-b border-white/10">
-                <Users size={15} className="text-white/60" />
-                <span className="text-sm font-semibold text-white">Add Recipients</span>
-              </div>
-              <div className="p-5 space-y-4">
-                <p className="text-xs text-white/40">Paste emails separated by commas, semicolons, or new lines. Duplicates are removed automatically.</p>
-                <textarea value={rawInput} onChange={e => setRawInput(e.target.value)}
-                  placeholder={"alice@example.com\nbob@example.com, carol@example.com"}
-                  rows={8} className="kx-input w-full rounded-xl resize-y min-h-[160px] font-mono text-sm" spellCheck={false} />
-                <button onClick={handleParse} disabled={!rawInput.trim()} className="kx-btn kx-btn-primary w-full justify-center disabled:opacity-40 disabled:cursor-not-allowed">
-                  <Users size={15} />Parse Recipients & Review
-                </button>
+            <div className="space-y-4">
+              {/* Import from history */}
+              <PreviousSendsImporter
+                onAdd={(emails) => {
+                  const existing = new Set(
+                    rawInput.split(/[\n,;]+/).map(e => e.trim().toLowerCase()).filter(Boolean)
+                  );
+                  const fresh = emails.filter(e => !existing.has(e.toLowerCase()));
+                  if (fresh.length > 0) {
+                    setRawInput(prev => prev.trim() ? prev.trim() + "\n" + fresh.join("\n") : fresh.join("\n"));
+                  }
+                }}
+              />
+
+              {/* Manual paste */}
+              <div className="kx-card !p-0 !rounded-2xl overflow-hidden">
+                <div className="flex items-center gap-2 px-5 py-4 border-b border-white/10">
+                  <Users size={15} className="text-white/60" />
+                  <span className="text-sm font-semibold text-white">Add Recipients Manually</span>
+                </div>
+                <div className="p-5 space-y-4">
+                  <p className="text-xs text-white/40">Paste emails separated by commas, semicolons, or new lines. Duplicates are removed automatically.</p>
+                  <textarea value={rawInput} onChange={e => setRawInput(e.target.value)}
+                    placeholder={"alice@example.com\nbob@example.com, carol@example.com"}
+                    rows={8} className="kx-input w-full rounded-xl resize-y min-h-[160px] font-mono text-sm" spellCheck={false} />
+                  <button onClick={handleParse} disabled={!rawInput.trim()} className="kx-btn kx-btn-primary w-full justify-center disabled:opacity-40 disabled:cursor-not-allowed">
+                    <Users size={15} />Parse Recipients & Review
+                  </button>
+                </div>
               </div>
             </div>
           )}
