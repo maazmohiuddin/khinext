@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   Mail, Send, CheckSquare, Square, RefreshCw, ArrowLeft,
   History, ChevronDown, ChevronUp, Edit3, Users,
-  CheckCircle2, XCircle, AlertCircle, Loader2, Eye, EyeOff, Key, Trash2, Lock,
+  CheckCircle2, XCircle, AlertCircle, Loader2, Eye, EyeOff, Key, Trash2, Lock, CalendarDays,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -172,7 +172,7 @@ function RecordRow({ rec }: { rec: SendRecord }) {
 
 // ── Email Preview ──────────────────────────────────────────────
 
-function EmailPreview({ fields, isVip }: { fields: EmailFields; isVip: boolean }) {
+function EmailPreview({ fields, isVip, includeAgenda }: { fields: EmailFields; isVip: boolean; includeAgenda: boolean }) {
   const [open, setOpen] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -187,6 +187,7 @@ function EmailPreview({ fields, isVip }: { fields: EmailFields; isVip: boolean }
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             isVip,
+            includeAgenda,
             headline: fields.headline,
             bodyText: fields.bodyText,
             ctaLabel: fields.ctaLabel,
@@ -197,7 +198,7 @@ function EmailPreview({ fields, isVip }: { fields: EmailFields; isVip: boolean }
       } catch { /* ignore */ }
     }, 400);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [open, fields, isVip]);
+  }, [open, fields, isVip, includeAgenda]);
 
   return (
     <div className="rounded-2xl border border-white/10 overflow-hidden">
@@ -408,6 +409,7 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
     bodyText: "", ctaLabel: "", ctaUrl: "",
   });
   const [includeVipToken, setIncludeVipToken] = useState(false);
+  const [includeAgenda, setIncludeAgenda] = useState(false);
 
   const [rawInput, setRawInput] = useState("");
   const [parsed, setParsed] = useState<{ valid: string[]; invalid: string[] } | null>(null);
@@ -496,6 +498,7 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
           ctaLabel: fields.ctaLabel,
           ctaUrl: fields.ctaUrl,
           includeVipToken,
+          includeAgenda,
         }),
       });
       const data = await res.json();
@@ -511,7 +514,7 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
   function handleReset() {
     setPhase("input"); setRawInput(""); setParsed(null);
     setSelected(new Set()); setMxResults(new Map());
-    setResult(null); setErrorMsg(null);
+    setResult(null); setErrorMsg(null); setIncludeAgenda(false);
   }
 
   return (
@@ -617,12 +620,33 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
                     </div>
                   </label>
                 </div>
+
+                {/* Event Agenda toggle */}
+                <div className="rounded-xl border border-khi-blue/20 bg-khi-blue/[0.04] px-4 py-3">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={includeAgenda}
+                      onChange={e => setIncludeAgenda(e.target.checked)}
+                      className="mt-0.5 accent-blue-400 w-4 h-4 flex-shrink-0"
+                    />
+                    <div>
+                      <p className="text-sm font-semibold text-white flex items-center gap-1.5">
+                        <CalendarDays size={13} className="text-khi-blue-soft" />
+                        Include Event Agenda
+                      </p>
+                      <p className="text-xs text-white/45 mt-0.5">
+                        Appends the full Khinext '26 event schedule (20 sessions, 7 June · PC Hotel) to the email body. Toggle the preview to see how it looks.
+                      </p>
+                    </div>
+                  </label>
+                </div>
               </div>
             )}
           </div>
 
           {/* Preview */}
-          <EmailPreview fields={fields} isVip={includeVipToken} />
+          <EmailPreview fields={fields} isVip={includeVipToken} includeAgenda={includeAgenda} />
 
           {/* Input phase */}
           {phase === "input" && (

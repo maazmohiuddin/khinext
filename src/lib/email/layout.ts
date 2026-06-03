@@ -182,3 +182,104 @@ function esc(s: string): string {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
+
+// ── Event Agenda block ────────────────────────────────────────
+
+interface AgendaRow {
+  num: string;
+  time: string;
+  session: string;
+  speaker?: string;
+  role?: string;
+  /** left-edge accent colour */
+  accent?: "blue" | "gold" | "red" | "teal" | "orange" | null;
+}
+
+const AGENDA_ROWS: AgendaRow[] = [
+  { num: "01", time: "10:00 – 10:30", session: "Registration", accent: "blue" },
+  { num: "02", time: "11:00 – 11:10", session: "Welcome Note / Opening Remarks", speaker: "Syed Wajid Hussain Shah", accent: "blue" },
+  { num: "03", time: "11:15 – 11:25", session: "Protocol", speaker: "Syed Abdul Qadir", accent: null },
+  { num: "04", time: "11:30 – 11:45", session: "Special Keynote", speaker: "Chief Guest Sardar M. Bux Khan Mahar", accent: "gold" },
+  { num: "05", time: "11:50 – 12:00", session: "Keynote", speaker: "Mr. Munawar Mahesar", accent: "gold" },
+  { num: "06", time: "12:05 – 12:15", session: "1st Speaker Session", speaker: "Raza Abbas", role: "CTO Unilever Pakistan", accent: "blue" },
+  { num: "07", time: "12:20 – 12:45", session: "1st Panel Discussion", speaker: "How AI is Reshaping Attention...", accent: "red" },
+  { num: "08", time: "12:50 – 1:10",  session: "1st Activity", accent: null },
+  { num: "09", time: "1:15 – 1:30",   session: "1st Fireside Chat", speaker: "Saif Ali", role: "Founder [ Stealth ]", accent: "gold" },
+  { num: "10", time: "1:35 – 1:45",   session: "2nd Speaker", speaker: "Umair Nizam", role: "Senior Vice Chairman P@sha", accent: "blue" },
+  { num: "11", time: "1:50 – 2:00",   session: "3rd Speaker", speaker: "Khushnood Aftab", role: "CEO Viper Technologies", accent: "blue" },
+  { num: "12", time: "2:05 – 2:30",   session: "2nd Panel Discussion", speaker: "How AI is Powering a Nation's Backbone", accent: "teal" },
+  { num: "13", time: "2:35 – 2:50",   session: "Activity 2", accent: null },
+  { num: "14", time: "2:55 – 3:05",   session: "4th Speaker", speaker: "Huma Yahya", role: "CEO ELFA (EV Technologies)", accent: "blue" },
+  { num: "15", time: "3:10 – 3:25",   session: "2nd Fireside Chat", speaker: "Imran Batada", role: "CTO Unilever Pakistan", accent: "gold" },
+  { num: "16", time: "3:30 – 3:40",   session: "5th Speaker", speaker: "Saad Zuberi", role: "CEO Luckyone", accent: "blue" },
+  { num: "17", time: "3:45 – 4:05",   session: "6th Speaker", speaker: "Ansar Muhammad", role: "VP Engineering 10Pearls", accent: "blue" },
+  { num: "18", time: "4:10 – 4:30",   session: "3rd Panel Discussion", speaker: "AI-Powered Pakistan: Building the Next Generation", accent: "orange" },
+  { num: "19", time: "4:35 – 4:45",   session: "Closing & Thank You Note", accent: null },
+  { num: "20", time: "4:50 – 5:10",   session: "Shield Distribution / Group Photo / Networking", accent: null },
+];
+
+const ACCENT_COLOR: Record<string, string> = {
+  blue:   "#316BFF",
+  gold:   "#FCBF17",
+  red:    "#FF0F4B",
+  teal:   "#00EAEE",
+  orange: "#FF4D00",
+};
+
+export function renderAgendaBlock(): string {
+  const rows = AGENDA_ROWS.map((r, i) => {
+    const bg     = i % 2 === 0 ? "#0E1628" : "#080E1C";
+    const accent = r.accent ? ACCENT_COLOR[r.accent] : "transparent";
+    const numColor = r.accent ? ACCENT_COLOR[r.accent] : "rgba(49,107,255,0.4)";
+
+    const speakerHtml = r.speaker
+      ? `<br><span style="font-size:11px;font-weight:700;font-style:italic;color:#316BFF">${esc(r.speaker)}</span>${r.role ? `<span style="font-size:10px;color:#666;letter-spacing:.08em;text-transform:uppercase"> &nbsp;${esc(r.role)}</span>` : ""}`
+      : "";
+
+    return `<tr>
+      <td style="width:4px;background:${accent};padding:0"></td>
+      <td style="background:${bg};padding:10px 10px 10px 14px;border-bottom:1px solid #1a2236;white-space:nowrap">
+        <span style="font-size:10px;font-weight:700;color:${numColor};font-family:'Helvetica Neue',Helvetica,Arial,sans-serif">${esc(r.num)}</span>
+        <br><span style="font-size:12px;font-weight:600;color:#cdd4e8;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif">${esc(r.time)}</span>
+      </td>
+      <td style="background:${bg};padding:10px 14px;border-bottom:1px solid #1a2236;border-left:1px solid #1a2236">
+        <span style="font-size:13px;font-weight:700;color:#f0f4ff;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif">${esc(r.session)}${speakerHtml}</span>
+      </td>
+    </tr>`;
+  }).join("");
+
+  return `
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+       style="margin:32px 0 8px;border-radius:14px;overflow:hidden;border:1px solid #1a2236;background:#080E1C">
+  <!-- Header -->
+  <tr>
+    <td colspan="3" style="background:#040B1C;padding:20px 18px 14px;border-bottom:2px solid #316BFF">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+        <tr>
+          <td>
+            <span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:20px;font-weight:900;color:#FFFFFF;letter-spacing:-0.03em">Event <em style="color:#316BFF;font-style:italic">Schedule</em></span><br>
+            <span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:10px;font-weight:600;color:#7a8ab0;letter-spacing:.18em;text-transform:uppercase">7th June 2026 &nbsp;·&nbsp; PC Hotel, Karachi</span>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+  <!-- Col headers -->
+  <tr>
+    <td style="width:4px;background:#316BFF;padding:0"></td>
+    <td style="background:#0c1530;padding:7px 10px 7px 14px;border-bottom:1px solid #1a2236">
+      <span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#316BFF">TIME</span>
+    </td>
+    <td style="background:#0c1530;padding:7px 14px;border-bottom:1px solid #1a2236;border-left:1px solid #1a2236">
+      <span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#316BFF">SESSION</span>
+    </td>
+  </tr>
+  ${rows}
+  <!-- Footer bar -->
+  <tr>
+    <td colspan="3" style="background:#316BFF;padding:6px 18px;text-align:center">
+      <span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:10px;font-weight:700;color:#FFFFFF;letter-spacing:.12em;text-transform:uppercase">Khinext '26 &nbsp;·&nbsp; Pakistan's First Multi-Domain AI Summit</span>
+    </td>
+  </tr>
+</table>`;
+}

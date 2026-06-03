@@ -2,7 +2,7 @@
  * "You Are Invited" — Khinext '26 invitation email.
  * Used for bulk invitation sends from the admin panel.
  */
-import { renderKhinextEmail, type KhinextEmailParams } from "./layout";
+import { renderKhinextEmail, renderAgendaBlock, type KhinextEmailParams } from "./layout";
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://khinext.vercel.app").replace(/\/$/, "");
 
@@ -77,11 +77,18 @@ export interface CustomInvitationParams {
   ctaLabel?: string;
   ctaUrl?: string;
   isVip?: boolean;
+  includeAgenda?: boolean;
 }
 
 export function buildInvitationParams(custom?: CustomInvitationParams): KhinextEmailParams {
   const isVip = custom?.isVip === true;
   const base = isVip ? VIP_INVITATION_BODY_PARAMS : INVITATION_BODY_PARAMS;
+
+  const mainBody = custom?.bodyText
+    ? `<p style="margin:0 0 18px">${custom.bodyText}</p>`
+    : base.body;
+
+  const agendaSuffix = custom?.includeAgenda ? renderAgendaBlock() : "";
 
   return {
     ...base,
@@ -90,9 +97,7 @@ export function buildInvitationParams(custom?: CustomInvitationParams): KhinextE
           ? custom.headline
           : `<em data-accent>${custom.headline}</em>`)
       : base.headline,
-    body: custom?.bodyText
-      ? `<p style="margin:0 0 18px">${custom.bodyText}</p>`
-      : base.body,
+    body: mainBody + agendaSuffix,
     cta: {
       label: custom?.ctaLabel ?? base.cta!.label,
       url:   custom?.ctaUrl   ?? base.cta!.url,
