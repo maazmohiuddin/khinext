@@ -54,6 +54,11 @@ export type ContactStatus = "new" | "read" | "replied";
 
 export type ContactSource = "contact_form" | "email";
 
+export interface ContactReply {
+  text: string;
+  sent_at: string;
+}
+
 export interface ContactMessage {
   id: string;
   name: string;
@@ -65,6 +70,7 @@ export interface ContactMessage {
   imap_message_id: string | null;
   reply_text: string | null;
   replied_at: string | null;
+  replies: ContactReply[];
   created_at: string;
 }
 

@@ -142,6 +142,11 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
       }
       showToast(`Reply sent to ${selected.email}`, "success");
       setReplyText("");
+      // Optimistic update — append new reply to thread immediately
+      const now = new Date().toISOString();
+      const newReply = { text: replyText.trim(), sent_at: now };
+      setSelected(s => s ? { ...s, status: "replied", replies: [...(s.replies ?? []), newReply], reply_text: replyText.trim(), replied_at: now } : s);
+      setMessages(p => p.map(m => m.id === selected.id ? { ...m, status: "replied" as const, replies: [...(m.replies ?? []), newReply] } : m));
     } catch {
       showToast("Network error — reply not sent.", "error");
     } finally {
@@ -344,24 +349,41 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
                 </button>
               </div>
 
-              <div className="px-6 py-5 flex-1 overflow-y-auto">
-                <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">{selected.message}</p>
+              <div className="px-6 py-5 flex-1 overflow-y-auto space-y-4">
+                {/* Original inbound message */}
+                <div className="rounded-xl bg-white/[0.03] border border-white/[0.07] p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <MailOpen size={12} className="text-white/40" />
+                    <span className="text-[11px] font-semibold text-white/40">
+                      {selected.name} · {new Date(selected.created_at).toLocaleString("en-PK", { dateStyle: "short", timeStyle: "short" })}
+                    </span>
+                  </div>
+                  <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">{selected.message}</p>
+                </div>
 
-                {selected.reply_text && (
+                {/* Reply thread */}
+                {(selected.replies?.length > 0
+                  ? selected.replies
+                  : selected.reply_text
+                    ? [{ text: selected.reply_text, sent_at: selected.replied_at ?? selected.created_at }]
+                    : []
+                ).map((reply, i) => (
                   <motion.div
+                    key={i}
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mt-6 rounded-xl bg-[#51FFD5]/5 border border-[#51FFD5]/20 p-4"
+                    transition={{ delay: i * 0.04 }}
+                    className="ml-4 rounded-xl bg-[#51FFD5]/5 border border-[#51FFD5]/20 p-4"
                   >
                     <div className="flex items-center gap-2 mb-2">
-                      <CheckCheck size={13} className="text-[#51FFD5]" />
+                      <CheckCheck size={12} className="text-[#51FFD5]" />
                       <span className="text-[11px] font-semibold text-[#51FFD5]">
-                        Replied {selected.replied_at ? new Date(selected.replied_at).toLocaleString("en-PK", { dateStyle: "short", timeStyle: "short" }) : ""}
+                        You replied · {new Date(reply.sent_at).toLocaleString("en-PK", { dateStyle: "short", timeStyle: "short" })}
                       </span>
                     </div>
-                    <p className="text-xs text-white/55 leading-relaxed whitespace-pre-wrap">{selected.reply_text}</p>
+                    <p className="text-xs text-white/60 leading-relaxed whitespace-pre-wrap">{reply.text}</p>
                   </motion.div>
-                )}
+                ))}
               </div>
 
               <div className="px-6 pb-5 pt-3 border-t border-white/[0.06]">

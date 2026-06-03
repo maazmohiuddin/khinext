@@ -32,10 +32,13 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     });
 
     const now = new Date().toISOString();
+    const existingReplies: { text: string; sent_at: string }[] = Array.isArray(msg.replies) ? msg.replies : [];
+
     await svc.from("contact_messages").update({
       status: "replied",
       reply_text: replyText.trim(),
       replied_at: now,
+      replies: [...existingReplies, { text: replyText.trim(), sent_at: now }],
     }).eq("id", params.id);
 
     return NextResponse.json({ ok: true });
