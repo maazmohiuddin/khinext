@@ -41,7 +41,7 @@ export default async function AdminPage() {
     supabase.from("submissions").select("*").order("created_at", { ascending: false }),
     supabase.from("registrations").select("*").order("created_at", { ascending: false }),
     svc.from("card_shares").select("id, slug, name, template, designation, created_at").order("created_at", { ascending: false }),
-    supabase.from("contact_messages").select("*").order("created_at", { ascending: false }),
+    svc.from("contact_messages").select("*").order("created_at", { ascending: false }),
   ]);
 
   const submissions = (subsRes.data ?? []) as Submission[];
