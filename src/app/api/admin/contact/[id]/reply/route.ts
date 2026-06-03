@@ -23,22 +23,32 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     if (fetchErr || !msg) return NextResponse.json({ error: "Message not found." }, { status: 404 });
 
-    await sendContactReply({
+    const existingReplies: { text: string; sent_at: string; message_id?: string }[] =
+      Array.isArray(msg.replies) ? msg.replies : [];
+
+    // Build the References chain: the inbound Message-ID plus any prior reply IDs.
+    const references = [
+      msg.imap_message_id,
+      ...existingReplies.map(r => r.message_id),
+    ].filter(Boolean) as string[];
+
+    const { messageId: sentId } = await sendContactReply({
       to: msg.email,
       toName: msg.name,
       subject: msg.subject,
       originalMessage: msg.message,
       replyText: replyText.trim(),
+      inReplyTo: msg.imap_message_id ?? undefined,
+      references: references.length ? references : undefined,
     });
 
     const now = new Date().toISOString();
-    const existingReplies: { text: string; sent_at: string }[] = Array.isArray(msg.replies) ? msg.replies : [];
 
     await svc.from("contact_messages").update({
       status: "replied",
       reply_text: replyText.trim(),
       replied_at: now,
-      replies: [...existingReplies, { text: replyText.trim(), sent_at: now }],
+      replies: [...existingReplies, { text: replyText.trim(), sent_at: now, message_id: sentId }],
     }).eq("id", params.id);
 
     return NextResponse.json({ ok: true });

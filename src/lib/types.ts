@@ -57,6 +57,8 @@ export type ContactSource = "contact_form" | "email";
 export interface ContactReply {
   text: string;
   sent_at: string;
+  /** Message-ID of the outbound reply (for RFC 5322 References chaining). */
+  message_id?: string;
 }
 
 export interface ContactMessage {

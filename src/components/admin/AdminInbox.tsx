@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, Send, Reply, RefreshCw, Inbox, X, CheckCheck,
@@ -32,6 +32,19 @@ function avatarColor(name: string) {
   return colors[Math.abs(h) % colors.length];
 }
 
+/** Strip leading Re:/Fwd: chains so a reply folds into its original conversation. */
+function normalizeSubject(s: string): string {
+  return (s || "")
+    .replace(/^(\s*(re|fwd|fw)\s*:\s*)+/i, "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function threadKeyOf(m: ContactMessage): string {
+  return `${m.email.toLowerCase()}::${normalizeSubject(m.subject)}`;
+}
+
 const SOURCE_LABEL: Record<ContactSource, string> = { contact_form: "Form", email: "Email" };
 const SOURCE_STYLE: Record<ContactSource, string> = {
   contact_form: "bg-[#BF00FF]/10 text-[#D580FF] border-[#BF00FF]/30",
@@ -52,6 +65,52 @@ interface ToastState { message: string; type: "success" | "error" | "info" }
 
 type Folder = "inbox" | "important" | "archived" | "trash";
 
+// A conversation: every inbound message from one sender on one subject,
+// oldest → newest, plus the admin replies attached to each.
+interface Thread {
+  key: string;
+  email: string;
+  name: string;
+  subject: string;
+  messages: ContactMessage[];
+  latest: ContactMessage;
+  unread: boolean;
+  important: boolean;
+  source: ContactSource;
+  lastAt: string;
+  count: number;
+}
+
+function buildThreads(list: ContactMessage[]): Thread[] {
+  const map = new Map<string, ContactMessage[]>();
+  for (const m of list) {
+    const k = threadKeyOf(m);
+    const arr = map.get(k);
+    if (arr) arr.push(m);
+    else map.set(k, [m]);
+  }
+  const threads: Thread[] = [];
+  map.forEach((msgs, key) => {
+    const sorted = [...msgs].sort((a, b) => +new Date(a.created_at) - +new Date(b.created_at));
+    const latest = sorted[sorted.length - 1];
+    const replyCount = sorted.reduce((n, m) => n + (m.replies?.length ?? 0), 0);
+    threads.push({
+      key,
+      email: latest.email,
+      name: latest.name,
+      subject: latest.subject,
+      messages: sorted,
+      latest,
+      unread: sorted.some(m => m.status === "new"),
+      important: sorted.some(m => m.important),
+      source: latest.source ?? "contact_form",
+      lastAt: latest.created_at,
+      count: sorted.length + replyCount,
+    });
+  });
+  return threads.sort((a, b) => +new Date(b.lastAt) - +new Date(a.lastAt));
+}
+
 // ── api helper ─────────────────────────────────────────────────
 
 async function patchMessage(id: string, patch: Record<string, unknown>) {
@@ -68,7 +127,7 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
   const [messages, setMessages]     = useState<ContactMessage[]>(
     initialMessages.map(m => ({ ...m, important: m.important ?? false, archived: m.archived ?? false, deleted_at: m.deleted_at ?? null }))
   );
-  const [selected, setSelected]     = useState<ContactMessage | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [folder, setFolder]         = useState<Folder>("inbox");
   const [search, setSearch]         = useState("");
   const [replyText, setReplyText]   = useState("");
@@ -85,139 +144,87 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
   }
 
   // optimistic local update + server sync
-  function applyPatch(id: string, patch: Partial<ContactMessage>) {
+  const applyPatch = useCallback((id: string, patch: Partial<ContactMessage>) => {
     setMessages(p => p.map(m => m.id === id ? { ...m, ...patch } : m));
-    setSelected(s => s?.id === id ? { ...s, ...patch } : s);
     patchMessage(id, patch).catch(() => showToast("Update failed", "error"));
-  }
+  }, []);
 
-  // Realtime
+  const refreshMessages = useCallback(async () => {
+    const supabase = createClient();
+    const { data } = await supabase.from("contact_messages").select("*").order("created_at", { ascending: false });
+    if (data) setMessages((data as ContactMessage[]).map(m => ({ ...m, important: m.important ?? false, archived: m.archived ?? false, deleted_at: m.deleted_at ?? null })));
+  }, []);
+
+  const runSync = useCallback(async (silent: boolean) => {
+    setSyncing(true);
+    try {
+      const res  = await fetch("/api/admin/inbox/sync", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok || data.error) { if (!silent) showToast(`Sync failed: ${data.error}`, "error"); }
+      else {
+        await refreshMessages();
+        if (data.imported) showToast(`Synced ${data.imported} new email${data.imported > 1 ? "s" : ""}`, "success");
+        else if (!silent)  showToast("Up to date", "info");
+      }
+    } catch { if (!silent) showToast("Network error during sync", "error"); }
+    finally  { setSyncing(false); }
+  }, [refreshMessages]);
+
+  // Realtime — keep the message store live.
   useEffect(() => {
     const supabase = createClient();
     const ch = supabase.channel("inbox-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "contact_messages" }, payload => {
         if (payload.eventType === "INSERT") {
           const msg = payload.new as ContactMessage;
-          setMessages(p => [{ ...msg, important: msg.important ?? false, archived: msg.archived ?? false, deleted_at: msg.deleted_at ?? null }, ...p]);
+          setMessages(p => p.some(m => m.id === msg.id) ? p : [{ ...msg, important: msg.important ?? false, archived: msg.archived ?? false, deleted_at: msg.deleted_at ?? null }, ...p]);
           showToast(`${msg.source === "email" ? "📧" : "📝"} ${msg.name}`, "info");
         }
         if (payload.eventType === "UPDATE") {
           const upd = payload.new as ContactMessage;
           setMessages(p => p.map(m => m.id === upd.id ? upd : m));
-          setSelected(s => s?.id === upd.id ? upd : s);
         }
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, []);
 
-  async function refreshMessages() {
-    const supabase = createClient();
-    const { data } = await supabase.from("contact_messages").select("*").order("created_at", { ascending: false });
-    if (data) setMessages(data as ContactMessage[]);
-  }
+  // Auto-sync once when the inbox opens, so fresh replies appear without a click.
+  useEffect(() => { runSync(true); }, [runSync]);
 
-  async function syncInbox() {
-    setSyncing(true);
-    try {
-      const res  = await fetch("/api/admin/inbox/sync", { method: "POST" });
-      const data = await res.json();
-      if (!res.ok || data.error) { showToast(`Sync failed: ${data.error}`, "error"); }
-      else { await refreshMessages(); showToast(data.imported ? `Synced ${data.imported} new email${data.imported > 1 ? "s" : ""}` : "Up to date", data.imported ? "success" : "info"); }
-    } catch { showToast("Network error during sync", "error"); }
-    finally  { setSyncing(false); }
-  }
+  // ── filtering + threading ─────────────────────────────────────
 
-  async function selectMessage(msg: ContactMessage) {
-    setSelected(msg);
-    setReplyText("");
-    setConfirming(false);
-    setMobileDetail(true);
-    if (msg.status === "new") applyPatch(msg.id, { status: "read" });
-  }
-
-  // ── actions ──────────────────────────────────────────────────
-
-  function toggleImportant(msg: ContactMessage, e?: React.MouseEvent) {
-    e?.stopPropagation();
-    applyPatch(msg.id, { important: !msg.important });
-  }
-
-  function archiveMessage(msg: ContactMessage, e?: React.MouseEvent) {
-    e?.stopPropagation();
-    applyPatch(msg.id, { archived: true });
-    if (selected?.id === msg.id) setSelected(null);
-    showToast("Archived", "success");
-  }
-
-  function unarchiveMessage(msg: ContactMessage) {
-    applyPatch(msg.id, { archived: false });
-    showToast("Moved to inbox", "info");
-  }
-
-  function deleteMessage(msg: ContactMessage, e?: React.MouseEvent) {
-    e?.stopPropagation();
-    const now = new Date().toISOString();
-    applyPatch(msg.id, { deleted_at: now });
-    if (selected?.id === msg.id) setSelected(null);
-    showToast("Moved to trash", "info");
-  }
-
-  function restoreMessage(msg: ContactMessage) {
-    applyPatch(msg.id, { deleted_at: null });
-    showToast("Restored", "success");
-  }
-
-  function markUnread(msg: ContactMessage) {
-    applyPatch(msg.id, { status: "new" });
-    showToast("Marked as unread", "info");
-  }
-
-  async function sendReply() {
-    if (!selected || !replyText.trim()) return;
-    setSending(true);
-    setConfirming(false);
-    try {
-      const res = await fetch(`/api/admin/contact/${selected.id}/reply`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ replyText: replyText.trim() }),
-      });
-      if (!res.ok) { const { error } = await res.json().catch(() => ({ error: "Unknown" })); showToast(`Failed: ${error}`, "error"); return; }
-      const now      = new Date().toISOString();
-      const newReply: ContactReply = { text: replyText.trim(), sent_at: now };
-      showToast(`Reply sent to ${selected.email}`, "success");
-      setReplyText("");
-      setMessages(p => p.map(m => m.id === selected.id ? { ...m, status: "replied" as ContactStatus, replies: [...(m.replies ?? []), newReply], reply_text: replyText.trim(), replied_at: now } : m));
-      setSelected(s => s ? { ...s, status: "replied" as ContactStatus, replies: [...(s.replies ?? []), newReply], reply_text: replyText.trim(), replied_at: now } : s);
-    } catch { showToast("Network error — reply not sent", "error"); }
-    finally  { setSending(false); }
-  }
-
-  // ── filtering ─────────────────────────────────────────────────
-
-  const folders = useMemo(() => ({
+  const folderMessages = useMemo(() => ({
     inbox:     messages.filter(m => !m.archived && !m.deleted_at),
     important: messages.filter(m => m.important && !m.deleted_at),
     archived:  messages.filter(m => m.archived && !m.deleted_at),
     trash:     messages.filter(m => !!m.deleted_at),
   }), [messages]);
 
-  const filtered = useMemo(() => {
-    let list = folders[folder];
+  const threads = useMemo(() => {
+    let list = folderMessages[folder];
     if (search.trim()) {
       const q = search.toLowerCase();
-      list = list.filter(m => m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q) || m.subject.toLowerCase().includes(q) || m.message.toLowerCase().includes(q));
+      list = list.filter(m =>
+        m.name.toLowerCase().includes(q) ||
+        m.email.toLowerCase().includes(q) ||
+        m.subject.toLowerCase().includes(q) ||
+        m.message.toLowerCase().includes(q));
     }
-    return list;
-  }, [folders, folder, search]);
+    return buildThreads(list);
+  }, [folderMessages, folder, search]);
+
+  const selected = useMemo(
+    () => threads.find(t => t.key === selectedKey) ?? null,
+    [threads, selectedKey]
+  );
 
   const counts = useMemo(() => ({
-    inbox:     folders.inbox.filter(m => m.status === "new").length,
-    important: folders.important.filter(m => m.status === "new").length,
-    archived:  folders.archived.length,
-    trash:     folders.trash.length,
-  }), [folders]);
+    inbox:     folderMessages.inbox.filter(m => m.status === "new").length,
+    important: folderMessages.important.filter(m => m.status === "new").length,
+    archived:  buildThreads(folderMessages.archived).length,
+    trash:     buildThreads(folderMessages.trash).length,
+  }), [folderMessages]);
 
   const FOLDERS: { id: Folder; label: string; icon: React.ReactNode }[] = [
     { id: "inbox",     label: "Inbox",     icon: <Inbox size={14} /> },
@@ -225,6 +232,88 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
     { id: "archived",  label: "Archived",  icon: <Archive size={14} /> },
     { id: "trash",     label: "Trash",     icon: <Trash2 size={14} /> },
   ];
+
+  // ── actions (thread-level) ────────────────────────────────────
+
+  function openThread(t: Thread) {
+    setSelectedKey(t.key);
+    setReplyText("");
+    setConfirming(false);
+    setMobileDetail(true);
+    t.messages.forEach(m => { if (m.status === "new") applyPatch(m.id, { status: "read" }); });
+  }
+
+  function toggleImportant(t: Thread, e?: React.MouseEvent) {
+    e?.stopPropagation();
+    const next = !t.important;
+    t.messages.forEach(m => applyPatch(m.id, { important: next }));
+  }
+
+  function archiveThread(t: Thread, e?: React.MouseEvent) {
+    e?.stopPropagation();
+    t.messages.forEach(m => applyPatch(m.id, { archived: true }));
+    if (selectedKey === t.key) setSelectedKey(null);
+    showToast("Conversation archived", "success");
+  }
+
+  function unarchiveThread(t: Thread) {
+    t.messages.forEach(m => applyPatch(m.id, { archived: false }));
+    showToast("Moved to inbox", "info");
+  }
+
+  function deleteThread(t: Thread, e?: React.MouseEvent) {
+    e?.stopPropagation();
+    const now = new Date().toISOString();
+    t.messages.forEach(m => applyPatch(m.id, { deleted_at: now }));
+    if (selectedKey === t.key) setSelectedKey(null);
+    showToast("Moved to trash", "info");
+  }
+
+  function restoreThread(t: Thread) {
+    t.messages.forEach(m => applyPatch(m.id, { deleted_at: null }));
+    showToast("Restored", "success");
+  }
+
+  function markUnread(t: Thread) {
+    applyPatch(t.latest.id, { status: "new" });
+    showToast("Marked as unread", "info");
+  }
+
+  async function sendReply() {
+    if (!selected || !replyText.trim()) return;
+    const target = selected.latest;
+    setSending(true);
+    setConfirming(false);
+    try {
+      const res = await fetch(`/api/admin/contact/${target.id}/reply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ replyText: replyText.trim() }),
+      });
+      if (!res.ok) { const { error } = await res.json().catch(() => ({ error: "Unknown" })); showToast(`Failed: ${error}`, "error"); return; }
+      const now      = new Date().toISOString();
+      const newReply: ContactReply = { text: replyText.trim(), sent_at: now };
+      showToast(`Reply sent to ${target.email}`, "success");
+      setReplyText("");
+      setMessages(p => p.map(m => m.id === target.id ? { ...m, status: "replied" as ContactStatus, replies: [...(m.replies ?? []), newReply], reply_text: replyText.trim(), replied_at: now } : m));
+    } catch { showToast("Network error — reply not sent", "error"); }
+    finally  { setSending(false); }
+  }
+
+  // Flatten the selected thread into a chronological list of bubbles.
+  const threadItems = useMemo(() => {
+    if (!selected) return [];
+    type Item =
+      | { kind: "in"; at: string; name: string; text: string; subject: string }
+      | { kind: "out"; at: string; text: string };
+    const items: Item[] = [];
+    for (const m of selected.messages) {
+      items.push({ kind: "in", at: m.created_at, name: m.name, text: m.message, subject: m.subject });
+      const reps = (m.replies?.length ? m.replies : (m.reply_text ? [{ text: m.reply_text, sent_at: m.replied_at ?? m.created_at }] : [])) as ContactReply[];
+      for (const r of reps) items.push({ kind: "out", at: r.sent_at, text: r.text });
+    }
+    return items.sort((a, b) => +new Date(a.at) - +new Date(b.at));
+  }, [selected]);
 
   // ── render ─────────────────────────────────────────────────────
 
@@ -241,7 +330,7 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
             <p className="text-[11px] text-white/40">info@khinext.com</p>
           </div>
         </div>
-        <motion.button whileTap={{ scale: 0.95 }} onClick={syncInbox} disabled={syncing}
+        <motion.button whileTap={{ scale: 0.95 }} onClick={() => runSync(false)} disabled={syncing}
           className="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold border border-white/15 bg-white/[0.04] text-white/60 hover:text-white hover:border-white/30 transition-colors disabled:opacity-50">
           <motion.span animate={syncing ? { rotate: 360 } : { rotate: 0 }}
             transition={syncing ? { duration: 1, repeat: Infinity, ease: "linear" } : {}}>
@@ -252,7 +341,7 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
       </div>
 
       {/* Main */}
-      <div className="grid md:grid-cols-[200px_1fr] lg:grid-cols-[220px_340px_1fr] rounded-2xl border border-white/10 overflow-hidden bg-[#070D1E]" style={{ minHeight: 580 }}>
+      <div className="grid md:grid-cols-[200px_1fr] lg:grid-cols-[220px_360px_1fr] rounded-2xl border border-white/10 overflow-hidden bg-[#070D1E]" style={{ minHeight: 580 }}>
 
         {/* ── Sidebar ── */}
         <div className="hidden md:flex flex-col border-r border-white/[0.07] py-3 gap-0.5">
@@ -263,22 +352,30 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
                 className="w-full rounded-lg bg-white/[0.05] border border-white/[0.08] pl-7 pr-2 py-1.5 text-[11px] text-white placeholder:text-white/25 outline-none focus:border-khi-blue/40" />
             </div>
           </div>
-          {FOLDERS.map(f => (
-            <button key={f.id} onClick={() => { setFolder(f.id); setSelected(null); }}
-              className={`flex items-center justify-between mx-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-                folder === f.id ? "bg-khi-blue/15 text-khi-blue-soft" : "text-white/50 hover:text-white/80 hover:bg-white/[0.04]"
-              }`}>
-              <span className="flex items-center gap-2.5">{f.icon}{f.label}</span>
-              {counts[f.id] > 0 && (
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${folder === f.id ? "bg-khi-blue/30 text-khi-blue-soft" : "bg-white/10 text-white/40"}`}>
-                  {counts[f.id]}
-                </span>
-              )}
-            </button>
-          ))}
+          {FOLDERS.map(f => {
+            const active = folder === f.id;
+            return (
+              <button key={f.id} onClick={() => { setFolder(f.id); setSelectedKey(null); }}
+                className={`relative flex items-center justify-between mx-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                  active ? "text-khi-blue-soft" : "text-white/50 hover:text-white/80 hover:bg-white/[0.04]"
+                }`}>
+                {active && (
+                  <motion.span layoutId="folderPillDesktop"
+                    className="absolute inset-0 rounded-lg bg-khi-blue/15 ring-1 ring-khi-blue/25"
+                    transition={{ type: "spring", stiffness: 480, damping: 38 }} />
+                )}
+                <span className="relative flex items-center gap-2.5">{f.icon}{f.label}</span>
+                {counts[f.id] > 0 && (
+                  <span className={`relative text-[10px] font-bold px-1.5 py-0.5 rounded-full ${active ? "bg-khi-blue/30 text-khi-blue-soft" : "bg-white/10 text-white/40"}`}>
+                    {counts[f.id]}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
-        {/* ── Message list ── */}
+        {/* ── Thread list ── */}
         <div className={`flex flex-col border-r border-white/[0.07] ${mobileDetail && selected ? "hidden lg:flex" : "flex"}`}>
           {/* Mobile search */}
           <div className="md:hidden p-3 border-b border-white/[0.06]">
@@ -288,27 +385,35 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
                 className="w-full rounded-lg bg-white/[0.05] border border-white/[0.08] pl-7 pr-2 py-1.5 text-[11px] text-white placeholder:text-white/25 outline-none focus:border-khi-blue/40" />
             </div>
           </div>
-          {/* Mobile folder tabs */}
+          {/* Mobile folder tabs — liquid pill */}
           <div className="md:hidden flex gap-1 px-2 pt-2 pb-1 overflow-x-auto">
-            {FOLDERS.map(f => (
-              <button key={f.id} onClick={() => { setFolder(f.id); setSelected(null); }}
-                className={`flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold border transition-colors ${
-                  folder === f.id ? "border-khi-blue/50 bg-khi-blue/15 text-khi-blue-soft" : "border-white/10 text-white/40"
-                }`}>
-                {f.icon}{f.label}{counts[f.id] > 0 ? ` (${counts[f.id]})` : ""}
-              </button>
-            ))}
+            {FOLDERS.map(f => {
+              const active = folder === f.id;
+              return (
+                <button key={f.id} onClick={() => { setFolder(f.id); setSelectedKey(null); }}
+                  className={`relative flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-colors ${
+                    active ? "text-khi-blue-soft" : "text-white/40"
+                  }`}>
+                  {active && (
+                    <motion.span layoutId="folderPillMobile"
+                      className="absolute inset-0 rounded-full bg-khi-blue/15 ring-1 ring-khi-blue/40"
+                      transition={{ type: "spring", stiffness: 480, damping: 38 }} />
+                  )}
+                  <span className="relative flex items-center gap-1.5">{f.icon}{f.label}{counts[f.id] > 0 ? ` (${counts[f.id]})` : ""}</span>
+                </button>
+              );
+            })}
           </div>
 
-          <div className="px-2 py-1.5 border-b border-white/[0.05]">
-            <span className="text-[10px] font-semibold text-white/30 uppercase tracking-widest px-1">
+          <div className="px-3 py-1.5 border-b border-white/[0.05] flex items-center justify-between">
+            <span className="text-[10px] font-semibold text-white/30 uppercase tracking-widest">
               {folder === "inbox" ? "Inbox" : folder === "important" ? "Starred" : folder === "archived" ? "Archive" : "Trash"}
-              {" "}· {filtered.length}
             </span>
+            <span className="text-[10px] text-white/25">{threads.length} {threads.length === 1 ? "thread" : "threads"}</span>
           </div>
 
           <div className="overflow-y-auto flex-1">
-            {filtered.length === 0 ? (
+            {threads.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-40 gap-2 text-white/20">
                 <Mail size={24} strokeWidth={1.2} />
                 <p className="text-xs">Nothing here</p>
@@ -316,15 +421,15 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
             ) : (
               <ul>
                 <AnimatePresence initial={false}>
-                  {filtered.map(msg => (
-                    <motion.li key={msg.id} layout initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }} transition={{ duration: 0.2 }}>
-                      <MessageRow
-                        msg={msg}
-                        selected={selected?.id === msg.id}
-                        onSelect={() => selectMessage(msg)}
-                        onToggleImportant={e => toggleImportant(msg, e)}
-                        onArchive={e => archiveMessage(msg, e)}
-                        onDelete={e => deleteMessage(msg, e)}
+                  {threads.map(t => (
+                    <motion.li key={t.key} layout initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }} transition={{ duration: 0.2 }}>
+                      <ThreadRow
+                        thread={t}
+                        selected={selectedKey === t.key}
+                        onSelect={() => openThread(t)}
+                        onToggleImportant={e => toggleImportant(t, e)}
+                        onArchive={e => archiveThread(t, e)}
+                        onDelete={e => deleteThread(t, e)}
                         folder={folder}
                       />
                     </motion.li>
@@ -338,24 +443,25 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
         {/* ── Detail pane ── */}
         <AnimatePresence mode="wait">
           {selected ? (
-            <motion.div key={selected.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            <motion.div key={selected.key} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               className={`flex flex-col min-h-0 ${mobileDetail && selected ? "flex" : "hidden lg:flex"}`}>
 
               {/* Detail header */}
               <div className="px-4 py-3 border-b border-white/[0.06] flex items-start gap-3">
-                <button onClick={() => { setSelected(null); setMobileDetail(false); }} className="lg:hidden mt-0.5 text-white/40 hover:text-white transition-colors flex-shrink-0">
+                <button onClick={() => { setSelectedKey(null); setMobileDetail(false); }} className="lg:hidden mt-0.5 text-white/40 hover:text-white transition-colors flex-shrink-0">
                   <ArrowLeft size={16} />
                 </button>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-white text-sm leading-tight truncate">{selected.subject}</h3>
+                  <h3 className="font-semibold text-white text-sm leading-tight truncate">{normalizeSubject(selected.subject) ? selected.subject.replace(/^(\s*(re|fwd|fw)\s*:\s*)+/i, "") : selected.subject}</h3>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase border ${SOURCE_STYLE[selected.source ?? "contact_form"]}`}>
-                      {SOURCE_ICON[selected.source ?? "contact_form"]}{SOURCE_LABEL[selected.source ?? "contact_form"]}
+                    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase border ${SOURCE_STYLE[selected.source]}`}>
+                      {SOURCE_ICON[selected.source]}{SOURCE_LABEL[selected.source]}
                     </span>
-                    <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase border ${STATUS_STYLE[selected.status]}`}>
-                      {selected.status}
+                    <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase border ${STATUS_STYLE[selected.latest.status]}`}>
+                      {selected.latest.status}
                     </span>
+                    {selected.count > 1 && <span className="text-[10px] text-white/35">{selected.count} messages</span>}
                     {selected.important && <span className="text-[#FCBF17] text-[10px]">★ Important</span>}
                   </div>
                 </div>
@@ -368,24 +474,24 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
                     <Mail size={13} />
                   </ActionBtn>
                   {folder !== "archived" ? (
-                    <ActionBtn title="Archive" onClick={() => archiveMessage(selected)}>
+                    <ActionBtn title="Archive" onClick={() => archiveThread(selected)}>
                       <Archive size={13} />
                     </ActionBtn>
                   ) : (
-                    <ActionBtn title="Unarchive" onClick={() => unarchiveMessage(selected)}>
+                    <ActionBtn title="Unarchive" onClick={() => unarchiveThread(selected)}>
                       <MailOpen size={13} />
                     </ActionBtn>
                   )}
                   {folder !== "trash" ? (
-                    <ActionBtn title="Delete" onClick={() => deleteMessage(selected)} danger>
+                    <ActionBtn title="Delete" onClick={() => deleteThread(selected)} danger>
                       <Trash2 size={13} />
                     </ActionBtn>
                   ) : (
-                    <ActionBtn title="Restore" onClick={() => restoreMessage(selected)}>
+                    <ActionBtn title="Restore" onClick={() => restoreThread(selected)}>
                       <MailCheck size={13} />
                     </ActionBtn>
                   )}
-                  <button onClick={() => setSelected(null)} className="hidden lg:flex p-1.5 rounded-lg text-white/30 hover:text-white hover:bg-white/[0.06] transition-colors ml-1">
+                  <button onClick={() => setSelectedKey(null)} className="hidden lg:flex p-1.5 rounded-lg text-white/30 hover:text-white hover:bg-white/[0.06] transition-colors ml-1">
                     <X size={13} />
                   </button>
                 </div>
@@ -402,32 +508,31 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
                   <a href={`mailto:${selected.email}`} className="text-[11px] text-khi-blue-soft hover:underline">{selected.email}</a>
                 </div>
                 <span className="ml-auto text-[10px] text-white/30 flex-shrink-0">
-                  {new Date(selected.created_at).toLocaleString("en-PK", { dateStyle: "medium", timeStyle: "short" })}
+                  {new Date(selected.lastAt).toLocaleString("en-PK", { dateStyle: "medium", timeStyle: "short" })}
                 </span>
               </div>
 
-              {/* Thread */}
+              {/* Thread — chronological conversation */}
               <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-                {/* Original message */}
-                <div className="rounded-xl bg-white/[0.03] border border-white/[0.07] p-4">
-                  <p className="text-sm text-white/75 leading-relaxed whitespace-pre-wrap">{selected.message}</p>
-                </div>
-                {/* Replies */}
-                {(selected.replies?.length > 0
-                  ? selected.replies
-                  : selected.reply_text
-                    ? [{ text: selected.reply_text, sent_at: selected.replied_at ?? selected.created_at } as ContactReply]
-                    : []
-                ).map((reply, i) => (
-                  <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                {threadItems.map((item, i) => item.kind === "in" ? (
+                  <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 6) * 0.03 }}
+                    className="rounded-xl bg-white/[0.03] border border-white/[0.07] p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white" style={{ background: avatarColor(item.name) }}>{initials(item.name)}</span>
+                      <span className="text-[10px] font-semibold text-white/55">{item.name}</span>
+                      <span className="text-[10px] text-white/25 ml-auto">{new Date(item.at).toLocaleString("en-PK", { dateStyle: "short", timeStyle: "short" })}</span>
+                    </div>
+                    <p className="text-sm text-white/75 leading-relaxed whitespace-pre-wrap">{item.text}</p>
+                  </motion.div>
+                ) : (
+                  <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 6) * 0.03 }}
                     className="ml-6 rounded-xl bg-khi-blue/[0.08] border border-khi-blue/20 p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <CheckCheck size={11} className="text-[#51FFD5]" />
-                      <span className="text-[10px] font-semibold text-[#51FFD5]">
-                        You · {new Date(reply.sent_at).toLocaleString("en-PK", { dateStyle: "short", timeStyle: "short" })}
-                      </span>
+                      <span className="text-[10px] font-semibold text-[#51FFD5]">You</span>
+                      <span className="text-[10px] text-white/25 ml-auto">{new Date(item.at).toLocaleString("en-PK", { dateStyle: "short", timeStyle: "short" })}</span>
                     </div>
-                    <p className="text-xs text-white/65 leading-relaxed whitespace-pre-wrap">{reply.text}</p>
+                    <p className="text-xs text-white/65 leading-relaxed whitespace-pre-wrap">{item.text}</p>
                   </motion.div>
                 ))}
               </div>
@@ -470,7 +575,7 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
             <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
               className="hidden lg:flex flex-col items-center justify-center h-full gap-3 text-white/15 p-12">
               <Inbox size={32} strokeWidth={1} />
-              <p className="text-sm text-white/25">Select a message</p>
+              <p className="text-sm text-white/25">Select a conversation</p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -499,8 +604,8 @@ function ActionBtn({ children, onClick, title, danger }: {
   );
 }
 
-function MessageRow({ msg, selected, onSelect, onToggleImportant, onArchive, onDelete, folder }: {
-  msg: ContactMessage;
+function ThreadRow({ thread, selected, onSelect, onToggleImportant, onArchive, onDelete, folder }: {
+  thread: Thread;
   selected: boolean;
   onSelect: () => void;
   onToggleImportant: (e: React.MouseEvent) => void;
@@ -508,39 +613,41 @@ function MessageRow({ msg, selected, onSelect, onToggleImportant, onArchive, onD
   onDelete: (e: React.MouseEvent) => void;
   folder: Folder;
 }) {
-  const isNew = msg.status === "new";
+  const isNew = thread.unread;
+  const preview = thread.latest.message;
   return (
     <button onClick={onSelect}
       className={`group w-full text-left flex items-start gap-3 px-3 py-3 border-b border-white/[0.04] transition-colors duration-150 ${
         selected ? "bg-khi-blue/10 border-l-2 border-l-khi-blue" : "hover:bg-white/[0.03]"
       }`}>
       {/* Avatar */}
-      <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-[11px] font-bold text-white mt-0.5"
-        style={{ background: avatarColor(msg.name) }}>
-        {initials(msg.name)}
-        {isNew && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-khi-blue-bright border border-[#070D1E]" style={{ position: "relative", marginLeft: "-6px", marginTop: "-22px" }} />}
+      <div className="relative w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-[11px] font-bold text-white mt-0.5"
+        style={{ background: avatarColor(thread.name) }}>
+        {initials(thread.name)}
+        {isNew && <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-khi-blue-bright border-2 border-[#070D1E]" />}
       </div>
 
       {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2 mb-0.5">
           <div className="flex items-center gap-1.5 min-w-0">
-            {isNew && <span className="w-1.5 h-1.5 rounded-full bg-khi-blue-bright flex-shrink-0" />}
-            <span className={`text-xs truncate ${isNew ? "font-bold text-white" : "font-medium text-white/70"}`}>{msg.name}</span>
+            <span className={`text-xs truncate ${isNew ? "font-bold text-white" : "font-medium text-white/70"}`}>{thread.name}</span>
+            {thread.count > 1 && <span className="flex-shrink-0 text-[9px] font-bold text-white/40 bg-white/10 rounded-full px-1.5 leading-4">{thread.count}</span>}
+            {thread.important && <Star size={9} className="flex-shrink-0 fill-[#FCBF17] text-[#FCBF17]" />}
           </div>
-          <span className="text-[10px] text-white/30 flex-shrink-0">{timeAgo(msg.created_at)}</span>
+          <span className="text-[10px] text-white/30 flex-shrink-0">{timeAgo(thread.lastAt)}</span>
         </div>
-        <p className={`text-[11px] truncate mb-0.5 ${isNew ? "text-white/80" : "text-white/45"}`}>{msg.subject}</p>
-        <p className="text-[10px] text-white/25 truncate">{msg.message.slice(0, 55)}{msg.message.length > 55 ? "…" : ""}</p>
+        <p className={`text-[11px] truncate mb-0.5 ${isNew ? "text-white/80" : "text-white/45"}`}>{thread.subject}</p>
+        <p className="text-[10px] text-white/25 truncate">{preview.slice(0, 60)}{preview.length > 60 ? "…" : ""}</p>
       </div>
 
       {/* Hover actions */}
       <div className="flex-shrink-0 flex flex-col items-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button onClick={onToggleImportant} title={msg.important ? "Unstar" : "Star"}
+        <button onClick={onToggleImportant} title={thread.important ? "Unstar" : "Star"}
           className="p-1 rounded text-white/30 hover:text-[#FCBF17] transition-colors">
-          <Star size={11} className={msg.important ? "fill-[#FCBF17] text-[#FCBF17]" : ""} />
+          <Star size={11} className={thread.important ? "fill-[#FCBF17] text-[#FCBF17]" : ""} />
         </button>
-        {folder !== "trash" && (
+        {folder !== "trash" && folder !== "archived" && (
           <button onClick={onArchive} title="Archive" className="p-1 rounded text-white/30 hover:text-white/70 transition-colors">
             <Archive size={11} />
           </button>

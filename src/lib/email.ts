@@ -25,6 +25,9 @@ export interface SendKhinextEmailParams extends KhinextEmailParams {
   to: string | string[];
   subject: string;
   text?: string;
+  /** RFC 5322 threading headers — make replies thread in the recipient's client. */
+  inReplyTo?: string;
+  references?: string | string[];
 }
 
 export async function sendKhinextEmail(p: SendKhinextEmailParams) {
@@ -32,7 +35,12 @@ export async function sendKhinextEmail(p: SendKhinextEmailParams) {
   const html = renderKhinextEmail(p);
   const text = p.text ?? stripHtml(p.body);
   const to = Array.isArray(p.to) ? p.to.join(", ") : p.to;
-  return transport.sendMail({ from: FROM, to, replyTo: FROM_ADDRESS, subject: p.subject, html, text });
+  const info = await transport.sendMail({
+    from: FROM, to, replyTo: FROM_ADDRESS, subject: p.subject, html, text,
+    inReplyTo: p.inReplyTo,
+    references: p.references,
+  });
+  return info;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -157,12 +165,19 @@ interface ContactReplyParams {
   subject: string;
   originalMessage: string;
   replyText: string;
+  /** Message-ID of the message being replied to (threads in recipient client). */
+  inReplyTo?: string;
+  references?: string[];
 }
 
 export async function sendContactReply(p: ContactReplyParams) {
+  // Don't double-prefix "Re:" when the inbound subject already carries it.
+  const subject = /^re:/i.test(p.subject.trim()) ? p.subject.trim() : `Re: ${p.subject}`;
   return sendKhinextEmail({
     to: p.to,
-    subject: `Re: ${p.subject}`,
+    inReplyTo: p.inReplyTo,
+    references: p.references && p.references.length ? p.references : undefined,
+    subject,
     preheader: `A reply from the Khinext '26 team regarding your query.`,
     eyebrow: "Khinext '26 · Reply",
     headline: `We've <em data-accent>replied.</em>`,
