@@ -5,8 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, Send, Reply, RefreshCw, Inbox, X, CheckCheck,
   AtSign, Globe, Star, Archive, Trash2, MailOpen, Mail,
-  MailCheck, AlertCircle, ChevronDown, MoreHorizontal,
-  ArrowLeft,
+  MailCheck, ArrowLeft,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { ContactMessage, ContactSource, ContactStatus, ContactReply } from "@/lib/types";
