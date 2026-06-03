@@ -233,36 +233,31 @@ const TYPE_BADGE: Partial<Record<SessionType, { label: string; bg: string; color
   speaker:  { label: "SPEAKER",  bg: "#1a2a5e", color: "#8FAFFF" },
 };
 
-// Panel icons: simple inline table cell with unicode shape
-const PANEL_ICON: Record<string, string> = {
-  red:    "&#10005;", // ✕
-  teal:   "&#11835;", // ⬻ – fallback to ◑
-  orange: "&#10022;", // ✦
+// Panel icon filenames keyed by accent colour
+const PANEL_ICON_FILE: Record<string, string> = {
+  red:    "panel-icon-red.png",
+  teal:   "panel-icon-teal.png",
+  orange: "panel-icon-orange.png",
 };
 
-function renderSessionBadge(row: AgendaRow): string {
+function renderSessionBadge(row: AgendaRow, siteUrl: string): string {
   const def = TYPE_BADGE[row.type];
   if (!def) return "";
 
-  let bg = def.bg;
-  if (row.type === "panel" && row.accent) bg = ACCENT_COLOR[row.accent];
-
-  // Panel rows: show coloured square icon + topic
+  // Panel rows: branded icon PNG (includes coloured background)
   if (row.type === "panel" && row.accent) {
-    const iconChar = PANEL_ICON[row.accent] ?? "&#9632;";
-    const iconColor = ACCENT_COLOR[row.accent];
-    return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="display:inline-table;vertical-align:middle;margin-right:8px;margin-top:-1px">
-      <tr><td style="background:${iconColor};width:20px;height:20px;border-radius:4px;text-align:center;vertical-align:middle;color:#fff;font-size:10px;line-height:1;font-weight:900">${iconChar}</td></tr>
-    </table>`;
+    const file = PANEL_ICON_FILE[row.accent];
+    if (file) {
+      return `<img src="${siteUrl}/brand/${file}" width="26" height="26" alt="Panel" style="display:inline-block;vertical-align:middle;margin-right:8px;border-radius:5px;border:0" />`;
+    }
   }
 
-  // Fireside rows: circular badge
+  // Fireside rows: Khinext brand icon
   if (row.type === "fireside") {
-    return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="display:inline-table;vertical-align:middle;margin-right:8px;margin-top:-1px">
-      <tr><td style="background:#FCBF17;width:20px;height:20px;border-radius:50%;text-align:center;vertical-align:middle;color:#000;font-size:10px;line-height:1;font-weight:900">&#9679;</td></tr>
-    </table>`;
+    return `<img src="${siteUrl}/brand/fireside-icon.png" width="28" height="28" alt="Fireside" style="display:inline-block;vertical-align:middle;margin-right:8px;border-radius:5px;border:0" />`;
   }
 
+  const bg = row.type === "panel" && row.accent ? ACCENT_COLOR[row.accent] : def.bg;
   return `<span style="display:inline-block;background:${bg};color:${def.color};font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:8px;font-weight:700;letter-spacing:.1em;padding:2px 5px;border-radius:3px;vertical-align:middle;margin-right:6px;margin-top:-1px">${def.label}</span>`;
 }
 
@@ -274,7 +269,7 @@ export function renderAgendaBlock(): string {
     const bg     = i % 2 === 0 ? "#0E1628" : "#080E1C";
     const accent = r.accent ? ACCENT_COLOR[r.accent] : "transparent";
     const numColor = r.accent ? ACCENT_COLOR[r.accent] : "rgba(49,107,255,0.35)";
-    const badge  = renderSessionBadge(r);
+    const badge  = renderSessionBadge(r, siteUrl);
 
     // Session name line
     const sessionLine = badge
