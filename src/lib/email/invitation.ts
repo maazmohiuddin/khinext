@@ -8,6 +8,7 @@ const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://khinext.vercel.ap
 
 export const INVITATION_SUBJECT     = "You're Invited — Khinext '26 · AI Summit · Karachi";
 export const VIP_INVITATION_SUBJECT = "Your VIP Invitation — Khinext '26 · AI Summit · Karachi";
+export const AGENDA_SUBJECT         = "The Agenda is Live — Khinext '26 · AI Summit · Karachi";
 
 /** Default CTA: standard card generator (no VIP access) */
 export const DEFAULT_CTA_URL = `${SITE_URL}/card-generator`;
