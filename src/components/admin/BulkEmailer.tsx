@@ -249,7 +249,7 @@ function PreviousSendsImporter({ onAdd }: { onAdd: (emails: string[]) => void })
   }
 
   function toggleEmail(email: string) {
-    setPicked(prev => { const n = new Set(prev); n.has(email) ? n.delete(email) : n.add(email); return n; });
+    setPicked(prev => { const n = new Set(prev); if (n.has(email)) n.delete(email); else n.add(email); return n; });
   }
 
   function handleAdd() {
