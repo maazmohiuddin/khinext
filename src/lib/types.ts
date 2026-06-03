@@ -71,6 +71,9 @@ export interface ContactMessage {
   reply_text: string | null;
   replied_at: string | null;
   replies: ContactReply[];
+  important: boolean;
+  archived: boolean;
+  deleted_at: string | null;
   created_at: string;
 }
 
