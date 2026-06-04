@@ -174,7 +174,13 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
       else {
         await refreshMessages();
         if (data.imported) showToast(`Synced ${data.imported} new email${data.imported > 1 ? "s" : ""}`, "success");
-        else if (!silent)  showToast("Up to date", "info");
+        else if (!silent) {
+          const d = data.diag;
+          const detail = d
+            ? `Up to date · ${d.folder} on ${d.host}: ${d.totalInFolder} total, ${d.inWindow} in last 30d`
+            : "Up to date";
+          showToast(detail, "info");
+        }
       }
     } catch { if (!silent) showToast("Network error during sync", "error"); }
     finally  { setSyncing(false); }
