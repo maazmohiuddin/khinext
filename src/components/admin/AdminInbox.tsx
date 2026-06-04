@@ -177,7 +177,7 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
         else if (!silent) {
           const d = data.diag;
           const detail = d
-            ? `Up to date · ${d.folder} on ${d.host}: ${d.totalInFolder} total, ${d.inWindow} in last 30d`
+            ? `Up to date · ${d.folder} on ${d.host}: ${d.totalInFolder} total, ${d.inWindow} in last 30d${d.notForUs ? `, ${d.notForUs} skipped (not for info@)` : ""}`
             : "Up to date";
           showToast(detail, "info");
         }

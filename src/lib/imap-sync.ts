@@ -33,6 +33,7 @@ export interface SyncDiagnostics {
   totalInFolder: number;
   inWindow: number;
   newFound: number;
+  notForUs?: number;
 }
 
 export interface SyncResult {
@@ -48,6 +49,29 @@ function stripHtml(html: string) {
     .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+/** Collect every recipient address from To/Cc/Bcc + delivery headers, lowercased. */
+function collectRecipients(parsed: ParsedMail): Set<string> {
+  const out = new Set<string>();
+  const add = (addr?: string) => { if (addr) out.add(addr.toLowerCase()); };
+
+  for (const field of [parsed.to, parsed.cc, parsed.bcc]) {
+    const list = Array.isArray(field) ? field : field ? [field] : [];
+    for (const grp of list) for (const a of grp.value) add(a.address);
+  }
+
+  // Delivery-trace headers survive Gmail's POP3 import and reliably carry the
+  // address the message was actually delivered to (e.g. info@khinext.com).
+  for (const key of ["delivered-to", "x-delivered-to", "x-original-to", "envelope-to"]) {
+    const raw = parsed.headers.get(key);
+    const vals = Array.isArray(raw) ? raw : raw != null ? [raw] : [];
+    for (const v of vals) {
+      const m = String(v).match(/[^\s<>@]+@[^\s<>@]+/g);
+      if (m) m.forEach(add);
+    }
+  }
+  return out;
 }
 
 export async function syncInboxEmails(): Promise<SyncResult> {
@@ -71,6 +95,16 @@ export async function syncInboxEmails(): Promise<SyncResult> {
 
   const svc = createServiceClient();
 
+  // The mailbox we actually care about. When reading a shared/personal Gmail
+  // inbox (where info@khinext.com is POP3-imported alongside personal mail),
+  // we ONLY ingest messages addressed to these. Override/disable via
+  // IMAP_FILTER_TO ("" or "off" turns the filter off).
+  const filterRaw = process.env.IMAP_FILTER_TO ?? process.env.SMTP_USER ?? "info@khinext.com";
+  const filterDisabled = filterRaw.trim() === "" || filterRaw.trim().toLowerCase() === "off";
+  const filterTo = new Set(
+    filterRaw.split(",").map(s => s.trim().toLowerCase()).filter(Boolean),
+  );
+
   // Addresses that represent "us" — never ingest our own outbound copies
   // (relevant when reading a folder like Gmail's "All Mail" that includes Sent).
   const ownAddresses = new Set(
@@ -79,7 +113,7 @@ export async function syncInboxEmails(): Promise<SyncResult> {
 
   let imported = 0;
   let skipped = 0;
-  const diag: SyncDiagnostics = { host, folder, totalInFolder: 0, inWindow: 0, newFound: 0 };
+  const diag: SyncDiagnostics = { host, folder, totalInFolder: 0, inWindow: 0, newFound: 0, notForUs: 0 };
 
   try {
     await client.connect();
@@ -153,6 +187,14 @@ export async function syncInboxEmails(): Promise<SyncResult> {
 
           // Never ingest our own outbound copies.
           if (ownAddresses.has(email)) { skipped++; continue; }
+
+          // Only ingest mail actually addressed to info@khinext.com — this is
+          // what keeps personal mail out when reading a shared Gmail inbox.
+          if (!filterDisabled) {
+            const recipients = collectRecipients(parsed);
+            const forUs = Array.from(filterTo).some(addr => recipients.has(addr));
+            if (!forUs) { skipped++; diag.notForUs = (diag.notForUs ?? 0) + 1; continue; }
+          }
 
           const htmlContent = typeof parsed.html === "string" ? parsed.html : "";
           const body = parsed.text?.trim() || stripHtml(htmlContent) || "(no body)";
