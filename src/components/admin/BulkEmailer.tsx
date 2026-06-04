@@ -5,7 +5,10 @@ import {
   Mail, Send, CheckSquare, Square, RefreshCw, ArrowLeft,
   History, ChevronDown, ChevronUp, Edit3, Users,
   CheckCircle2, XCircle, AlertCircle, Loader2, Eye, EyeOff, Key, Trash2, Lock, CalendarDays,
+  ClipboardList, Filter,
 } from "lucide-react";
+import type { RegistrationTrack } from "@/lib/types";
+import { TRACK_LABELS } from "@/lib/types";
 import Link from "next/link";
 import {
   INVITATION_SUBJECT, VIP_INVITATION_SUBJECT, DEFAULT_CTA_URL,
@@ -211,6 +214,167 @@ function EmailPreview({ fields, isVip, includeAgenda }: { fields: EmailFields; i
         <div className="border-t border-white/10 p-4">
           <p className="text-xs text-white/40 mb-3">Subject: <span className="text-white/70 font-medium">{fields.subject || (isVip ? VIP_INVITATION_SUBJECT : INVITATION_SUBJECT)}</span></p>
           <iframe ref={iframeRef} title="Email Preview" className="w-full rounded-xl border border-white/10" style={{ height: 560, background: "#fff" }} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Import from registrations ──────────────────────────────────
+
+interface RegEntry { id: string; full_name: string; email: string; track: RegistrationTrack; confirmed_at: string | null; }
+
+type RegStatusFilter = "all" | "pending" | "confirmed";
+
+function RegistrationsImporter({ onAdd }: { onAdd: (emails: string[]) => void }) {
+  const [open, setOpen]         = useState(false);
+  const [regs, setRegs]         = useState<RegEntry[]>([]);
+  const [loading, setLoading]   = useState(false);
+  const [statusFilter, setStatusFilter] = useState<RegStatusFilter>("all");
+  const [trackFilter, setTrackFilter]   = useState<RegistrationTrack | "all">("all");
+  const [picked, setPicked]     = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!open || regs.length > 0) return;
+    setLoading(true);
+    fetch("/api/admin/registrations")
+      .then(r => r.json())
+      .then(d => { setRegs(d.registrations ?? []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [open, regs.length]);
+
+  const visible = regs.filter(r => {
+    if (statusFilter === "pending"   && r.confirmed_at) return false;
+    if (statusFilter === "confirmed" && !r.confirmed_at) return false;
+    if (trackFilter !== "all" && r.track !== trackFilter) return false;
+    return true;
+  });
+
+  const allVisibleSelected = visible.length > 0 && visible.every(r => picked.has(r.email));
+
+  function toggleAll() {
+    setPicked(prev => {
+      const next = new Set(prev);
+      if (allVisibleSelected) visible.forEach(r => next.delete(r.email));
+      else visible.forEach(r => next.add(r.email));
+      return next;
+    });
+  }
+
+  function toggleEmail(email: string) {
+    setPicked(prev => { const n = new Set(prev); if (n.has(email)) n.delete(email); else n.add(email); return n; });
+  }
+
+  function handleAdd() {
+    onAdd(Array.from(picked));
+    setPicked(new Set());
+    setOpen(false);
+  }
+
+  const tracks = Array.from(new Set(regs.map(r => r.track)));
+
+  return (
+    <div className="rounded-2xl border border-white/10 overflow-hidden">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between px-5 py-4 bg-white/[0.03] hover:bg-white/[0.06] transition-colors text-sm font-medium text-white/70"
+      >
+        <span className="flex items-center gap-2"><ClipboardList size={15} />Import from Registrations</span>
+        {open ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+      </button>
+
+      {open && (
+        <div className="border-t border-white/10">
+          {loading && (
+            <div className="flex items-center justify-center py-8 gap-2 text-white/30 text-sm">
+              <Loader2 size={14} className="animate-spin" />Loading…
+            </div>
+          )}
+          {!loading && regs.length === 0 && (
+            <p className="text-sm text-white/30 text-center py-8">No registrations found.</p>
+          )}
+          {!loading && regs.length > 0 && (
+            <>
+              {/* Filters */}
+              <div className="flex flex-wrap items-center gap-2 px-5 py-3 border-b border-white/[0.06] bg-white/[0.01]">
+                <Filter size={11} className="text-white/30" />
+                {(["all", "pending", "confirmed"] as RegStatusFilter[]).map(f => (
+                  <button key={f} onClick={() => setStatusFilter(f)}
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-semibold border transition-colors capitalize ${
+                      statusFilter === f
+                        ? "bg-khi-blue/15 border-khi-blue/40 text-khi-blue-soft"
+                        : "border-white/10 text-white/35 hover:border-white/25"
+                    }`}>
+                    {f}
+                  </button>
+                ))}
+                <span className="text-white/15 mx-1">|</span>
+                {(["all", ...tracks] as (RegistrationTrack | "all")[]).map(t => (
+                  <button key={t} onClick={() => setTrackFilter(t)}
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-semibold border transition-colors ${
+                      trackFilter === t
+                        ? "bg-khi-blue/15 border-khi-blue/40 text-khi-blue-soft"
+                        : "border-white/10 text-white/35 hover:border-white/25"
+                    }`}>
+                    {t === "all" ? "All tracks" : TRACK_LABELS[t as RegistrationTrack]}
+                  </button>
+                ))}
+              </div>
+
+              {/* Select-all row */}
+              <label className="flex items-center gap-3 px-5 py-2.5 border-b border-white/[0.04] cursor-pointer hover:bg-white/[0.02] transition-colors">
+                <input
+                  type="checkbox"
+                  checked={allVisibleSelected}
+                  onChange={toggleAll}
+                  className="accent-khi-blue w-3.5 h-3.5 flex-shrink-0"
+                />
+                <span className="text-[11px] text-white/40 font-semibold">Select all visible ({visible.length})</span>
+              </label>
+
+              {/* Registration rows */}
+              <div className="divide-y divide-white/[0.04] max-h-64 overflow-y-auto">
+                {visible.length === 0 && (
+                  <p className="text-sm text-white/25 text-center py-6">No registrations match this filter.</p>
+                )}
+                {visible.map(r => (
+                  <label key={r.id} className="flex items-center gap-3 px-5 py-2.5 cursor-pointer hover:bg-white/[0.02] transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={picked.has(r.email)}
+                      onChange={() => toggleEmail(r.email)}
+                      className="accent-khi-blue w-3.5 h-3.5 flex-shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-white/75 truncate">{r.full_name}</p>
+                      <p className="text-[10px] font-mono text-white/40 truncate">{r.email}</p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full border ${
+                        r.track === "vip_sponsor"
+                          ? "bg-[#FCBF17]/10 border-[#FCBF17]/30 text-[#FCBF17]"
+                          : "bg-khi-blue/10 border-khi-blue/25 text-khi-blue-soft"
+                      }`}>
+                        {r.track === "vip_sponsor" ? "VIP" : TRACK_LABELS[r.track].split(" ")[0]}
+                      </span>
+                      {r.confirmed_at
+                        ? <CheckCircle2 size={11} className="text-[#51FFD5]" />
+                        : <span className="w-2 h-2 rounded-full bg-[#FFD06B]/50" />}
+                    </div>
+                  </label>
+                ))}
+              </div>
+
+              {picked.size > 0 && (
+                <div className="px-5 py-3 border-t border-white/10 flex items-center justify-between gap-4">
+                  <p className="text-xs text-white/50">{picked.size} email{picked.size !== 1 ? "s" : ""} selected</p>
+                  <button onClick={handleAdd} className="kx-btn kx-btn-primary !py-2 !px-4 !text-xs">
+                    <Users size={12} />Add to Recipients
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
     </div>
@@ -771,6 +935,19 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
           {/* Input phase */}
           {phase === "input" && (
             <div className="space-y-4">
+              {/* Import from registrations */}
+              <RegistrationsImporter
+                onAdd={(emails) => {
+                  const existing = new Set(
+                    rawInput.split(/[\n,;]+/).map(e => e.trim().toLowerCase()).filter(Boolean)
+                  );
+                  const fresh = emails.filter(e => !existing.has(e.toLowerCase()));
+                  if (fresh.length > 0) {
+                    setRawInput(prev => prev.trim() ? prev.trim() + "\n" + fresh.join("\n") : fresh.join("\n"));
+                  }
+                }}
+              />
+
               {/* Import from history */}
               <PreviousSendsImporter
                 onAdd={(emails) => {
