@@ -75,7 +75,11 @@ export function RegisterForm() {
       });
     setSubmitting(false);
     if (error) {
-      setError(error.message ?? "Could not register. Please try again.");
+      // Unique constraint violation → email already registered
+      const msg = (error as { code?: string }).code === "23505"
+        ? "This email is already registered for Khinext '26."
+        : (error.message ?? "Could not register. Please try again.");
+      setError(msg);
       return;
     }
     setDone({ id: id.slice(0, 8).toUpperCase(), name: form.fullName, email: form.email, track: TRACK_LABELS[form.track] });
