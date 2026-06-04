@@ -56,8 +56,9 @@ export function RegistrationsTable({
   const [selected, setSelected]           = useState<Set<string>>(new Set());
   const [selectionMode, setSelectionMode] = useState(false);
   const [bulkWorking, setBulkWorking]     = useState(false);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [dedupConfirmOpen, setDedupConfirmOpen]   = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen]       = useState(false);
+  const [dedupConfirmOpen, setDedupConfirmOpen]         = useState(false);
+  const [confirmAllPendingOpen, setConfirmAllPendingOpen] = useState(false);
   const [localItems, setLocalItems]       = useState<Registration[]>(items);
   const [toast, setToast]                 = useState<string | null>(null);
 
@@ -199,6 +200,34 @@ export function RegistrationsTable({
     }
   }
 
+  const pendingCount = useMemo(
+    () => localItems.filter(r => !r.confirmed_at).length,
+    [localItems]
+  );
+
+  async function confirmAllPending() {
+    setConfirmAllPendingOpen(false);
+    const ids = localItems.filter(r => !r.confirmed_at).map(r => r.id);
+    if (ids.length === 0) return;
+    setBulkWorking(true);
+    try {
+      const res = await fetch("/api/admin/registrations/bulk-confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Failed");
+      const now = new Date().toISOString();
+      setLocalItems(prev => prev.map(r => !r.confirmed_at ? { ...r, confirmed_at: now } : r));
+      showToast(`${json.confirmed} registration${json.confirmed === 1 ? "" : "s"} confirmed ✓`);
+    } catch (e) {
+      showToast(`Failed: ${e instanceof Error ? e.message : "Unknown error"}`);
+    } finally {
+      setBulkWorking(false);
+    }
+  }
+
   if (localItems.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-white/10 py-16 text-center text-white/45">
@@ -275,12 +304,24 @@ export function RegistrationsTable({
             </button>
           )}
 
+          {/* Confirm all pending */}
+          {pendingCount > 0 && (
+            <button
+              onClick={() => setConfirmAllPendingOpen(true)}
+              disabled={bulkWorking}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold border border-[#51FFD5]/30 text-[#51FFD5] bg-[#51FFD5]/[0.06] hover:bg-[#51FFD5]/10 transition-colors disabled:opacity-50"
+            >
+              <CheckCircle2 size={11} />
+              Confirm all pending ({pendingCount})
+            </button>
+          )}
+
           {/* Export */}
           <button
             onClick={() => exportToExcel(filtered)}
-            className="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold border border-[#51FFD5]/30 text-[#51FFD5] bg-[#51FFD5]/[0.06] hover:bg-[#51FFD5]/10 transition-colors">
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold border border-white/10 text-white/45 hover:border-white/25 transition-colors">
             <Download size={11} />
-            Export Excel
+            Export
           </button>
         </div>
       </div>
@@ -366,7 +407,7 @@ export function RegistrationsTable({
                         <span className="text-xs text-white/55 truncate">{r.email}</span>
                         <span className="text-sm text-white/70 truncate">{r.role}</span>
                         <Pill colors={statusColor} />
-                        <InviteBadge invite={invite} />
+                        <InviteBadge invite={invite} confirmed={confirmed} />
                         <span />
                       </div>
                       <div className="hidden md:block" style={{ paddingLeft: "calc(28px + 70px + 32px)", marginTop: "-4px" }}>
@@ -410,7 +451,7 @@ export function RegistrationsTable({
                         <span className="text-xs text-white/55 truncate">{r.email}</span>
                         <span className="text-sm text-white/70 truncate">{r.role}</span>
                         <Pill colors={statusColor} />
-                        <InviteBadge invite={invite} />
+                        <InviteBadge invite={invite} confirmed={confirmed} />
                         <ChevronRight size={14} className="text-white/30 group-hover:text-white/70 transition-colors" aria-hidden="true" />
                       </div>
                       <div className="hidden md:block ml-[86px] -mt-1">
@@ -425,7 +466,7 @@ export function RegistrationsTable({
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-white font-medium truncate">{r.full_name}</span>
                               {isVip && <span className="flex-shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#FCBF17]/15 text-[#FCBF17] border border-[#FCBF17]/30">VIP</span>}
-                              {invite && <InviteBadge invite={invite} />}
+                              {(invite || confirmed) && <InviteBadge invite={invite} confirmed={confirmed} />}
                             </div>
                             <span className="text-xs text-white/55 truncate">{r.email}</span>
                           </div>
@@ -492,6 +533,17 @@ export function RegistrationsTable({
         )}
       </AnimatePresence>
 
+      {/* Confirm all pending dialog */}
+      {confirmAllPendingOpen && (
+        <ConfirmDialog
+          title={`Confirm all ${pendingCount} pending registration${pendingCount === 1 ? "" : "s"}?`}
+          body={`This will mark ${pendingCount} pending registration${pendingCount === 1 ? "" : "s"} as confirmed. No emails will be sent — use the bulk mailer to email delegate cards separately.`}
+          confirmLabel="Confirm all"
+          onCancel={() => setConfirmAllPendingOpen(false)}
+          onConfirm={confirmAllPending}
+        />
+      )}
+
       {/* Delete confirm dialog */}
       {deleteConfirmOpen && (
         <ConfirmDialog
@@ -526,9 +578,16 @@ export function RegistrationsTable({
   );
 }
 
-function InviteBadge({ invite }: { invite: InviteInfo | undefined }) {
+function InviteBadge({ invite, confirmed }: { invite: InviteInfo | undefined; confirmed: boolean }) {
   if (!invite) {
-    return (
+    return confirmed ? (
+      <span
+        title="Slot confirmed but no invitation email sent yet"
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold border border-[#FFD06B]/35 text-[#FFD06B] bg-[#FFD06B]/[0.08] whitespace-nowrap"
+      >
+        Not emailed
+      </span>
+    ) : (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold border border-white/10 text-white/25 bg-transparent whitespace-nowrap">
         Not invited
       </span>

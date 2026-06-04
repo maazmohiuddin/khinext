@@ -230,7 +230,7 @@ function RegistrationsImporter({ onAdd }: { onAdd: (emails: string[]) => void })
   const [open, setOpen]         = useState(false);
   const [regs, setRegs]         = useState<RegEntry[]>([]);
   const [loading, setLoading]   = useState(false);
-  const [statusFilter, setStatusFilter] = useState<RegStatusFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<RegStatusFilter>("confirmed");
   const [trackFilter, setTrackFilter]   = useState<RegistrationTrack | "all">("all");
   const [picked, setPicked]     = useState<Set<string>>(new Set());
 
