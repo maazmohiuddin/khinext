@@ -222,7 +222,11 @@ export async function syncInboxEmails(): Promise<SyncResult> {
 
     await client.logout();
   } catch (e) {
-    return { imported, skipped, error: e instanceof Error ? e.message : String(e), diag };
+    let message = e instanceof Error ? e.message : String(e);
+    if (/ENOTFOUND|EAI_AGAIN/i.test(message)) {
+      message += ` — the server can't resolve "${host}". This host is unreachable from where the app runs; point IMAP_HOST at a mailbox the deployment can reach (e.g. mail.khinext.com).`;
+    }
+    return { imported, skipped, error: message, diag };
   }
 
   return { imported, skipped, diag };
