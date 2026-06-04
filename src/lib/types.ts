@@ -79,6 +79,13 @@ export interface ContactMessage {
   created_at: string;
 }
 
+/** Invitation send record for a single email address (from email_send_records). */
+export interface InviteInfo {
+  last_sent_at: string;
+  times_sent: number;
+  open_count: number;
+}
+
 export const DOMAINS = [
   { key: "health",    color: "#51FFD5", title: "AI in Health & Pharma",   desc: "AI-assisted diagnostics, drug discovery, telemedicine — built for low-bandwidth clinics in South Asia." },
   { key: "cities",    color: "#00EAEE", title: "Smart Cities",            desc: "Urban mobility, energy grids and civic infrastructure powered by real-time AI inference." },

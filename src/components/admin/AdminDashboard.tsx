@@ -5,7 +5,7 @@ import { LogOut, Mail, Inbox } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import type { CardShare, ContactMessage, Registration, Submission, SubmissionStatus } from "@/lib/types";
+import type { CardShare, ContactMessage, InviteInfo, Registration, Submission, SubmissionStatus } from "@/lib/types";
 import { SubmissionsTable } from "./SubmissionsTable";
 import { RegistrationsTable } from "./RegistrationsTable";
 import { CardSharesTable } from "./CardSharesTable";
@@ -21,12 +21,14 @@ export function AdminDashboard({
   initialRegistrations,
   initialCardShares,
   initialMessages,
+  invitedEmails,
 }: {
   adminEmail: string;
   initialSubmissions: Submission[];
   initialRegistrations: Registration[];
   initialCardShares: CardShare[];
   initialMessages: ContactMessage[];
+  invitedEmails: Record<string, InviteInfo>;
 }) {
   const [submissions, setSubmissions] = useState<Submission[]>(initialSubmissions);
   const [registrations, setRegistrations] = useState<Registration[]>(initialRegistrations);
@@ -263,7 +265,7 @@ export function AdminDashboard({
       {tab === "submissions" ? (
         <SubmissionsTable items={filteredSubs} onDecide={decide} />
       ) : tab === "registrations" ? (
-        <RegistrationsTable items={registrations} />
+        <RegistrationsTable items={registrations} invitedEmails={invitedEmails} />
       ) : tab === "cards" ? (
         <CardSharesTable items={cardShares} />
       ) : (

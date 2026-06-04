@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ChevronRight, Download, Search, X } from "lucide-react";
-import type { Registration, RegistrationTrack } from "@/lib/types";
+import { ChevronRight, Download, Eye, MailCheck, Search, X } from "lucide-react";
+import type { InviteInfo, Registration, RegistrationTrack } from "@/lib/types";
 import { TRACK_LABELS } from "@/lib/types";
 
 // VIP/sponsor vs all-other tracks
@@ -42,7 +42,7 @@ function exportToExcel(rows: Registration[]) {
   });
 }
 
-export function RegistrationsTable({ items }: { items: Registration[] }) {
+export function RegistrationsTable({ items, invitedEmails }: { items: Registration[]; invitedEmails: Record<string, InviteInfo> }) {
   const [search, setSearch]           = useState("");
   const [trackFilter, setTrackFilter] = useState<TrackFilter>("all");
 
@@ -149,7 +149,7 @@ export function RegistrationsTable({ items }: { items: Registration[] }) {
         <div className="rounded-2xl border border-white/10 bg-white/[0.04] overflow-hidden">
           <div
             className="hidden md:grid items-center gap-4 px-6 py-3 text-[10px] font-bold uppercase text-white/30 bg-white/[0.02] border-b border-white/10"
-            style={{ gridTemplateColumns: "70px 1.4fr 1.6fr 130px 150px 28px", letterSpacing: "0.18em" }}
+            style={{ gridTemplateColumns: "70px 1.4fr 1.6fr 130px 120px 110px 28px", letterSpacing: "0.18em" }}
             aria-hidden="true"
           >
             <span>ID</span>
@@ -157,12 +157,14 @@ export function RegistrationsTable({ items }: { items: Registration[] }) {
             <span>Email</span>
             <span>Role</span>
             <span>Status</span>
+            <span>Invited</span>
             <span />
           </div>
           <ul>
             {filtered.map(r => {
               const confirmed   = !!r.confirmed_at;
               const isVip       = VIP_TRACKS.includes(r.track);
+              const invite      = invitedEmails[r.email.toLowerCase()];
               const statusColor = confirmed
                 ? { text: "#51FFD5", bg: "rgba(81,255,213,0.10)", border: "rgba(81,255,213,0.32)", label: "Confirmed" }
                 : { text: "#FFD06B", bg: "rgba(255,184,0,0.10)", border: "rgba(255,184,0,0.32)", label: "Pending" };
@@ -178,7 +180,7 @@ export function RegistrationsTable({ items }: { items: Registration[] }) {
                     {/* Desktop */}
                     <div
                       className="hidden md:grid items-center gap-4"
-                      style={{ gridTemplateColumns: "70px 1.4fr 1.6fr 130px 150px 28px" }}
+                      style={{ gridTemplateColumns: "70px 1.4fr 1.6fr 130px 120px 110px 28px" }}
                     >
                       <span className="font-mono text-xs text-white/45">{r.id.slice(0, 8).toUpperCase()}</span>
                       <div className="flex items-center gap-2 min-w-0">
@@ -192,6 +194,7 @@ export function RegistrationsTable({ items }: { items: Registration[] }) {
                       <span className="text-xs text-white/55 truncate">{r.email}</span>
                       <span className="text-sm text-white/70 truncate">{r.role}</span>
                       <Pill colors={statusColor} />
+                      <InviteBadge invite={invite} />
                       <ChevronRight size={14} className="text-white/30 group-hover:text-white/70 transition-colors" aria-hidden="true" />
                     </div>
 
@@ -204,9 +207,10 @@ export function RegistrationsTable({ items }: { items: Registration[] }) {
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex flex-col gap-0.5 min-w-0">
                           <span className="font-mono text-[11px] text-white/30">{r.id.slice(0, 8).toUpperCase()}</span>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-white font-medium truncate">{r.full_name}</span>
                             {isVip && <span className="flex-shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#FCBF17]/15 text-[#FCBF17] border border-[#FCBF17]/30">VIP</span>}
+                            {invite && <InviteBadge invite={invite} />}
                           </div>
                           <span className="text-xs text-white/55 truncate">{r.email}</span>
                         </div>
@@ -228,6 +232,31 @@ export function RegistrationsTable({ items }: { items: Registration[] }) {
         </div>
       )}
     </div>
+  );
+}
+
+function InviteBadge({ invite }: { invite: InviteInfo | undefined }) {
+  if (!invite) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold border border-white/10 text-white/25 bg-transparent whitespace-nowrap">
+        Not invited
+      </span>
+    );
+  }
+  const date = new Date(invite.last_sent_at).toLocaleDateString("en-PK", { day: "numeric", month: "short" });
+  return (
+    <span
+      title={`Invited ${invite.times_sent}× · last ${date}${invite.open_count > 0 ? ` · opened ${invite.open_count}×` : ""}`}
+      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold border whitespace-nowrap bg-[#316BFF]/10 border-[#316BFF]/30 text-khi-blue-soft"
+    >
+      <MailCheck size={9} />
+      Invited
+      {invite.open_count > 0 && (
+        <span className="flex items-center gap-0.5 ml-0.5 text-[#51FFD5]">
+          <Eye size={8} />{invite.open_count}
+        </span>
+      )}
+    </span>
   );
 }
 
