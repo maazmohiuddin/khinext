@@ -6,7 +6,7 @@ import { createServerSupabaseClient, createServiceClient } from "@/lib/supabase/
  * Deletes all but the oldest registration for any email that appears more than once.
  * Returns { removed: number }.
  */
-export async function POST(_request: Request) {
+export async function POST() {
   const auth = createServerSupabaseClient();
   const { data: { user } } = await auth.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
