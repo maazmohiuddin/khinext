@@ -12,7 +12,7 @@ import { ChipRadio } from "@/components/ui/ChipRadio";
 import { Success } from "@/components/ui/Success";
 
 // Registration closes at this UTC timestamp. Adjust as needed.
-const DEADLINE = new Date("2026-06-05T19:36:00Z");
+const DEADLINE = new Date("2026-06-05T21:36:00Z");
 
 function useCountdown(deadline: Date) {
   const [remaining, setRemaining] = useState(() => Math.max(0, deadline.getTime() - Date.now()));
