@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { ContactMessage, ContactSource, ContactStatus, ContactReply } from "@/lib/types";
-import { Toast } from "./Toast";
 
 // ── helpers ────────────────────────────────────────────────────
 
@@ -405,6 +404,21 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <AnimatePresence>
+            {toast && (
+              <motion.span
+                key={toast.message + toast.type}
+                initial={{ opacity: 0, x: 6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 6 }}
+                transition={{ duration: 0.2 }}
+                className={`text-[11px] px-3 py-1.5 rounded-full border whitespace-nowrap ${
+                  toast.type === "success" ? "bg-[#51FFD5]/10 text-[#51FFD5] border-[#51FFD5]/20" :
+                  toast.type === "error"   ? "bg-red-500/10 text-red-400 border-red-500/20" :
+                  "bg-white/[0.06] text-white/50 border-white/10"
+                }`}>
+                {toast.message}
+              </motion.span>
+            )}
+          </AnimatePresence>
           <motion.button whileTap={{ scale: 0.95 }}
             onClick={() => { setSelectionMode(v => !v); if (selectionMode) exitSelectionMode(); }}
             className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
@@ -427,7 +441,7 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
       </div>
 
       {/* Main */}
-      <div className="grid md:grid-cols-[200px_1fr] lg:grid-cols-[220px_360px_1fr] rounded-2xl border border-white/10 overflow-hidden bg-[#070D1E]" style={{ minHeight: 580 }}>
+      <div className="grid md:grid-cols-[200px_1fr] lg:grid-cols-[220px_360px_1fr] rounded-2xl border border-white/10 overflow-hidden bg-[#070D1E] h-[620px]">
 
         {/* ── Sidebar ── */}
         <div className="hidden md:flex flex-col border-r border-white/[0.07] py-3 gap-0.5">
@@ -713,9 +727,6 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
         </AnimatePresence>
       </div>
 
-      <AnimatePresence>
-        {toast && <Toast key={toast.message + toast.type} message={toast.message} type={toast.type} />}
-      </AnimatePresence>
     </div>
   );
 }
