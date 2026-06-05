@@ -11,7 +11,7 @@ import type { RegistrationTrack } from "@/lib/types";
 import { TRACK_LABELS } from "@/lib/types";
 import Link from "next/link";
 import {
-  INVITATION_SUBJECT, VIP_INVITATION_SUBJECT, DEFAULT_CTA_URL,
+  INVITATION_SUBJECT, VIP_INVITATION_SUBJECT, AGENDA_SUBJECT, DEFAULT_CTA_URL,
 } from "@/lib/email/invitation";
 
 // ── Types ──────────────────────────────────────────────────────
@@ -682,6 +682,10 @@ function HistoryTab() {
   );
 }
 
+const AGENDA_HEADLINE = "The agenda is live.";
+const AGENDA_BODY =
+  "The full schedule for Khinext '26 is here. Join us this Sunday, 7 June at PC Hotel, Karachi for 20 curated sessions — keynotes, panel discussions, fireside chats, live activities, and a closing networking reception — featuring Pakistan's leading voices in AI, technology, and innovation.\n\nScroll down for the complete programme.";
+
 // ── Main Component ─────────────────────────────────────────────
 
 export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
@@ -725,6 +729,25 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
         headline: f.headline === "You are VIP."         ? "You are invited."  : f.headline,
         ctaLabel: f.ctaLabel === "Create Your VIP Card" ? ""                  : f.ctaLabel,
         ctaUrl: f.ctaUrl || "",
+      }));
+    }
+  }
+
+  function handleAgendaToggle(on: boolean) {
+    setIncludeAgenda(on);
+    if (on) {
+      setFields(f => ({
+        ...f,
+        subject:  f.subject  === INVITATION_SUBJECT || f.subject  === VIP_INVITATION_SUBJECT ? AGENDA_SUBJECT   : f.subject,
+        headline: f.headline === "You are invited."  || f.headline === "You are VIP."         ? AGENDA_HEADLINE  : f.headline,
+        bodyText: f.bodyText === ""                                                             ? AGENDA_BODY      : f.bodyText,
+      }));
+    } else {
+      setFields(f => ({
+        ...f,
+        subject:  f.subject  === AGENDA_SUBJECT  ? INVITATION_SUBJECT  : f.subject,
+        headline: f.headline === AGENDA_HEADLINE  ? "You are invited."  : f.headline,
+        bodyText: f.bodyText === AGENDA_BODY      ? ""                  : f.bodyText,
       }));
     }
   }
@@ -911,7 +934,7 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
                     <input
                       type="checkbox"
                       checked={includeAgenda}
-                      onChange={e => setIncludeAgenda(e.target.checked)}
+                      onChange={e => handleAgendaToggle(e.target.checked)}
                       className="mt-0.5 accent-blue-400 w-4 h-4 flex-shrink-0"
                     />
                     <div>
