@@ -47,6 +47,41 @@ export interface CardShare {
   template: string;
   designation: string | null;
   created_at: string;
+  ip_address?: string | null;
+}
+
+export type ContactStatus = "new" | "read" | "replied";
+
+export type ContactSource = "contact_form" | "email";
+
+export interface ContactReply {
+  text: string;
+  sent_at: string;
+  message_id?: string;
+}
+
+export interface ContactMessage {
+  id: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  status: ContactStatus;
+  source: ContactSource;
+  imap_message_id: string | null;
+  reply_text: string | null;
+  replied_at: string | null;
+  replies: ContactReply[];
+  important: boolean;
+  archived: boolean;
+  deleted_at: string | null;
+  created_at: string;
+}
+
+export interface InviteInfo {
+  last_sent_at: string;
+  times_sent: number;
+  open_count: number;
 }
 
 export const DOMAINS = [
