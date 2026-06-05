@@ -571,7 +571,7 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
           {selected ? (
             <motion.div key={selected.key} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className={`flex flex-col min-h-0 ${mobileDetail && selected ? "flex" : "hidden lg:flex"}`}>
+              className={`flex flex-col h-full overflow-hidden ${mobileDetail && selected ? "flex" : "hidden lg:flex"}`}>
 
               <div className="px-4 py-3 border-b border-white/[0.06] flex items-start gap-3">
                 <button onClick={() => { setSelectedKey(null); setMobileDetail(false); }} className="lg:hidden mt-0.5 text-white/40 hover:text-white transition-colors flex-shrink-0">
