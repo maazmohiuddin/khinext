@@ -182,3 +182,166 @@ function esc(s: string): string {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
+
+// ── Event Agenda block ────────────────────────────────────────
+
+type SessionType = "registration" | "keynote" | "speaker" | "panel" | "activity" | "fireside" | "closing" | "networking" | "general";
+
+interface AgendaRow {
+  num: string;
+  time: string;
+  session: string;
+  speaker?: string;
+  role?: string;
+  topic?: string;
+  type: SessionType;
+  accent?: "blue" | "gold" | "red" | "teal" | "orange" | null;
+}
+
+const AGENDA_ROWS: AgendaRow[] = [
+  { num: "01", time: "9:00 – 10:00",  session: "Registration",                        type: "registration", accent: "blue" },
+  { num: "02", time: "10:30 – 10:40", session: "Welcome Note / Opening Remarks",       speaker: "Syed Wajid Hussain Shah",              type: "general",   accent: "blue" },
+  { num: "03", time: "10:45 – 10:55", session: "Inaugural Keynote",                    speaker: "Syed Abdul Qadir",                     type: "keynote",   accent: null   },
+  { num: "04", time: "11:00 – 11:15", session: "Special Keynote",                      speaker: "Chief Guest Sardar M. Bux Khan Mahar", type: "keynote",   accent: "gold" },
+  { num: "05", time: "11:20 – 11:30", session: "Keynote",                              speaker: "Mr. Munawar Mahesar",                  type: "keynote",   accent: "gold" },
+  { num: "06", time: "11:35 – 11:45", session: "1st Speaker Session",                  speaker: "Raza Abbas",       role: "CTO Unilever Pakistan",         type: "speaker",  accent: "blue"   },
+  { num: "07", time: "11:50 – 12:15", session: "1st Panel Discussion",   topic: "How AI is Reshaping Attention in the Digital Age",       type: "panel",    accent: "red"    },
+  { num: "08", time: "12:20 – 12:35", session: "1st Activity",                                                                           type: "activity", accent: null     },
+  { num: "09", time: "12:40 – 12:55", session: "1st Fireside Chat",      speaker: "Dr. Imran Batata",  role: "CDO & Director IT @ IOBM", type: "fireside", accent: "gold"   },
+  { num: "10", time: "1:00 – 1:10",   session: "2nd Speaker",                          speaker: "Umair Nizam",      role: "Senior Vice Chairman P@sha",    type: "speaker",  accent: "blue"   },
+  { num: "11", time: "1:15 – 1:25",   session: "3rd Speaker",                          speaker: "Khushnood Aftab",  role: "CEO Viper Technologies",         type: "speaker",  accent: "blue"   },
+  { num: "12", time: "1:30 – 1:55",   session: "2nd Panel Discussion",  topic: "How AI is Powering a Nation's Backbone",                  type: "panel",    accent: "teal"   },
+  { num: "13", time: "2:00 – 2:15",   session: "Activity 2",                                                                              type: "activity", accent: null     },
+  { num: "14", time: "2:20 – 2:30",   session: "4th Speaker",                          speaker: "Huma Yahya",       role: "CEO ELFA (EV Technologies)",    type: "speaker",  accent: "blue"   },
+  { num: "15", time: "2:35 – 2:50",   session: "2nd Fireside Chat",     speaker: "Saif Ali",          role: "Founder [ Stealth ]",            type: "fireside", accent: "gold"   },
+  { num: "16", time: "2:55 – 3:05",   session: "5th Speaker",                          speaker: "Saad Zuberi",      role: "CEO Luckyone",                   type: "speaker",  accent: "blue"   },
+  { num: "17", time: "3:10 – 3:20",   session: "6th Speaker",                          speaker: "Ansar Muhammad",   role: "VP Engineering 10Pearls",        type: "speaker",  accent: "blue"   },
+  { num: "18", time: "3:25 – 3:50",   session: "3rd Panel Discussion",  topic: "AI-Powered Pakistan: Building the Next Generation",        type: "panel",    accent: "orange" },
+  { num: "19", time: "4:00 – 4:15",   session: "Closing & Thank You Note",                                                                type: "closing",  accent: null     },
+  { num: "20", time: "4:20 – 5:00",   session: "Shield Distribution / Group Photo / Networking",                                          type: "networking", accent: null   },
+];
+
+const ACCENT_COLOR: Record<string, string> = {
+  blue: "#316BFF", gold: "#FCBF17", red: "#FF0F4B", teal: "#00EAEE", orange: "#FF4D00",
+};
+
+// Type badge: label + bg + text colour
+const TYPE_BADGE: Partial<Record<SessionType, { label: string; bg: string; color: string }>> = {
+  keynote:  { label: "KEYNOTE",  bg: "#96700A", color: "#FFF" },
+  panel:    { label: "PANEL",    bg: "inherit", color: "#FFF" }, // colour overridden per row accent
+  fireside: { label: "FIRESIDE", bg: "#96700A", color: "#000" },
+  speaker:  { label: "SPEAKER",  bg: "#1a2a5e", color: "#8FAFFF" },
+};
+
+// Panel icon filenames keyed by accent colour
+const PANEL_ICON_FILE: Record<string, string> = {
+  red:    "Lifestyle.png",
+  teal:   "SmartCities.png",
+  orange: "Future.png",
+};
+
+function renderSessionBadge(row: AgendaRow, siteUrl: string): string {
+  const def = TYPE_BADGE[row.type];
+  if (!def) return "";
+
+  // Panel rows: branded icon PNG (includes coloured background)
+  if (row.type === "panel" && row.accent) {
+    const file = PANEL_ICON_FILE[row.accent];
+    if (file) {
+      return `<img src="${siteUrl}/brand/${file}" width="26" height="26" alt="Panel" style="display:inline-block;vertical-align:middle;margin-right:8px;border-radius:5px;border:0" />`;
+    }
+  }
+
+  // Fireside rows: Khinext brand icon
+  if (row.type === "fireside") {
+    return `<img src="${siteUrl}/brand/Firechat.png" width="28" height="28" alt="Fireside" style="display:inline-block;vertical-align:middle;margin-right:8px;border-radius:5px;border:0" />`;
+  }
+
+  const bg = row.type === "panel" && row.accent ? ACCENT_COLOR[row.accent] : def.bg;
+  return `<span style="display:inline-block;background:${bg};color:${def.color};font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:8px;font-weight:700;letter-spacing:.1em;padding:2px 5px;border-radius:3px;vertical-align:middle;margin-right:6px;margin-top:-1px">${def.label}</span>`;
+}
+
+export function renderAgendaBlock(): string {
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://khinext.vercel.app").replace(/\/$/, "");
+  const logoUrl = `${siteUrl}/brand/logo-mark.png`;
+
+  const rows = AGENDA_ROWS.map((r, i) => {
+    const bg     = i % 2 === 0 ? "#0E1628" : "#080E1C";
+    const accent = r.accent ? ACCENT_COLOR[r.accent] : "transparent";
+    const numColor = r.accent ? ACCENT_COLOR[r.accent] : "rgba(49,107,255,0.35)";
+    const badge  = renderSessionBadge(r, siteUrl);
+
+    // Session name line
+    const sessionLine = badge
+      ? `${badge}<span style="font-size:13px;font-weight:700;color:#f0f4ff;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;vertical-align:middle">${esc(r.session)}</span>`
+      : `<span style="font-size:13px;font-weight:700;color:#f0f4ff;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif">${esc(r.session)}</span>`;
+
+    // Topic line (panel discussions)
+    const topicLine = r.topic
+      ? `<br><span style="font-size:11px;font-style:italic;font-weight:600;color:${accent !== "transparent" ? accent : "#8FAFFF"};font-family:'Helvetica Neue',Helvetica,Arial,sans-serif">${esc(r.topic)}</span>`
+      : "";
+
+    // Speaker/role line
+    const speakerLine = r.speaker
+      ? `<br><span style="font-size:11px;font-weight:700;font-style:italic;color:#316BFF;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif">${esc(r.speaker)}</span>${r.role ? `&nbsp;<span style="font-size:9px;color:#555;letter-spacing:.08em;text-transform:uppercase;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif">${esc(r.role)}</span>` : ""}`
+      : "";
+
+    return `<tr>
+      <td style="width:4px;background:${accent};padding:0;min-width:4px"></td>
+      <td style="background:${bg};padding:10px 10px 10px 14px;border-bottom:1px solid #1a2236;white-space:nowrap;vertical-align:top">
+        <span style="font-size:10px;font-weight:700;color:${numColor};font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;display:block">${esc(r.num)}</span>
+        <span style="font-size:12px;font-weight:600;color:#cdd4e8;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif">${esc(r.time)}</span>
+      </td>
+      <td style="background:${bg};padding:10px 14px;border-bottom:1px solid #1a2236;border-left:1px solid #1a2236;vertical-align:top">
+        ${sessionLine}${topicLine}${speakerLine}
+      </td>
+    </tr>`;
+  }).join("");
+
+  return `
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+       style="margin:32px 0 8px;border-radius:14px;overflow:hidden;border:1px solid #1a2236;background:#080E1C;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif">
+  <!-- Header -->
+  <tr>
+    <td colspan="3" style="background:#040B1C;padding:18px 18px 14px;border-bottom:2px solid #316BFF">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+        <tr>
+          <td style="vertical-align:middle">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="vertical-align:middle;padding-right:10px">
+                  <img src="${logoUrl}" alt="K" width="36" height="36" style="display:block;border-radius:8px;border:0" />
+                </td>
+                <td style="vertical-align:middle">
+                  <span style="font-size:18px;font-weight:700;color:#FFFFFF;letter-spacing:-0.02em">Khi<em style="color:#8FAFFF;font-style:italic;font-weight:800">next</em></span>
+                </td>
+              </tr>
+            </table>
+          </td>
+          <td align="right" style="vertical-align:middle">
+            <span style="font-size:20px;font-weight:900;color:#FFFFFF;letter-spacing:-0.03em">Event <em style="color:#316BFF;font-style:italic">Schedule</em></span><br>
+            <span style="font-size:10px;font-weight:600;color:#7a8ab0;letter-spacing:.16em;text-transform:uppercase">7th June 2026 &nbsp;·&nbsp; PC Hotel, Karachi</span>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+  <!-- Col headers -->
+  <tr>
+    <td style="width:4px;background:#316BFF;padding:0"></td>
+    <td style="background:#0c1530;padding:7px 10px 7px 14px;border-bottom:1px solid #1a2236">
+      <span style="font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#316BFF">TIME</span>
+    </td>
+    <td style="background:#0c1530;padding:7px 14px;border-bottom:1px solid #1a2236;border-left:1px solid #1a2236">
+      <span style="font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#316BFF">SESSION</span>
+    </td>
+  </tr>
+  ${rows}
+  <!-- Footer bar -->
+  <tr>
+    <td colspan="3" style="background:#316BFF;padding:6px 18px;text-align:center">
+      <span style="font-size:10px;font-weight:700;color:#FFFFFF;letter-spacing:.12em;text-transform:uppercase">Khinext '26 &nbsp;·&nbsp; Pakistan's First Multi-Domain AI Summit</span>
+    </td>
+  </tr>
+</table>`;
+}

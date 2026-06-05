@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Link from "next/link";
 import {
   motion,
   useMotionValue,
@@ -19,6 +20,7 @@ interface Props {
 export function CardViewCard({ imgUrl, alt, isVip }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [hovered, setHovered] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   // Raw mouse position (−0.5 → +0.5 within the card)
   const rawX = useMotionValue(0);
@@ -113,14 +115,25 @@ export function CardViewCard({ imgUrl, alt, isVip }: Props) {
         className="relative rounded-2xl overflow-hidden shadow-2xl cursor-default select-none"
       >
         {/* Card image */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={imgUrl}
-          alt={alt}
-          className="w-full h-auto block"
-          fetchPriority="high"
-          draggable={false}
-        />
+        {imgError ? (
+          <div className="w-full flex flex-col items-center justify-center gap-3 bg-white/[0.03] rounded-2xl p-12" style={{ aspectRatio: "1 / 1" }}>
+            <div className="text-white/20 text-4xl">⚠</div>
+            <p className="text-sm text-white/40 text-center">Image unavailable</p>
+            <Link href="/card-generator" className="text-xs text-khi-blue-soft hover:text-white transition-colors">
+              Generate a new card →
+            </Link>
+          </div>
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={imgUrl}
+            alt={alt}
+            className="w-full h-auto block"
+            fetchPriority="high"
+            draggable={false}
+            onError={() => setImgError(true)}
+          />
+        )}
 
         {/* ── Moving shine overlay ── */}
         <motion.div

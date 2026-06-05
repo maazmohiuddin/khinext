@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Upload, Download, Share2, Check, X, ArrowLeft, Link2, Loader2, Lock } from "lucide-react";
+import { Upload, Download, Share2, Check, ArrowLeft, Link2, Loader2, Lock } from "lucide-react";
 import Link from "next/link";
 
 // ── Types ──────────────────────────────────────────────────────
@@ -13,6 +13,7 @@ interface CardState {
   name: string;
   designation: string;
   photoDataUrl: string | null;
+  photoOffset: { x: number; y: number };
 }
 
 // ── Size catalogue ─────────────────────────────────────────────
@@ -72,11 +73,15 @@ function loadDataUrlImage(src: string): Promise<HTMLImageElement> {
 function drawCircleImage(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement,
-  cx: number, cy: number, radius: number
+  cx: number, cy: number, radius: number,
+  offsetFracX = 0, offsetFracY = 0
 ) {
   const nw = img.naturalWidth, nh = img.naturalHeight;
   const minDim = Math.min(nw, nh);
-  const sx = (nw - minDim) / 2, sy = (nh - minDim) / 2;
+  const sxBase = (nw - minDim) / 2;
+  const syBase = (nh - minDim) / 2;
+  const sx = Math.max(0, Math.min(nw - minDim, sxBase * (1 - offsetFracX)));
+  const sy = Math.max(0, Math.min(nh - minDim, syBase * (1 - offsetFracY)));
   ctx.save();
   ctx.beginPath();
   ctx.arc(cx, cy, radius, 0, Math.PI * 2);
@@ -283,26 +288,25 @@ async function drawStandard(
     ctx.drawImage(logo, (W - lw) / 2, r(52), lw, lh);
   } catch { /* unavailable */ }
 
-  // Accent line under logo
-  const al = ctx.createLinearGradient(W / 2 - 90, 0, W / 2 + 90, 0);
-  al.addColorStop(0, "transparent");
-  al.addColorStop(0.5, "rgba(49,107,255,0.65)");
-  al.addColorStop(1, "transparent");
-  ctx.fillStyle = al;
-  ctx.fillRect(W / 2 - 90, r(138), 180, 1.5);
-
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillStyle = "rgba(255,255,255,0.40)";
-  ctx.font = `700 ${r(23)}px "Helvetica Now Display", "Helvetica", sans-serif`;
-  drawSpaced(ctx, "I AM ATTENDING", W / 2, r(174), r(21));
+  ctx.fillStyle = "rgba(255,255,255,0.38)";
+  ctx.font = `700 ${r(22)}px "Helvetica Now Display", "Helvetica", sans-serif`;
+  drawSpaced(ctx, "I AM ATTENDING AS A", W / 2, r(160), r(19.5));
 
-  ctx.font = `900 ${r(86)}px "Helvetica Now Display", "Helvetica", sans-serif`;
-  ctx.fillStyle = "#FFFFFF";
-  ctx.fillText("KHINEXT", W / 2, r(270));
+  // DELEGATE — blue gradient matching the standard theme
+  const blueGrad = ctx.createLinearGradient(r(120), 0, W - r(120), 0);
+  blueGrad.addColorStop(0,    "#1A3B8F");
+  blueGrad.addColorStop(0.25, "#4579FF");
+  blueGrad.addColorStop(0.5,  "#FFFFFF");
+  blueGrad.addColorStop(0.75, "#4579FF");
+  blueGrad.addColorStop(1,    "#1A3B8F");
+  ctx.fillStyle = blueGrad;
+  fitText(ctx, "DELEGATE", W / 2, r(230), W - r(80),
+    sz => `900 ${sz}px "Helvetica Now Display", "Helvetica", sans-serif`, r(90), 40);
 
-  // ── Photo — centre at 540, radius 150 ──
-  const px = W / 2, py = r(540), pr = r(150);
+  // ── Photo — centre at 480, radius 150 (67px balanced gap above & below) ──
+  const px = W / 2, py = r(480), pr = r(150);
 
   // Halo disc (not full-canvas rect)
   const haloGrad = ctx.createRadialGradient(px, py, pr, px, py, pr + r(60));
@@ -318,7 +322,7 @@ async function drawStandard(
     try {
       const imgEl = await loadDataUrlImage(s.photoDataUrl);
       if (gen !== genRef.current) return;
-      drawCircleImage(ctx, imgEl, px, py, pr);
+      drawCircleImage(ctx, imgEl, px, py, pr, s.photoOffset.x, s.photoOffset.y);
     } catch { drawPhotoPlaceholder(ctx, px, py, pr, false); }
   } else {
     drawPhotoPlaceholder(ctx, px, py, pr, false);
@@ -338,25 +342,36 @@ async function drawStandard(
 
   // Name — last word gets kx-accent style (blue italic glow)
   const nameText = s.name.trim() || "Your Name";
-  drawAccentName(ctx, nameText, W / 2, r(758), 860, r(56), 26);
+  drawAccentName(ctx, nameText, W / 2, r(725), 860, r(56), 26);
+
+  const hasDesig = s.designation.trim().length > 0;
+  if (hasDesig) {
+    ctx.fillStyle = "rgba(143,175,255,0.88)";
+    fitText(ctx, s.designation.trim(), W / 2, r(778), 820,
+      (sz) => `400 ${sz}px "Helvetica Now Display", "Helvetica", sans-serif`, r(27), 18);
+  }
+
+  const divY = hasDesig ? r(812) : r(768);
 
   const dg = ctx.createLinearGradient(W / 2 - 70, 0, W / 2 + 70, 0);
   dg.addColorStop(0, "transparent");
   dg.addColorStop(0.5, "rgba(49,107,255,0.60)");
   dg.addColorStop(1, "transparent");
   ctx.fillStyle = dg;
-  ctx.fillRect(W / 2 - 70, r(792), 140, 1.5);
+  ctx.fillRect(W / 2 - 70, divY, 140, 1.5);
 
-  ctx.font = `400 ${r(21)}px "Helvetica", sans-serif`;
-  ctx.fillStyle = "rgba(255,255,255,0.46)";
+  const tY = divY + r(36);
+
+  ctx.font = `400 ${r(20)}px "Helvetica", sans-serif`;
+  ctx.fillStyle = "rgba(255,255,255,0.44)";
   ctx.textAlign = "center";
-  ctx.fillText("Asia's First Multi Domain AI and Innovation Summit", W / 2, r(826));
+  ctx.fillText("Asia's First Multi Domain AI and Innovation Summit", W / 2, tY);
 
-  ctx.font = `700 ${r(19)}px "Helvetica", sans-serif`;
+  ctx.font = `700 ${r(18)}px "Helvetica", sans-serif`;
   ctx.fillStyle = "rgba(143,175,255,0.80)";
-  ctx.fillText("PC Hotel, Karachi  ·  June 7, 2026  ·  khinext.com", W / 2, r(864));
+  ctx.fillText("PC Hotel, Karachi  ·  June 7, 2026  ·  khinext.com", W / 2, tY + r(38));
 
-  await drawPartnerLogo(ctx, W / 2, r(898), r(966), r(44), false, gen, genRef);
+  await drawPartnerLogo(ctx, W / 2, tY + r(78), tY + r(128), r(42), false, gen, genRef);
   if (gen !== genRef.current) return;
 
   // Bottom bar
@@ -461,7 +476,7 @@ async function drawVip(
     try {
       const imgEl = await loadDataUrlImage(s.photoDataUrl);
       if (gen !== genRef.current) return;
-      drawCircleImage(ctx, imgEl, px, py, pr);
+      drawCircleImage(ctx, imgEl, px, py, pr, s.photoOffset.x, s.photoOffset.y);
     } catch { drawPhotoPlaceholder(ctx, px, py, pr, true); }
   } else {
     drawPhotoPlaceholder(ctx, px, py, pr, true);
@@ -532,7 +547,7 @@ async function drawVip(
 async function uploadCard(
   canvas: HTMLCanvasElement,
   meta: { name: string; template: string; designation: string },
-): Promise<{ id: string; slug: string } | null> {
+): Promise<{ id: string; slug: string } | { error: string } | null> {
   try {
     const blob = await new Promise<Blob>((res, rej) =>
       canvas.toBlob(b => b ? res(b) : rej(new Error("toBlob")), "image/jpeg", 0.93)
@@ -543,7 +558,10 @@ async function uploadCard(
     form.append("template",    meta.template);
     form.append("designation", meta.designation);
     const resp = await fetch("/api/card/share", { method: "POST", body: form });
-    if (!resp.ok) return null;
+    if (!resp.ok) {
+      const body = await resp.json().catch(() => ({}));
+      return { error: body.error ?? "Upload failed" };
+    }
     const { id, slug } = await resp.json();
     return { id, slug } as { id: string; slug: string };
   } catch {
@@ -627,12 +645,14 @@ export function CardGenerator() {
   const canvasRef    = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const drawGenRef   = useRef(0);
+const isDragging   = useRef(false);
 
   const [state, setState] = useState<CardState>({
     template: "standard",
     name: "",
     designation: "",
     photoDataUrl: null,
+    photoOffset: { x: 0, y: 0 },
   });
 
   const [sizeKey,      setSizeKey]      = useState<SizeKey>("square");
@@ -644,9 +664,22 @@ export function CardGenerator() {
   const [shared,       setShared]       = useState(false);
   const [linkCopied,   setLinkCopied]   = useState(false);
   const [fmt,          setFmt]          = useState<"jpeg" | "png">("jpeg");
+  const [shareError,   setShareError]   = useState<string | null>(null);
+  const [lastUpload,   setLastUpload]   = useState<{
+    slug: string;
+    name: string;
+    designation: string;
+    template: string;
+    photoDataUrl: string | null;
+  } | null>(null);
 
   const { W: CW, H: CH } = SIZES[sizeKey];
   const isVip = state.template === "vip";
+
+  const stateRef = useRef(state);
+  const sizeRef  = useRef({ CW, CH });
+  stateRef.current = state;
+  sizeRef.current  = { CW, CH };
 
   // All required fields must be filled + photo uploaded before download/share
   const isCardReady =
@@ -707,18 +740,27 @@ export function CardGenerator() {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    const s = stateRef.current;
+    const { CW: w, CH: h } = sizeRef.current;
     const genId = ++drawGenRef.current;
     if (typeof document !== "undefined") await document.fonts.ready;
     if (genId !== drawGenRef.current) return;
-    ctx.clearRect(0, 0, CW, CH);
-    if (state.template === "standard") {
-      await drawStandard(ctx, state, CW, CH, genId, drawGenRef);
+    ctx.clearRect(0, 0, w, h);
+    if (s.template === "standard") {
+      await drawStandard(ctx, s, w, h, genId, drawGenRef);
     } else {
-      await drawVip(ctx, state, CW, CH, genId, drawGenRef);
+      await drawVip(ctx, s, w, h, genId, drawGenRef);
     }
-  }, [state, CW, CH]);
+  }, []); // stable — reads state from refs
 
-  useEffect(() => { redraw(); }, [redraw]);
+  // Immediate redraw for layout/visual changes
+  useEffect(() => { redraw(); }, [redraw, state.template, state.photoDataUrl, state.photoOffset.x, state.photoOffset.y, CW, CH]);
+
+  // Debounced redraw for text input
+  useEffect(() => {
+    const id = window.setTimeout(redraw, 180);
+    return () => window.clearTimeout(id);
+  }, [redraw, state.name, state.designation]);
 
   // ── Handlers ────────────────────────────────────────────────
 
@@ -735,13 +777,43 @@ export function CardGenerator() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) =>
-      setState(s => ({ ...s, photoDataUrl: ev.target?.result as string }));
+      setState(s => ({ ...s, photoDataUrl: ev.target?.result as string, photoOffset: { x: 0, y: 0 } }));
+    reader.onerror = () => {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      setShareError("Photo failed to load — please try a different file.");
+      setTimeout(() => setShareError(null), 5000);
+    };
     reader.readAsDataURL(file);
   }
 
   function removePhoto() {
-    setState(s => ({ ...s, photoDataUrl: null }));
+    setState(s => ({ ...s, photoDataUrl: null, photoOffset: { x: 0, y: 0 } }));
     if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  function handlePhotoPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    isDragging.current = true;
+  }
+
+  function handlePhotoPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!isDragging.current) return;
+    const sensitivity = 120; // lower = more sensitive
+    setState(s => ({
+      ...s,
+      photoOffset: {
+        x: Math.max(-1, Math.min(1, s.photoOffset.x + e.movementX / sensitivity)),
+        y: Math.max(-1, Math.min(1, s.photoOffset.y + e.movementY / sensitivity)),
+      },
+    }));
+  }
+
+  function handlePhotoPointerUp() {
+    isDragging.current = false;
+  }
+
+  function resetPhotoOffset() {
+    setState(s => ({ ...s, photoOffset: { x: 0, y: 0 } }));
   }
 
   async function handleDownload() {
@@ -756,6 +828,21 @@ export function CardGenerator() {
     a.download = `khinext-${state.template}-card-${sizeKey}.${fmt}`;
     a.click();
     setDownloading(false);
+    // Record to card_shares in background — skip if inputs haven't changed since last upload
+    const snap = state;
+    if (
+      !lastUpload ||
+      lastUpload.name !== snap.name ||
+      lastUpload.designation !== snap.designation ||
+      lastUpload.template !== snap.template ||
+      lastUpload.photoDataUrl !== snap.photoDataUrl
+    ) {
+      uploadCard(canvas, snap).then(result => {
+        if (result && !("error" in result)) {
+          setLastUpload({ slug: result.slug, name: snap.name, designation: snap.designation, template: snap.template, photoDataUrl: snap.photoDataUrl });
+        }
+      }).catch(() => {});
+    }
   }
 
   async function handleShare() {
@@ -781,17 +868,50 @@ export function CardGenerator() {
         if ((err as Error).name === "AbortError") return;
       }
     }
+    setShareError("Device sharing unavailable — downloading instead.");
+    setTimeout(() => setShareError(null), 3000);
     await handleDownload();
+  }
+
+  function showShareError(msg: string) {
+    setShareError(msg);
+    setTimeout(() => setShareError(null), 5000);
+  }
+
+  // Returns cached slug if name/designation/template/photo are unchanged,
+  // otherwise uploads a new card and updates the cache.
+  async function getOrUploadCard(canvas: HTMLCanvasElement): Promise<{ slug: string } | { error: string } | null> {
+    if (
+      lastUpload &&
+      lastUpload.name === state.name &&
+      lastUpload.designation === state.designation &&
+      lastUpload.template === state.template &&
+      lastUpload.photoDataUrl === state.photoDataUrl
+    ) {
+      return { slug: lastUpload.slug };
+    }
+    setUploading(true);
+    await redraw();
+    const result = await uploadCard(canvas, state);
+    setUploading(false);
+    if (result && !("error" in result)) {
+      setLastUpload({
+        slug: result.slug,
+        name: state.name,
+        designation: state.designation,
+        template: state.template,
+        photoDataUrl: state.photoDataUrl,
+      });
+    }
+    return result;
   }
 
   async function handleCopyLink() {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    setUploading(true);
-    await redraw();
-    const card = await uploadCard(canvas, state);
-    setUploading(false);
+    const card = await getOrUploadCard(canvas);
     if (!card) return;
+    if ("error" in card) { showShareError(card.error); return; }
     const url = makeShareUrl(card.slug);
     try {
       await navigator.clipboard.writeText(url);
@@ -806,12 +926,10 @@ export function CardGenerator() {
   async function handleShareLinkedIn() {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const win = window.open("about:blank", "_blank", "noopener,width=600,height=480");
-    setUploading(true);
-    await redraw();
-    const card = await uploadCard(canvas, state);
-    setUploading(false);
+    const win = window.open("about:blank", "_blank", "width=600,height=480");
+    const card = await getOrUploadCard(canvas);
     if (!card) { win?.close(); return; }
+    if ("error" in card) { win?.close(); showShareError(card.error); return; }
     // Must use absolute URL — relative URLs don't resolve from about:blank
     const origin = window.location.origin;
     const shareUrl = `${origin}/go/${encodeURIComponent(card.slug)}`;
@@ -821,12 +939,10 @@ export function CardGenerator() {
   async function handleShareFacebook() {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const win = window.open("about:blank", "_blank", "noopener,width=600,height=480");
-    setUploading(true);
-    await redraw();
-    const card = await uploadCard(canvas, state);
-    setUploading(false);
+    const win = window.open("about:blank", "_blank", "width=600,height=480");
+    const card = await getOrUploadCard(canvas);
     if (!card) { win?.close(); return; }
+    if ("error" in card) { win?.close(); showShareError(card.error); return; }
     const origin = window.location.origin;
     const shareUrl = `${origin}/go/${encodeURIComponent(card.slug)}`;
     if (win) win.location.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
@@ -926,21 +1042,60 @@ export function CardGenerator() {
             <div className="kx-card !p-6 !rounded-2xl">
               <p className="kx-label block mb-3">Your Photo</p>
               {state.photoDataUrl ? (
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 border-2"
-                    style={{ borderColor: accent }}>
+                <div className="flex flex-col items-center gap-3">
+                  {/* Draggable circle preview */}
+                  <div
+                    onPointerDown={handlePhotoPointerDown}
+                    onPointerMove={handlePhotoPointerMove}
+                    onPointerUp={handlePhotoPointerUp}
+                    onPointerLeave={handlePhotoPointerUp}
+                    className="rounded-full overflow-hidden flex-shrink-0 border-2 select-none touch-none"
+                    style={{
+                      width: 140,
+                      height: 140,
+                      borderColor: accent,
+                      cursor: "grab",
+                      boxShadow: `0 0 0 4px ${accentMute}`,
+                    }}
+                  >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={state.photoDataUrl} alt="Preview" className="w-full h-full object-cover" />
+                    <img
+                      src={state.photoDataUrl}
+                      alt="Preview"
+                      draggable={false}
+                      className="w-full h-full object-cover"
+                      style={{
+                        objectPosition: `${50 - state.photoOffset.x * 50}% ${50 - state.photoOffset.y * 50}%`,
+                        pointerEvents: "none",
+                      }}
+                    />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-white/75">Photo uploaded</p>
-                    <p className="text-xs text-white/35 mt-0.5">Auto-cropped to circle</p>
+
+                  <p className="text-[11px] text-white/35 text-center leading-tight">
+                    Drag to reposition
+                  </p>
+
+                  {/* Actions row */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={resetPhotoOffset}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-white/45 hover:text-white border border-white/10 hover:border-white/25"
+                    >
+                      Center
+                    </button>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-white/45 hover:text-white border border-white/10 hover:border-white/25"
+                    >
+                      Replace
+                    </button>
+                    <button
+                      onClick={removePhoto}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-red-400/60 hover:text-red-400 border border-red-500/15 hover:border-red-500/35"
+                    >
+                      Remove
+                    </button>
                   </div>
-                  <button onClick={removePhoto}
-                    className="p-2 rounded-full hover:bg-white/10 transition-colors text-white/35 hover:text-white"
-                    aria-label="Remove photo">
-                    <X size={15} />
-                  </button>
                 </div>
               ) : (
                 <button onClick={() => fileInputRef.current?.click()}
@@ -970,23 +1125,24 @@ export function CardGenerator() {
                 className="kx-input w-full rounded-xl" />
             </div>
 
-            {/* Designation — VIP only */}
-            {isVip && (
-              <div className="kx-card !p-6 !rounded-2xl"
-                style={{ borderColor: "rgba(255,184,0,0.18)" }}>
-                <label htmlFor="card-designation"
-                  className="block mb-2 text-[11px] font-bold uppercase"
-                  style={{ color: "#FFB800", letterSpacing: "0.14em" }}>
-                  Designation / Title
-                </label>
-                <input id="card-designation" type="text" value={state.designation}
-                  onChange={e => setState(s => ({ ...s, designation: e.target.value }))}
-                  placeholder="CEO · AI Research Director" maxLength={55}
-                  className="kx-input w-full rounded-xl"
-                  style={{ borderColor: "rgba(255,184,0,0.20)" }} />
-                <p className="text-xs text-white/32 mt-2">Appears in gold below your name</p>
-              </div>
-            )}
+            {/* Designation — shown for all templates */}
+            <div className="kx-card !p-6 !rounded-2xl"
+              style={{ borderColor: isVip ? "rgba(255,184,0,0.18)" : "rgba(49,107,255,0.18)" }}>
+              <label htmlFor="card-designation"
+                className="block mb-2 text-[11px] font-bold uppercase"
+                style={{ color: isVip ? "#FFB800" : "#8FAFFF", letterSpacing: "0.14em" }}>
+                Designation / Title{!isVip && <span className="ml-1.5 font-normal normal-case opacity-50">(optional)</span>}
+              </label>
+              <input id="card-designation" type="text" value={state.designation}
+                onChange={e => setState(s => ({ ...s, designation: e.target.value }))}
+                placeholder={isVip ? "CEO · AI Research Director" : "Founder · Speaker · Engineer"}
+                maxLength={55}
+                className="kx-input w-full rounded-xl"
+                style={{ borderColor: isVip ? "rgba(255,184,0,0.20)" : "rgba(49,107,255,0.20)" }} />
+              <p className="text-xs text-white/32 mt-2">
+                {isVip ? "Appears in gold below your name" : "Appears in blue below your name"}
+              </p>
+            </div>
 
             {/* Card summary */}
             <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4 text-xs text-white/38 space-y-1.5">
@@ -1001,9 +1157,9 @@ export function CardGenerator() {
                 </>
               ) : (
                 <>
-                  <p>✦ &ldquo;I am attending KHINEXT&rdquo;</p>
+                  <p>✦ &ldquo;I am attending as a Delegate&rdquo;</p>
                   <p>✦ Your photo · Blue ring frame</p>
-                  <p>✦ Your name</p>
+                  <p>✦ Your name + optional designation</p>
                 </>
               )}
               <p>✦ Asia&apos;s First Multi Domain AI Summit</p>
@@ -1036,9 +1192,17 @@ export function CardGenerator() {
               </div>
             )}
 
+            {/* Share / rate-limit error */}
+            {shareError && (
+              <div className="flex items-start gap-2 rounded-xl border border-red-500/25 bg-red-500/[0.07] px-4 py-2.5">
+                <span className="text-red-400 text-base leading-none mt-0.5">⚠</span>
+                <p className="text-[12px] text-red-300/90">{shareError}</p>
+              </div>
+            )}
+
             {/* Download */}
             <button onClick={handleDownload} disabled={downloading || !isCardReady}
-              className="kx-btn kx-btn-primary w-full justify-center disabled:opacity-40 disabled:cursor-not-allowed">
+              className={`kx-btn kx-btn-primary w-full justify-center disabled:opacity-40 disabled:cursor-not-allowed ${isCardReady ? "animate-btn-glow" : ""}`}>
               <Download size={16} />
               {downloading ? "Generating…" : `Download ${fmt.toUpperCase()}`}
             </button>

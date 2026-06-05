@@ -12,7 +12,7 @@ function createTransport() {
   const pass = process.env.SMTP_PASS;
   if (!pass) throw new Error("SMTP_PASS is not configured.");
   return nodemailer.createTransport({
-    host, port, secure: true,
+    host, port, secure: port === 465,
     auth: { user, pass },
     tls: { rejectUnauthorized: false },
   });

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowRight, Download } from "lucide-react";
 import { createServiceClient } from "@/lib/supabase/server";
 import { CardViewCard } from "@/app/card-view/CardViewCard";
+import { Reveal } from "@/components/ui/Reveal";
 
 const SUPABASE_URL = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/$/, "");
 const SITE_URL     = (process.env.NEXT_PUBLIC_SITE_URL || "https://khinext.vercel.app").replace(/\/$/, "");
@@ -116,7 +117,7 @@ export default async function GoPage({
         isVip={isVip}
       />
 
-      <div className="flex flex-col items-center gap-3 w-full max-w-[320px] mt-10">
+      <Reveal className="flex flex-col items-center gap-3 w-full max-w-[320px] mt-10">
         <a
           href={imgUrl}
           target="_blank"
@@ -130,7 +131,7 @@ export default async function GoPage({
           Create Your Own Card
           <ArrowRight size={15} />
         </Link>
-      </div>
+      </Reveal>
 
       <p className="mt-10 text-xs text-white/25 text-center max-w-xs">
         Asia&apos;s First Multi Domain AI Summit &middot; June 7, 2026 &middot; PC Hotel, Karachi

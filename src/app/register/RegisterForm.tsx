@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import type { RegistrationTrack } from "@/lib/types";
 import { TRACK_LABELS } from "@/lib/types";
@@ -74,7 +75,11 @@ export function RegisterForm() {
       });
     setSubmitting(false);
     if (error) {
-      setError(error.message ?? "Could not register. Please try again.");
+      // Unique constraint violation → email already registered
+      const msg = (error as { code?: string }).code === "23505"
+        ? "This email is already registered for Khinext '26."
+        : (error.message ?? "Could not register. Please try again.");
+      setError(msg);
       return;
     }
     setDone({ id: id.slice(0, 8).toUpperCase(), name: form.fullName, email: form.email, track: TRACK_LABELS[form.track] });
@@ -180,14 +185,16 @@ export function RegisterForm() {
       )}
 
       <div className="pt-3 border-t border-white/10">
-        <button
-          type="submit"
-          className="kx-btn-primary w-full justify-center !px-7 !py-4 !text-[15px]"
-          disabled={submitting || !form.fullName || !form.email || !form.role}
-        >
-          {submitting ? "Registering…" : "Register for Khinext '26"}
-          {!submitting && <ArrowRight size={16} aria-hidden="true" />}
-        </button>
+        <motion.div whileTap={{ scale: 0.98 }}>
+          <button
+            type="submit"
+            className="kx-btn-primary w-full justify-center !px-7 !py-4 !text-[15px]"
+            disabled={submitting || !form.fullName || !form.email || !form.role}
+          >
+            {submitting ? "Registering…" : "Register for Khinext '26"}
+            {!submitting && <ArrowRight size={16} aria-hidden="true" />}
+          </button>
+        </motion.div>
         <p className="mt-3 text-center text-[11px] text-white/30">
           Free to attend. Your details are used only for event logistics.
         </p>

@@ -4,15 +4,15 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft, Mail, CheckCircle2, Clock, Phone, Building2,
-  User, Send, Hash, Calendar,
+  User, Send, Hash, Calendar, MailCheck,
 } from "lucide-react";
-import type { Registration } from "@/lib/types";
+import type { InviteInfo, Registration } from "@/lib/types";
 import { TRACK_LABELS } from "@/lib/types";
 import { Toast } from "@/components/admin/Toast";
 import { LiveBadge, type LiveStatus } from "@/components/admin/LiveBadge";
 import { createClient } from "@/lib/supabase/client";
 
-export function RegistrationDetail({ initial }: { initial: Registration }) {
+export function RegistrationDetail({ initial, inviteInfo }: { initial: Registration; inviteInfo: InviteInfo | null }) {
   const [registration, setRegistration] = useState<Registration>(initial);
   const [sending, setSending] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -187,6 +187,16 @@ export function RegistrationDetail({ initial }: { initial: Registration }) {
               icon={<Hash size={14} />}
               label="Sent count"
               value={String(registration.confirmation_email_count ?? 0)}
+            />
+            <Audit
+              icon={<MailCheck size={14} />}
+              label="Invitation sent"
+              value={
+                inviteInfo
+                  ? `${inviteInfo.times_sent}× · last ${formatDateTime(inviteInfo.last_sent_at)}${inviteInfo.open_count > 0 ? ` · opened ${inviteInfo.open_count}×` : ""}`
+                  : "Not sent via mailer"
+              }
+              accent={inviteInfo ? "good" : "muted"}
             />
             <Audit
               icon={<Hash size={14} />}

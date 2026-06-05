@@ -1,3 +1,6 @@
+"use client";
+
+import { motion, useReducedMotion } from "framer-motion";
 import { Reveal } from "@/components/ui/Reveal";
 
 const SPONSORS = [
@@ -11,8 +14,16 @@ const SPONSORS = [
   { name: "Stellar Pay",      tier: "Silver" },
 ] as const;
 
+const gridContainer = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.06 } },
+};
+const gridItem = {
+  hidden: { opacity: 0, scale: 0.88 },
+  show:   { opacity: 1, scale: 1, transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] } },
+};
+
 function SponsorMark({ name }: { name: string }) {
-  // Geometric wordmark — drawn from initials. Monochrome on dark.
   const initials = name
     .split(" ")
     .slice(0, 2)
@@ -35,6 +46,7 @@ function SponsorMark({ name }: { name: string }) {
 }
 
 export function Sponsors() {
+  const reduced = useReducedMotion();
   return (
     <section
       aria-labelledby="sponsors-title"
@@ -51,35 +63,38 @@ export function Sponsors() {
             Built with our <span className="kx-accent">partners.</span>
           </h2>
           <p className="mt-5 text-white/55 leading-relaxed">
-            Khinext '26 is co-built with Pakistan's leading enterprises, investors and platform partners.
+            Khinext &apos;26 is co-built with Pakistan&apos;s leading enterprises, investors and platform partners.
           </p>
         </div>
       </Reveal>
 
-      <Reveal delay={0.1}>
-        <ul
-          className="mt-12 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 border border-white/10 rounded-2xl overflow-hidden bg-white/[0.012]"
-          aria-label="Khinext '26 sponsor list"
-        >
-          {SPONSORS.map((s, i) => (
-            <li
-              key={s.name}
-              className={`flex justify-center items-center min-h-[110px] hover:bg-khi-blue/[0.06] transition-colors duration-300 ease-soft ${
-                i % 4 !== 3 ? "lg:border-r border-white/10" : ""
-              } ${i % 3 !== 2 ? "sm:border-r lg:border-r-0 border-white/10" : ""} ${
-                i % 2 !== 1 ? "border-r sm:border-r-0 lg:border-r border-white/10" : ""
-              } ${
-                i < SPONSORS.length - 2 ? "border-b border-white/10" : ""
-              }`}
-            >
-              <div className="sponsor-logo">
-                <SponsorMark name={s.name} />
-              </div>
-              <span className="sr-only">{s.tier} sponsor</span>
-            </li>
-          ))}
-        </ul>
-      </Reveal>
+      <motion.ul
+        className="mt-12 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 border border-white/10 rounded-2xl overflow-hidden bg-white/[0.012]"
+        aria-label="Khinext '26 sponsor list"
+        variants={reduced ? undefined : gridContainer}
+        initial={reduced ? false : "hidden"}
+        whileInView="show"
+        viewport={{ once: true, margin: "-80px" }}
+      >
+        {SPONSORS.map((s, i) => (
+          <motion.li
+            key={s.name}
+            variants={reduced ? undefined : gridItem}
+            className={`flex justify-center items-center min-h-[110px] hover:bg-khi-blue/[0.06] transition-colors duration-300 ease-soft ${
+              i % 4 !== 3 ? "lg:border-r border-white/10" : ""
+            } ${i % 3 !== 2 ? "sm:border-r lg:border-r-0 border-white/10" : ""} ${
+              i % 2 !== 1 ? "border-r sm:border-r-0 lg:border-r border-white/10" : ""
+            } ${
+              i < SPONSORS.length - 2 ? "border-b border-white/10" : ""
+            }`}
+          >
+            <div className="sponsor-logo">
+              <SponsorMark name={s.name} />
+            </div>
+            <span className="sr-only">{s.tier} sponsor</span>
+          </motion.li>
+        ))}
+      </motion.ul>
       <p className="text-center mt-6 text-xs text-white/30 uppercase tracking-widest">
         Sponsor lineup announced 30 days before the event.
       </p>

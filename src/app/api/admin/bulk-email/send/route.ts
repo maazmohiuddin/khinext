@@ -7,7 +7,7 @@ import { NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { createServerSupabaseClient, createServiceClient } from "@/lib/supabase/server";
 import {
-  renderInvitationEmail, INVITATION_SUBJECT, VIP_INVITATION_SUBJECT,
+  renderInvitationEmail, INVITATION_SUBJECT, VIP_INVITATION_SUBJECT, AGENDA_SUBJECT,
   VIP_CARD_BODY, type CustomInvitationParams,
 } from "@/lib/email/invitation";
 import { sendRawEmail, injectTrackingPixel } from "@/lib/smtp";
@@ -45,6 +45,7 @@ export async function POST(req: Request) {
   let body: {
     emails?: unknown; subject?: unknown; includeVipToken?: unknown;
     headline?: unknown; bodyText?: unknown; ctaLabel?: unknown; ctaUrl?: unknown;
+    includeAgenda?: unknown;
   };
   try { body = await req.json(); } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
@@ -66,13 +67,17 @@ export async function POST(req: Request) {
   }
 
   const includeVipToken = body.includeVipToken === true;
+  const includeAgenda   = body.includeAgenda === true;
 
-  const defaultSubject = includeVipToken ? VIP_INVITATION_SUBJECT : INVITATION_SUBJECT;
+  const defaultSubject = includeVipToken ? VIP_INVITATION_SUBJECT
+    : includeAgenda ? AGENDA_SUBJECT
+    : INVITATION_SUBJECT;
   const subject = typeof body.subject === "string" && body.subject.trim()
     ? body.subject.trim() : defaultSubject;
 
   const custom: CustomInvitationParams = {
     isVip: includeVipToken,
+    includeAgenda,
     ...(typeof body.headline === "string" && body.headline.trim() ? { headline: body.headline.trim() } : {}),
     ...(typeof body.bodyText === "string" && body.bodyText.trim() ? { bodyText: body.bodyText.trim() } : {}),
     ...(typeof body.ctaLabel === "string" && body.ctaLabel.trim() ? { ctaLabel: body.ctaLabel.trim() } : {}),

@@ -123,7 +123,7 @@ export default function GamingPage() {
       <section className="kx-section">
         <Reveal>
           <div
-            className="rounded-3xl border p-8 md:p-12 text-center"
+            className="kx-banner rounded-3xl border p-8 md:p-12 text-center"
             style={{
               borderColor: "rgba(191,0,255,0.32)",
               background: "linear-gradient(135deg, rgba(191,0,255,0.14) 0%, transparent 60%)",

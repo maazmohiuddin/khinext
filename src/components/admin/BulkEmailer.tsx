@@ -4,8 +4,11 @@ import { useState, useEffect, useRef } from "react";
 import {
   Mail, Send, CheckSquare, Square, RefreshCw, ArrowLeft,
   History, ChevronDown, ChevronUp, Edit3, Users,
-  CheckCircle2, XCircle, AlertCircle, Loader2, Eye, EyeOff, Key,
+  CheckCircle2, XCircle, AlertCircle, Loader2, Eye, EyeOff, Key, Trash2, Lock, CalendarDays,
+  ClipboardList, Filter,
 } from "lucide-react";
+import type { RegistrationTrack } from "@/lib/types";
+import { TRACK_LABELS } from "@/lib/types";
 import Link from "next/link";
 import {
   INVITATION_SUBJECT, VIP_INVITATION_SUBJECT, DEFAULT_CTA_URL,
@@ -172,7 +175,7 @@ function RecordRow({ rec }: { rec: SendRecord }) {
 
 // ── Email Preview ──────────────────────────────────────────────
 
-function EmailPreview({ fields, isVip }: { fields: EmailFields; isVip: boolean }) {
+function EmailPreview({ fields, isVip, includeAgenda }: { fields: EmailFields; isVip: boolean; includeAgenda: boolean }) {
   const [open, setOpen] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -187,6 +190,7 @@ function EmailPreview({ fields, isVip }: { fields: EmailFields; isVip: boolean }
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             isVip,
+            includeAgenda,
             headline: fields.headline,
             bodyText: fields.bodyText,
             ctaLabel: fields.ctaLabel,
@@ -197,7 +201,7 @@ function EmailPreview({ fields, isVip }: { fields: EmailFields; isVip: boolean }
       } catch { /* ignore */ }
     }, 400);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [open, fields, isVip]);
+  }, [open, fields, isVip, includeAgenda]);
 
   return (
     <div className="rounded-2xl border border-white/10 overflow-hidden">
@@ -212,6 +216,376 @@ function EmailPreview({ fields, isVip }: { fields: EmailFields; isVip: boolean }
           <iframe ref={iframeRef} title="Email Preview" className="w-full rounded-xl border border-white/10" style={{ height: 560, background: "#fff" }} />
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Import from registrations ──────────────────────────────────
+
+interface RegEntry { id: string; full_name: string; email: string; track: RegistrationTrack; confirmed_at: string | null; }
+
+type RegStatusFilter = "all" | "pending" | "confirmed";
+
+function RegistrationsImporter({ onAdd }: { onAdd: (emails: string[]) => void }) {
+  const [open, setOpen]         = useState(false);
+  const [regs, setRegs]         = useState<RegEntry[]>([]);
+  const [loading, setLoading]   = useState(false);
+  const [statusFilter, setStatusFilter] = useState<RegStatusFilter>("confirmed");
+  const [trackFilter, setTrackFilter]   = useState<RegistrationTrack | "all">("all");
+  const [picked, setPicked]     = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!open || regs.length > 0) return;
+    setLoading(true);
+    fetch("/api/admin/registrations")
+      .then(r => r.json())
+      .then(d => { setRegs(d.registrations ?? []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [open, regs.length]);
+
+  const visible = regs.filter(r => {
+    if (statusFilter === "pending"   && r.confirmed_at) return false;
+    if (statusFilter === "confirmed" && !r.confirmed_at) return false;
+    if (trackFilter !== "all" && r.track !== trackFilter) return false;
+    return true;
+  });
+
+  const allVisibleSelected = visible.length > 0 && visible.every(r => picked.has(r.email));
+
+  function toggleAll() {
+    setPicked(prev => {
+      const next = new Set(prev);
+      if (allVisibleSelected) visible.forEach(r => next.delete(r.email));
+      else visible.forEach(r => next.add(r.email));
+      return next;
+    });
+  }
+
+  function toggleEmail(email: string) {
+    setPicked(prev => { const n = new Set(prev); if (n.has(email)) n.delete(email); else n.add(email); return n; });
+  }
+
+  function handleAdd() {
+    onAdd(Array.from(picked));
+    setPicked(new Set());
+    setOpen(false);
+  }
+
+  const tracks = Array.from(new Set(regs.map(r => r.track)));
+
+  return (
+    <div className="rounded-2xl border border-white/10 overflow-hidden">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between px-5 py-4 bg-white/[0.03] hover:bg-white/[0.06] transition-colors text-sm font-medium text-white/70"
+      >
+        <span className="flex items-center gap-2"><ClipboardList size={15} />Import from Registrations</span>
+        {open ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+      </button>
+
+      {open && (
+        <div className="border-t border-white/10">
+          {loading && (
+            <div className="flex items-center justify-center py-8 gap-2 text-white/30 text-sm">
+              <Loader2 size={14} className="animate-spin" />Loading…
+            </div>
+          )}
+          {!loading && regs.length === 0 && (
+            <p className="text-sm text-white/30 text-center py-8">No registrations found.</p>
+          )}
+          {!loading && regs.length > 0 && (
+            <>
+              {/* Filters */}
+              <div className="flex flex-wrap items-center gap-2 px-5 py-3 border-b border-white/[0.06] bg-white/[0.01]">
+                <Filter size={11} className="text-white/30" />
+                {(["all", "pending", "confirmed"] as RegStatusFilter[]).map(f => (
+                  <button key={f} onClick={() => setStatusFilter(f)}
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-semibold border transition-colors capitalize ${
+                      statusFilter === f
+                        ? "bg-khi-blue/15 border-khi-blue/40 text-khi-blue-soft"
+                        : "border-white/10 text-white/35 hover:border-white/25"
+                    }`}>
+                    {f}
+                  </button>
+                ))}
+                <span className="text-white/15 mx-1">|</span>
+                {(["all", ...tracks] as (RegistrationTrack | "all")[]).map(t => (
+                  <button key={t} onClick={() => setTrackFilter(t)}
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-semibold border transition-colors ${
+                      trackFilter === t
+                        ? "bg-khi-blue/15 border-khi-blue/40 text-khi-blue-soft"
+                        : "border-white/10 text-white/35 hover:border-white/25"
+                    }`}>
+                    {t === "all" ? "All tracks" : TRACK_LABELS[t as RegistrationTrack]}
+                  </button>
+                ))}
+              </div>
+
+              {/* Select-all row */}
+              <label className="flex items-center gap-3 px-5 py-2.5 border-b border-white/[0.04] cursor-pointer hover:bg-white/[0.02] transition-colors">
+                <input
+                  type="checkbox"
+                  checked={allVisibleSelected}
+                  onChange={toggleAll}
+                  className="accent-khi-blue w-3.5 h-3.5 flex-shrink-0"
+                />
+                <span className="text-[11px] text-white/40 font-semibold">Select all visible ({visible.length})</span>
+              </label>
+
+              {/* Registration rows */}
+              <div className="divide-y divide-white/[0.04] max-h-64 overflow-y-auto">
+                {visible.length === 0 && (
+                  <p className="text-sm text-white/25 text-center py-6">No registrations match this filter.</p>
+                )}
+                {visible.map(r => (
+                  <label key={r.id} className="flex items-center gap-3 px-5 py-2.5 cursor-pointer hover:bg-white/[0.02] transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={picked.has(r.email)}
+                      onChange={() => toggleEmail(r.email)}
+                      className="accent-khi-blue w-3.5 h-3.5 flex-shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-white/75 truncate">{r.full_name}</p>
+                      <p className="text-[10px] font-mono text-white/40 truncate">{r.email}</p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full border ${
+                        r.track === "vip_sponsor"
+                          ? "bg-[#FCBF17]/10 border-[#FCBF17]/30 text-[#FCBF17]"
+                          : "bg-khi-blue/10 border-khi-blue/25 text-khi-blue-soft"
+                      }`}>
+                        {r.track === "vip_sponsor" ? "VIP" : TRACK_LABELS[r.track].split(" ")[0]}
+                      </span>
+                      {r.confirmed_at
+                        ? <CheckCircle2 size={11} className="text-[#51FFD5]" />
+                        : <span className="w-2 h-2 rounded-full bg-[#FFD06B]/50" />}
+                    </div>
+                  </label>
+                ))}
+              </div>
+
+              {picked.size > 0 && (
+                <div className="px-5 py-3 border-t border-white/10 flex items-center justify-between gap-4">
+                  <p className="text-xs text-white/50">{picked.size} email{picked.size !== 1 ? "s" : ""} selected</p>
+                  <button onClick={handleAdd} className="kx-btn kx-btn-primary !py-2 !px-4 !text-xs">
+                    <Users size={12} />Add to Recipients
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Import from previous sends ─────────────────────────────────
+
+function PreviousSendsImporter({ onAdd }: { onAdd: (emails: string[]) => void }) {
+  const [open, setOpen]       = useState(false);
+  const [logs, setLogs]       = useState<EmailLog[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [picked, setPicked]   = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!open || logs.length > 0) return;
+    setLoading(true);
+    fetch("/api/admin/bulk-email/history")
+      .then(r => r.json())
+      .then(d => { setLogs(d.logs ?? []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [open, logs.length]);
+
+  function emailsFor(log: EmailLog) { return (log.records as SendRecord[]).map(r => r.email); }
+
+  function toggleLog(log: EmailLog) {
+    const emails = emailsFor(log);
+    const allOn  = emails.every(e => picked.has(e));
+    setPicked(prev => {
+      const next = new Set(prev);
+      if (allOn) emails.forEach(e => next.delete(e));
+      else       emails.forEach(e => next.add(e));
+      return next;
+    });
+  }
+
+  function toggleEmail(email: string) {
+    setPicked(prev => { const n = new Set(prev); if (n.has(email)) n.delete(email); else n.add(email); return n; });
+  }
+
+  function handleAdd() {
+    onAdd(Array.from(picked));
+    setPicked(new Set());
+    setOpen(false);
+  }
+
+  return (
+    <div className="rounded-2xl border border-white/10 overflow-hidden">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between px-5 py-4 bg-white/[0.03] hover:bg-white/[0.06] transition-colors text-sm font-medium text-white/70"
+      >
+        <span className="flex items-center gap-2"><History size={15} />Import from Previous Sends</span>
+        {open ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+      </button>
+
+      {open && (
+        <div className="border-t border-white/10">
+          {loading && (
+            <div className="flex items-center justify-center py-8 gap-2 text-white/30 text-sm">
+              <Loader2 size={14} className="animate-spin" />Loading…
+            </div>
+          )}
+          {!loading && logs.length === 0 && (
+            <p className="text-sm text-white/30 text-center py-8">No previous sends found.</p>
+          )}
+          {!loading && logs.length > 0 && (
+            <>
+              <div className="divide-y divide-white/[0.04] max-h-64 overflow-y-auto">
+                {logs.map(log => {
+                  const emails  = emailsFor(log);
+                  const allOn   = emails.length > 0 && emails.every(e => picked.has(e));
+                  const someOn  = emails.some(e => picked.has(e));
+                  const isExp   = expanded === log.id;
+                  return (
+                    <div key={log.id}>
+                      <div className="flex items-center gap-3 px-5 py-3 hover:bg-white/[0.02] transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={allOn}
+                          ref={el => { if (el) el.indeterminate = someOn && !allOn; }}
+                          onChange={() => toggleLog(log)}
+                          className="accent-khi-blue w-4 h-4 flex-shrink-0"
+                        />
+                        <button
+                          onClick={() => setExpanded(e => e === log.id ? null : log.id)}
+                          className="flex-1 min-w-0 text-left flex items-center gap-2"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-semibold text-white/80 truncate">{log.subject}</p>
+                            <p className="text-[10px] text-white/35">{fmt(log.sent_at)} · {log.sent_count} sent</p>
+                          </div>
+                          {isExp ? <ChevronUp size={11} className="text-white/30 flex-shrink-0" /> : <ChevronDown size={11} className="text-white/30 flex-shrink-0" />}
+                        </button>
+                      </div>
+                      {isExp && (
+                        <div className="px-10 pb-3 bg-white/[0.01] space-y-0.5">
+                          {emails.map(email => (
+                            <label key={email} className="flex items-center gap-2 py-1 px-1 cursor-pointer hover:bg-white/[0.03] rounded">
+                              <input type="checkbox" checked={picked.has(email)} onChange={() => toggleEmail(email)} className="accent-khi-blue w-3.5 h-3.5 flex-shrink-0" />
+                              <span className="text-xs font-mono text-white/55">{email}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {picked.size > 0 && (
+                <div className="px-5 py-3 border-t border-white/10 flex items-center justify-between gap-4">
+                  <p className="text-xs text-white/50">{picked.size} email{picked.size !== 1 ? "s" : ""} selected</p>
+                  <button onClick={handleAdd} className="kx-btn kx-btn-primary !py-2 !px-4 !text-xs">
+                    <Users size={12} />Add to Recipients
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Delete password modal (inline per log) ─────────────────────
+
+const DELETE_PASSWORD = "maaz882000";
+
+function DeleteLogButton({ logId, onDeleted }: { logId: string; onDeleted: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [pw, setPw] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [error, setError] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  function handleOpen(e: React.MouseEvent) {
+    e.stopPropagation();
+    setOpen(true);
+    setPw("");
+    setError("");
+  }
+
+  async function handleConfirm(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (pw !== DELETE_PASSWORD) { setError("Incorrect password."); return; }
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/bulk-email/history?id=${logId}`, { method: "DELETE" });
+      if (!res.ok) { const d = await res.json(); setError(d.error ?? "Delete failed."); setDeleting(false); return; }
+      onDeleted();
+    } catch { setError("Network error."); setDeleting(false); }
+  }
+
+  function handleCancel(e: React.MouseEvent) {
+    e.stopPropagation();
+    setOpen(false);
+  }
+
+  if (!open) {
+    return (
+      <button
+        onClick={handleOpen}
+        title="Delete this log"
+        className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-colors flex-shrink-0"
+      >
+        <Trash2 size={13} />
+      </button>
+    );
+  }
+
+  return (
+    <div
+      onClick={e => e.stopPropagation()}
+      className="flex items-center gap-2 flex-shrink-0"
+    >
+      <Lock size={11} className="text-white/30 flex-shrink-0" />
+      <div className="relative">
+        <input
+          autoFocus
+          type={showPw ? "text" : "password"}
+          value={pw}
+          onChange={e => { setPw(e.target.value); setError(""); }}
+          onKeyDown={e => { if (e.key === "Enter") handleConfirm(e as unknown as React.MouseEvent); if (e.key === "Escape") handleCancel(e as unknown as React.MouseEvent); }}
+          placeholder="Password"
+          className="h-7 w-28 rounded-lg bg-white/[0.06] border border-white/15 px-2 pr-7 text-xs text-white placeholder:text-white/25 outline-none focus:border-red-500/50"
+        />
+        <button
+          type="button"
+          onClick={e => { e.stopPropagation(); setShowPw(v => !v); }}
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/60"
+        >
+          {showPw ? <EyeOff size={10} /> : <Eye size={10} />}
+        </button>
+      </div>
+      {error && <span className="text-[10px] text-red-400">{error}</span>}
+      <button
+        onClick={handleConfirm}
+        disabled={deleting || !pw}
+        className="h-7 px-2.5 rounded-lg bg-red-500/80 hover:bg-red-500 text-white text-[11px] font-semibold disabled:opacity-40 transition-colors flex items-center gap-1"
+      >
+        {deleting ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={10} />}
+        {deleting ? "…" : "Delete"}
+      </button>
+      <button
+        onClick={handleCancel}
+        className="h-7 px-2 rounded-lg text-white/40 hover:text-white text-[11px] border border-white/10 hover:border-white/25 transition-colors"
+      >
+        Cancel
+      </button>
     </div>
   );
 }
@@ -242,38 +616,51 @@ function HistoryTab() {
       {logs.map(log => (
         <div key={log.id} className="kx-card !p-0 !rounded-2xl overflow-hidden">
           {/* Log header row */}
-          <button onClick={() => setExpanded(e => e === log.id ? null : log.id)}
-            className="w-full flex flex-wrap items-center gap-4 px-5 py-4 text-left hover:bg-white/[0.03] transition-colors">
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-white truncate">{log.subject}</p>
-              <p className="text-xs text-white/40 mt-0.5">{fmt(log.sent_at)}</p>
-            </div>
-            <div className="flex items-center gap-4 flex-shrink-0 flex-wrap">
-              <div className="text-center">
-                <p className="text-sm font-bold text-emerald-400">{log.sent_count}</p>
-                <p className="text-[10px] text-white/30">Delivered</p>
+          <div className="flex flex-wrap items-center gap-4 px-5 py-4">
+            <button
+              onClick={() => setExpanded(e => e === log.id ? null : log.id)}
+              className="flex-1 flex flex-wrap items-center gap-4 text-left min-w-0"
+            >
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-white truncate">{log.subject}</p>
+                <p className="text-xs text-white/40 mt-0.5">{fmt(log.sent_at)}</p>
               </div>
-              <div className="text-center">
-                <p className="text-sm font-bold" style={{ color: log.failed_count > 0 ? "#FF6B6B" : "rgba(255,255,255,0.2)" }}>{log.failed_count}</p>
-                <p className="text-[10px] text-white/30">Failed</p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-bold text-blue-300">{log.unique_openers}</p>
-                <p className="text-[10px] text-white/30">Opened</p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-bold text-white/60">{openRate(log)}</p>
-                <p className="text-[10px] text-white/30">Open rate</p>
-              </div>
-              {log.vip_tokens_sent > 0 && (
+              <div className="flex items-center gap-4 flex-shrink-0 flex-wrap">
                 <div className="text-center">
-                  <p className="text-sm font-bold text-amber-400">{log.vip_tokens_sent}</p>
-                  <p className="text-[10px] text-white/30">VIP tokens</p>
+                  <p className="text-sm font-bold text-emerald-400">{log.sent_count}</p>
+                  <p className="text-[10px] text-white/30">Delivered</p>
                 </div>
-              )}
-              {expanded === log.id ? <ChevronUp size={14} className="text-white/30" /> : <ChevronDown size={14} className="text-white/30" />}
-            </div>
-          </button>
+                <div className="text-center">
+                  <p className="text-sm font-bold" style={{ color: log.failed_count > 0 ? "#FF6B6B" : "rgba(255,255,255,0.2)" }}>{log.failed_count}</p>
+                  <p className="text-[10px] text-white/30">Failed</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-bold text-blue-300">{log.unique_openers}</p>
+                  <p className="text-[10px] text-white/30">Opened</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-bold text-white/60">{openRate(log)}</p>
+                  <p className="text-[10px] text-white/30">Open rate</p>
+                </div>
+                {log.vip_tokens_sent > 0 && (
+                  <div className="text-center">
+                    <p className="text-sm font-bold text-amber-400">{log.vip_tokens_sent}</p>
+                    <p className="text-[10px] text-white/30">VIP tokens</p>
+                  </div>
+                )}
+                {expanded === log.id ? <ChevronUp size={14} className="text-white/30" /> : <ChevronDown size={14} className="text-white/30" />}
+              </div>
+            </button>
+
+            {/* Delete button — outside the expand toggle */}
+            <DeleteLogButton
+              logId={log.id}
+              onDeleted={() => {
+                setLogs(prev => prev.filter(l => l.id !== log.id));
+                if (expanded === log.id) setExpanded(null);
+              }}
+            />
+          </div>
 
           {/* Per-recipient records — each row is individually expandable */}
           {expanded === log.id && log.records.length > 0 && (
@@ -306,6 +693,7 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
     bodyText: "", ctaLabel: "", ctaUrl: "",
   });
   const [includeVipToken, setIncludeVipToken] = useState(false);
+  const [includeAgenda, setIncludeAgenda] = useState(false);
 
   const [rawInput, setRawInput] = useState("");
   const [parsed, setParsed] = useState<{ valid: string[]; invalid: string[] } | null>(null);
@@ -394,6 +782,7 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
           ctaLabel: fields.ctaLabel,
           ctaUrl: fields.ctaUrl,
           includeVipToken,
+          includeAgenda,
         }),
       });
       const data = await res.json();
@@ -409,7 +798,7 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
   function handleReset() {
     setPhase("input"); setRawInput(""); setParsed(null);
     setSelected(new Set()); setMxResults(new Map());
-    setResult(null); setErrorMsg(null);
+    setResult(null); setErrorMsg(null); setIncludeAgenda(false);
   }
 
   return (
@@ -515,28 +904,78 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
                     </div>
                   </label>
                 </div>
+
+                {/* Event Agenda toggle */}
+                <div className="rounded-xl border border-khi-blue/20 bg-khi-blue/[0.04] px-4 py-3">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={includeAgenda}
+                      onChange={e => setIncludeAgenda(e.target.checked)}
+                      className="mt-0.5 accent-blue-400 w-4 h-4 flex-shrink-0"
+                    />
+                    <div>
+                      <p className="text-sm font-semibold text-white flex items-center gap-1.5">
+                        <CalendarDays size={13} className="text-khi-blue-soft" />
+                        Include Event Agenda
+                      </p>
+                      <p className="text-xs text-white/45 mt-0.5">
+                        Appends the full Khinext '26 event schedule (20 sessions, 7 June · PC Hotel) to the email body. Toggle the preview to see how it looks.
+                      </p>
+                    </div>
+                  </label>
+                </div>
               </div>
             )}
           </div>
 
           {/* Preview */}
-          <EmailPreview fields={fields} isVip={includeVipToken} />
+          <EmailPreview fields={fields} isVip={includeVipToken} includeAgenda={includeAgenda} />
 
           {/* Input phase */}
           {phase === "input" && (
-            <div className="kx-card !p-0 !rounded-2xl overflow-hidden">
-              <div className="flex items-center gap-2 px-5 py-4 border-b border-white/10">
-                <Users size={15} className="text-white/60" />
-                <span className="text-sm font-semibold text-white">Add Recipients</span>
-              </div>
-              <div className="p-5 space-y-4">
-                <p className="text-xs text-white/40">Paste emails separated by commas, semicolons, or new lines. Duplicates are removed automatically.</p>
-                <textarea value={rawInput} onChange={e => setRawInput(e.target.value)}
-                  placeholder={"alice@example.com\nbob@example.com, carol@example.com"}
-                  rows={8} className="kx-input w-full rounded-xl resize-y min-h-[160px] font-mono text-sm" spellCheck={false} />
-                <button onClick={handleParse} disabled={!rawInput.trim()} className="kx-btn kx-btn-primary w-full justify-center disabled:opacity-40 disabled:cursor-not-allowed">
-                  <Users size={15} />Parse Recipients & Review
-                </button>
+            <div className="space-y-4">
+              {/* Import from registrations */}
+              <RegistrationsImporter
+                onAdd={(emails) => {
+                  const existing = new Set(
+                    rawInput.split(/[\n,;]+/).map(e => e.trim().toLowerCase()).filter(Boolean)
+                  );
+                  const fresh = emails.filter(e => !existing.has(e.toLowerCase()));
+                  if (fresh.length > 0) {
+                    setRawInput(prev => prev.trim() ? prev.trim() + "\n" + fresh.join("\n") : fresh.join("\n"));
+                  }
+                }}
+              />
+
+              {/* Import from history */}
+              <PreviousSendsImporter
+                onAdd={(emails) => {
+                  const existing = new Set(
+                    rawInput.split(/[\n,;]+/).map(e => e.trim().toLowerCase()).filter(Boolean)
+                  );
+                  const fresh = emails.filter(e => !existing.has(e.toLowerCase()));
+                  if (fresh.length > 0) {
+                    setRawInput(prev => prev.trim() ? prev.trim() + "\n" + fresh.join("\n") : fresh.join("\n"));
+                  }
+                }}
+              />
+
+              {/* Manual paste */}
+              <div className="kx-card !p-0 !rounded-2xl overflow-hidden">
+                <div className="flex items-center gap-2 px-5 py-4 border-b border-white/10">
+                  <Users size={15} className="text-white/60" />
+                  <span className="text-sm font-semibold text-white">Add Recipients Manually</span>
+                </div>
+                <div className="p-5 space-y-4">
+                  <p className="text-xs text-white/40">Paste emails separated by commas, semicolons, or new lines. Duplicates are removed automatically.</p>
+                  <textarea value={rawInput} onChange={e => setRawInput(e.target.value)}
+                    placeholder={"alice@example.com\nbob@example.com, carol@example.com"}
+                    rows={8} className="kx-input w-full rounded-xl resize-y min-h-[160px] font-mono text-sm" spellCheck={false} />
+                  <button onClick={handleParse} disabled={!rawInput.trim()} className="kx-btn kx-btn-primary w-full justify-center disabled:opacity-40 disabled:cursor-not-allowed">
+                    <Users size={15} />Parse Recipients & Review
+                  </button>
+                </div>
               </div>
             </div>
           )}

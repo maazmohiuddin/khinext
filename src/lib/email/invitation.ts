@@ -2,12 +2,13 @@
  * "You Are Invited" — Khinext '26 invitation email.
  * Used for bulk invitation sends from the admin panel.
  */
-import { renderKhinextEmail, type KhinextEmailParams } from "./layout";
+import { renderKhinextEmail, renderAgendaBlock, type KhinextEmailParams } from "./layout";
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://khinext.vercel.app").replace(/\/$/, "");
 
 export const INVITATION_SUBJECT     = "You're Invited — Khinext '26 · AI Summit · Karachi";
 export const VIP_INVITATION_SUBJECT = "Your VIP Invitation — Khinext '26 · AI Summit · Karachi";
+export const AGENDA_SUBJECT         = "The Agenda is Live — Khinext '26 · AI Summit · Karachi";
 
 /** Default CTA: standard card generator (no VIP access) */
 export const DEFAULT_CTA_URL = `${SITE_URL}/card-generator`;
@@ -77,11 +78,29 @@ export interface CustomInvitationParams {
   ctaLabel?: string;
   ctaUrl?: string;
   isVip?: boolean;
+  includeAgenda?: boolean;
 }
+
+const SITE_URL_INV = (process.env.NEXT_PUBLIC_SITE_URL || "https://khinext.vercel.app").replace(/\/$/, "");
 
 export function buildInvitationParams(custom?: CustomInvitationParams): KhinextEmailParams {
   const isVip = custom?.isVip === true;
   const base = isVip ? VIP_INVITATION_BODY_PARAMS : INVITATION_BODY_PARAMS;
+
+  const mainBody = custom?.bodyText
+    ? `<p style="margin:0 0 18px">${custom.bodyText}</p>`
+    : base.body;
+
+  const agendaSuffix = custom?.includeAgenda ? renderAgendaBlock() : "";
+
+  // When agenda is included and no custom CTA, switch to a registration CTA
+  const agendaCtaLabel = "Haven't registered yet? Register here";
+  const agendaCtaUrl   = `${SITE_URL_INV}/register`;
+
+  const ctaLabel = custom?.ctaLabel
+    ?? (custom?.includeAgenda ? agendaCtaLabel : base.cta!.label);
+  const ctaUrl = custom?.ctaUrl
+    ?? (custom?.includeAgenda ? agendaCtaUrl : base.cta!.url);
 
   return {
     ...base,
@@ -90,13 +109,8 @@ export function buildInvitationParams(custom?: CustomInvitationParams): KhinextE
           ? custom.headline
           : `<em data-accent>${custom.headline}</em>`)
       : base.headline,
-    body: custom?.bodyText
-      ? `<p style="margin:0 0 18px">${custom.bodyText}</p>`
-      : base.body,
-    cta: {
-      label: custom?.ctaLabel ?? base.cta!.label,
-      url:   custom?.ctaUrl   ?? base.cta!.url,
-    },
+    body: mainBody + agendaSuffix,
+    cta: { label: ctaLabel, url: ctaUrl },
   };
 }
 

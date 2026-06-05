@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { createServerSupabaseClient, createServiceClient } from "@/lib/supabase/server";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
 import { PageHero } from "@/components/ui/PageHero";
-import type { CardShare, Registration, Submission } from "@/lib/types";
+import type { CardShare, ContactMessage, InviteInfo, Registration, Submission } from "@/lib/types";
 
 export const metadata: Metadata = {
   title: "Admin Dashboard — Khinext '26",
@@ -37,15 +37,30 @@ export default async function AdminPage() {
   }
 
   const svc = createServiceClient();
-  const [subsRes, regsRes, cardsRes] = await Promise.all([
+  const [subsRes, regsRes, cardsRes, msgsRes, inviteRes] = await Promise.all([
     supabase.from("submissions").select("*").order("created_at", { ascending: false }),
     supabase.from("registrations").select("*").order("created_at", { ascending: false }),
     svc.from("card_shares").select("id, slug, name, template, designation, created_at").order("created_at", { ascending: false }),
+    svc.from("contact_messages").select("*").order("created_at", { ascending: false }),
+    svc.from("email_send_records").select("email, sent_at, open_count").eq("delivery_status", "sent").order("sent_at", { ascending: false }),
   ]);
 
   const submissions = (subsRes.data ?? []) as Submission[];
   const registrations = (regsRes.data ?? []) as Registration[];
   const cardShares = (cardsRes.data ?? []) as CardShare[];
+  const messages = (msgsRes.data ?? []) as ContactMessage[];
+
+  // Build email → InviteInfo map (most recent send + totals)
+  const invitedEmails: Record<string, InviteInfo> = {};
+  for (const rec of (inviteRes.data ?? []) as { email: string; sent_at: string; open_count: number | null }[]) {
+    const key = rec.email.toLowerCase();
+    if (!invitedEmails[key]) {
+      invitedEmails[key] = { last_sent_at: rec.sent_at, times_sent: 1, open_count: rec.open_count ?? 0 };
+    } else {
+      invitedEmails[key].times_sent++;
+      invitedEmails[key].open_count = Math.max(invitedEmails[key].open_count, rec.open_count ?? 0);
+    }
+  }
 
   return (
     <AdminDashboard
@@ -53,6 +68,8 @@ export default async function AdminPage() {
       initialSubmissions={submissions}
       initialRegistrations={registrations}
       initialCardShares={cardShares}
+      initialMessages={messages}
+      invitedEmails={invitedEmails}
     />
   );
 }

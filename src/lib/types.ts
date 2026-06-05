@@ -57,6 +57,7 @@ export type ContactSource = "contact_form" | "email";
 export interface ContactReply {
   text: string;
   sent_at: string;
+  /** Message-ID of the outbound reply (for RFC 5322 References chaining). */
   message_id?: string;
 }
 
@@ -78,6 +79,7 @@ export interface ContactMessage {
   created_at: string;
 }
 
+/** Invitation send record for a single email address (from email_send_records). */
 export interface InviteInfo {
   last_sent_at: string;
   times_sent: number;

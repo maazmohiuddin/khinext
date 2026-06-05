@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerSupabaseClient, createServiceClient } from "@/lib/supabase/server";
 import { RegistrationDetail } from "./RegistrationDetail";
-import type { Registration } from "@/lib/types";
+import type { InviteInfo, Registration } from "@/lib/types";
 
 export const metadata: Metadata = {
   title: "Registration · Admin — Khinext '26",
@@ -30,5 +30,23 @@ export default async function RegistrationDetailPage({
 
   if (error || !data) notFound();
 
-  return <RegistrationDetail initial={data} />;
+  // Fetch all invitation sends for this email to show in the audit trail.
+  const svc = createServiceClient();
+  const { data: inviteRows } = await svc
+    .from("email_send_records")
+    .select("sent_at, open_count")
+    .eq("email", data.email.toLowerCase())
+    .eq("delivery_status", "sent")
+    .order("sent_at", { ascending: false });
+
+  let inviteInfo: InviteInfo | null = null;
+  if (inviteRows && inviteRows.length > 0) {
+    inviteInfo = {
+      last_sent_at: inviteRows[0].sent_at as string,
+      times_sent: inviteRows.length,
+      open_count: (inviteRows as { open_count: number | null }[]).reduce((s, r) => s + (r.open_count ?? 0), 0),
+    };
+  }
+
+  return <RegistrationDetail initial={data} inviteInfo={inviteInfo} />;
 }
