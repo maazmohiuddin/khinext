@@ -44,9 +44,14 @@ async function refreshAccessToken(): Promise<string> {
     }),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
+    const errText = await res.text().catch(() => "");
+    let err: Record<string, string> = {};
+    try { err = JSON.parse(errText); } catch { /* not JSON */ }
+    console.error("[gmail-sync] Token refresh failed. Status:", res.status, "Body:", errText);
+    console.error("[gmail-sync] Client ID prefix:", (process.env.GMAIL_CLIENT_ID ?? "").slice(0, 20));
+    console.error("[gmail-sync] Refresh token prefix:", (process.env.GMAIL_REFRESH_TOKEN ?? "").slice(0, 10));
     throw new Error(
-      `Google token refresh failed: ${(err as Record<string, string>).error_description ?? (err as Record<string, string>).error ?? res.status}`
+      `Google token refresh failed: ${err.error_description ?? err.error ?? res.status}`
     );
   }
   const json = await res.json() as { access_token: string };
