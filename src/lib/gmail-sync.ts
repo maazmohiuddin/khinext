@@ -103,7 +103,13 @@ export async function syncGmailInbox(): Promise<GmailSyncResult> {
   let imported = 0;
   let skipped = 0;
 
-  const token = await refreshAccessToken();
+  let token: string;
+  try {
+    token = await refreshAccessToken();
+  } catch (e) {
+    return { imported: 0, skipped: 0, error: e instanceof Error ? e.message : "Auth failed" };
+  }
+
   const auth = { Authorization: `Bearer ${token}` };
 
   const query = process.env.GMAIL_SEARCH_QUERY ?? "to:info@khinext.com";

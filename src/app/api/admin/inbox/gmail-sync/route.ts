@@ -13,6 +13,11 @@ export async function POST() {
   const { data: isAdmin } = await supabase.rpc("is_admin");
   if (!isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const result = await syncGmailInbox();
-  return NextResponse.json(result, { status: result.error ? 500 : 200 });
+  try {
+    const result = await syncGmailInbox();
+    return NextResponse.json(result, { status: result.error ? 500 : 200 });
+  } catch (e) {
+    const error = e instanceof Error ? e.message : "Unexpected error";
+    return NextResponse.json({ error }, { status: 500 });
+  }
 }
