@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import type { RegistrationTrack } from "@/lib/types";
@@ -10,6 +10,28 @@ import { TRACK_LABELS } from "@/lib/types";
 import { Field, Input } from "@/components/ui/Field";
 import { ChipRadio } from "@/components/ui/ChipRadio";
 import { Success } from "@/components/ui/Success";
+
+// Registration closes at this UTC timestamp. Adjust as needed.
+const DEADLINE = new Date("2026-06-05T19:36:00Z");
+
+function useCountdown(deadline: Date) {
+  const [remaining, setRemaining] = useState(() => Math.max(0, deadline.getTime() - Date.now()));
+
+  useEffect(() => {
+    if (remaining === 0) return;
+    const id = setInterval(() => {
+      const left = Math.max(0, deadline.getTime() - Date.now());
+      setRemaining(left);
+      if (left === 0) clearInterval(id);
+    }, 1000);
+    return () => clearInterval(id);
+  }, [deadline, remaining]);
+
+  const h = Math.floor(remaining / 3_600_000);
+  const m = Math.floor((remaining % 3_600_000) / 60_000);
+  const s = Math.floor((remaining % 60_000) / 1000);
+  return { remaining, h, m, s, closed: remaining === 0 };
+}
 
 const ROLES = [
   "Student / Developer",
@@ -37,6 +59,7 @@ interface FormState {
 }
 
 export function RegisterForm() {
+  const countdown = useCountdown(DEADLINE);
   const [form, setForm] = useState<FormState>({
     fullName: "",
     email: "",
@@ -57,6 +80,7 @@ export function RegisterForm() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.fullName || !form.email || !form.role) return;
+    if (Date.now() >= DEADLINE.getTime()) { setError("Registration is now closed."); return; }
     setSubmitting(true);
     setError(null);
     const supabase = createClient();
@@ -85,6 +109,25 @@ export function RegisterForm() {
     setDone({ id: id.slice(0, 8).toUpperCase(), name: form.fullName, email: form.email, track: TRACK_LABELS[form.track] });
   }
 
+  if (countdown.closed) {
+    return (
+      <div className="mx-auto max-w-[640px] flex flex-col items-center gap-6 py-16 text-center">
+        <div className="grid place-items-center w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20">
+          <Clock size={28} className="text-red-400" />
+        </div>
+        <div>
+          <h3 className="font-display text-2xl font-bold text-white -tracking-tight mb-2">
+            Registration Closed
+          </h3>
+          <p className="text-white/50 text-sm max-w-sm mx-auto">
+            The registration window for Khinext '26 has ended. Follow us on social media for updates.
+          </p>
+        </div>
+        <Link href="/" className="kx-btn-outline">Back to home</Link>
+      </div>
+    );
+  }
+
   if (done) {
     return (
       <Success
@@ -108,6 +151,22 @@ export function RegisterForm() {
 
   return (
     <form onSubmit={onSubmit} className="mx-auto max-w-[640px] flex flex-col gap-5" noValidate>
+      {/* Countdown banner */}
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+        <div className="flex items-center gap-2 text-white/50 text-xs">
+          <Clock size={13} />
+          <span>Registration closes in</span>
+        </div>
+        <div className="flex items-center gap-1 font-mono text-sm font-semibold tabular-nums">
+          <span className="w-8 text-center text-white">{String(countdown.h).padStart(2, "0")}</span>
+          <span className="text-white/30">:</span>
+          <span className="w-8 text-center text-white">{String(countdown.m).padStart(2, "0")}</span>
+          <span className="text-white/30">:</span>
+          <span className={`w-8 text-center ${countdown.h === 0 && countdown.m < 5 ? "text-red-400" : "text-white"}`}>
+            {String(countdown.s).padStart(2, "0")}
+          </span>
+        </div>
+      </div>
       <div className="grid md:grid-cols-2 gap-4">
         <Field label="Full Name" htmlFor="r-name" required>
           <Input
@@ -189,7 +248,7 @@ export function RegisterForm() {
           <button
             type="submit"
             className="kx-btn-primary w-full justify-center !px-7 !py-4 !text-[15px]"
-            disabled={submitting || !form.fullName || !form.email || !form.role}
+            disabled={submitting || !form.fullName || !form.email || !form.role || countdown.closed}
           >
             {submitting ? "Registering…" : "Register for Khinext '26"}
             {!submitting && <ArrowRight size={16} aria-hidden="true" />}
