@@ -639,7 +639,7 @@ export function AdminInbox({ initialMessages }: { initialMessages: ContactMessag
               </div>
 
               {/* Timeline */}
-              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+              <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-3">
                 {loadingSent && (
                   <div className="text-[10px] text-white/25 text-center py-1">Loading history…</div>
                 )}
