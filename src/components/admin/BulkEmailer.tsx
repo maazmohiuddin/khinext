@@ -13,6 +13,7 @@ import Link from "next/link";
 import {
   INVITATION_SUBJECT, VIP_INVITATION_SUBJECT, DEFAULT_CTA_URL,
 } from "@/lib/email/invitation";
+import { AgendaBlast } from "@/components/admin/AgendaBlast";
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -40,7 +41,7 @@ interface EmailLog {
 }
 
 type Phase = "input" | "review" | "sending" | "done";
-type MainTab = "compose" | "history";
+type MainTab = "compose" | "history" | "agenda";
 interface EmailFields { subject: string; headline: string; bodyText: string; ctaLabel: string; ctaUrl: string; }
 
 // ── Helpers ────────────────────────────────────────────────────
@@ -820,7 +821,11 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
 
       {/* Main tabs */}
       <div role="tablist" className="inline-flex gap-1 rounded-full bg-white/[0.04] border border-white/10 p-1 mb-8">
-        {([["compose", <Edit3 key="e" size={13} />, "Compose"], ["history", <History key="h" size={13} />, "History"]] as const).map(([t, icon, label]) => (
+        {([
+          ["compose", <Edit3 key="e" size={13} />, "Compose"],
+          ["history", <History key="h" size={13} />, "History"],
+          ["agenda", <CalendarDays key="a" size={13} />, "Agenda Blast"],
+        ] as const).map(([t, icon, label]) => (
           <button key={t} role="tab" aria-selected={mainTab === t} onClick={() => setMainTab(t)}
             className={`px-4 py-2 rounded-full text-xs font-medium flex items-center gap-1.5 transition-colors ${mainTab === t ? "bg-khi-blue text-white" : "text-white/60 hover:text-white"}`}>
             {icon}{label}
@@ -830,6 +835,9 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
 
       {/* ── HISTORY TAB ── */}
       {mainTab === "history" && <HistoryTab />}
+
+      {/* ── AGENDA BLAST TAB ── */}
+      {mainTab === "agenda" && <AgendaBlast />}
 
       {/* ── COMPOSE TAB ── */}
       {mainTab === "compose" && (
