@@ -386,11 +386,12 @@ function RegistrationsImporter({ onAdd }: { onAdd: (emails: string[]) => void })
 // ── Import from previous sends ─────────────────────────────────
 
 function PreviousSendsImporter({ onAdd }: { onAdd: (emails: string[]) => void }) {
-  const [open, setOpen]       = useState(false);
-  const [logs, setLogs]       = useState<EmailLog[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [open, setOpen]         = useState(false);
+  const [logs, setLogs]         = useState<EmailLog[]>([]);
+  const [loading, setLoading]   = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [picked, setPicked]   = useState<Set<string>>(new Set());
+  const [picked, setPicked]     = useState<Set<string>>(new Set());
+  const [search, setSearch]     = useState("");
 
   useEffect(() => {
     if (!open || logs.length > 0) return;
@@ -422,7 +423,28 @@ function PreviousSendsImporter({ onAdd }: { onAdd: (emails: string[]) => void })
     onAdd(Array.from(picked));
     setPicked(new Set());
     setOpen(false);
+    setSearch("");
   }
+
+  // Flat map: email → batches it appeared in (for search view)
+  const q = search.trim().toLowerCase();
+  const flatEmails = (() => {
+    const map = new Map<string, { subject: string; sent_at: string }[]>();
+    for (const log of logs) {
+      for (const rec of log.records as SendRecord[]) {
+        const batches = map.get(rec.email) ?? [];
+        batches.push({ subject: log.subject, sent_at: log.sent_at });
+        map.set(rec.email, batches);
+      }
+    }
+    return Array.from(map.entries())
+      .map(([email, batches]) => ({ email, batches }))
+      .sort((a, b) => a.email.localeCompare(b.email));
+  })();
+
+  const filteredFlat = q
+    ? flatEmails.filter(e => e.email.toLowerCase().includes(q))
+    : flatEmails;
 
   return (
     <div className="rounded-2xl border border-white/10 overflow-hidden">
@@ -446,47 +468,108 @@ function PreviousSendsImporter({ onAdd }: { onAdd: (emails: string[]) => void })
           )}
           {!loading && logs.length > 0 && (
             <>
-              <div className="divide-y divide-white/[0.04] max-h-64 overflow-y-auto">
-                {logs.map(log => {
-                  const emails  = emailsFor(log);
-                  const allOn   = emails.length > 0 && emails.every(e => picked.has(e));
-                  const someOn  = emails.some(e => picked.has(e));
-                  const isExp   = expanded === log.id;
-                  return (
-                    <div key={log.id}>
-                      <div className="flex items-center gap-3 px-5 py-3 hover:bg-white/[0.02] transition-colors">
+              {/* Search bar */}
+              <div className="px-5 py-3 border-b border-white/[0.06] bg-white/[0.01]">
+                <div className="relative">
+                  <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+                  <input
+                    type="search"
+                    placeholder="Search by email to check if already sent an invitation…"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="kx-input w-full rounded-xl pl-8 pr-8 text-xs"
+                  />
+                  {search && (
+                    <button
+                      onClick={() => setSearch("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+                {q && (
+                  <p className="text-[10px] text-white/30 mt-1.5 px-0.5">
+                    {filteredFlat.length} of {flatEmails.length} recipient{flatEmails.length !== 1 ? "s" : ""} match
+                  </p>
+                )}
+              </div>
+
+              {/* Search results — flat list showing which batch each email came from */}
+              {q ? (
+                <div className="divide-y divide-white/[0.04] max-h-64 overflow-y-auto">
+                  {filteredFlat.length === 0 ? (
+                    <p className="text-xs text-white/30 text-center py-6">
+                      No one matching &ldquo;{search}&rdquo; has been sent an invitation yet.
+                    </p>
+                  ) : (
+                    filteredFlat.map(({ email, batches }) => (
+                      <label key={email} className="flex items-start gap-3 px-5 py-3 cursor-pointer hover:bg-white/[0.02] transition-colors">
                         <input
                           type="checkbox"
-                          checked={allOn}
-                          ref={el => { if (el) el.indeterminate = someOn && !allOn; }}
-                          onChange={() => toggleLog(log)}
-                          className="accent-khi-blue w-4 h-4 flex-shrink-0"
+                          checked={picked.has(email)}
+                          onChange={() => toggleEmail(email)}
+                          className="accent-khi-blue w-3.5 h-3.5 flex-shrink-0 mt-0.5"
                         />
-                        <button
-                          onClick={() => setExpanded(e => e === log.id ? null : log.id)}
-                          className="flex-1 min-w-0 text-left flex items-center gap-2"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs font-semibold text-white/80 truncate">{log.subject}</p>
-                            <p className="text-[10px] text-white/35">{fmt(log.sent_at)} · {log.sent_count} sent</p>
-                          </div>
-                          {isExp ? <ChevronUp size={11} className="text-white/30 flex-shrink-0" /> : <ChevronDown size={11} className="text-white/30 flex-shrink-0" />}
-                        </button>
-                      </div>
-                      {isExp && (
-                        <div className="px-10 pb-3 bg-white/[0.01] space-y-0.5">
-                          {emails.map(email => (
-                            <label key={email} className="flex items-center gap-2 py-1 px-1 cursor-pointer hover:bg-white/[0.03] rounded">
-                              <input type="checkbox" checked={picked.has(email)} onChange={() => toggleEmail(email)} className="accent-khi-blue w-3.5 h-3.5 flex-shrink-0" />
-                              <span className="text-xs font-mono text-white/55">{email}</span>
-                            </label>
-                          ))}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-mono text-white/80 truncate">{email}</p>
+                          <p className="text-[10px] text-white/35 mt-0.5 truncate">
+                            {batches.length === 1
+                              ? `${batches[0].subject} · ${fmt(batches[0].sent_at)}`
+                              : `${batches.length} batches — ${batches.map(b => b.subject).join(", ")}`}
+                          </p>
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                      </label>
+                    ))
+                  )}
+                </div>
+              ) : (
+                /* Default batch tree view */
+                <div className="divide-y divide-white/[0.04] max-h-64 overflow-y-auto">
+                  {logs.map(log => {
+                    const emails = emailsFor(log);
+                    const allOn  = emails.length > 0 && emails.every(e => picked.has(e));
+                    const someOn = emails.some(e => picked.has(e));
+                    const isExp  = expanded === log.id;
+                    return (
+                      <div key={log.id}>
+                        <div className="flex items-center gap-3 px-5 py-3 hover:bg-white/[0.02] transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={allOn}
+                            ref={el => { if (el) el.indeterminate = someOn && !allOn; }}
+                            onChange={() => toggleLog(log)}
+                            className="accent-khi-blue w-4 h-4 flex-shrink-0"
+                          />
+                          <button
+                            onClick={() => setExpanded(e => e === log.id ? null : log.id)}
+                            className="flex-1 min-w-0 text-left flex items-center gap-2"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-semibold text-white/80 truncate">{log.subject}</p>
+                              <p className="text-[10px] text-white/35">{fmt(log.sent_at)} · {log.sent_count} sent</p>
+                            </div>
+                            {isExp
+                              ? <ChevronUp size={11} className="text-white/30 flex-shrink-0" />
+                              : <ChevronDown size={11} className="text-white/30 flex-shrink-0" />}
+                          </button>
+                        </div>
+                        {isExp && (
+                          <div className="px-10 pb-3 bg-white/[0.01] space-y-0.5">
+                            {emails.map(email => (
+                              <label key={email} className="flex items-center gap-2 py-1 px-1 cursor-pointer hover:bg-white/[0.03] rounded">
+                                <input type="checkbox" checked={picked.has(email)} onChange={() => toggleEmail(email)} className="accent-khi-blue w-3.5 h-3.5 flex-shrink-0" />
+                                <span className="text-xs font-mono text-white/55">{email}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
               {picked.size > 0 && (
                 <div className="px-5 py-3 border-t border-white/10 flex items-center justify-between gap-4">
                   <p className="text-xs text-white/50">{picked.size} email{picked.size !== 1 ? "s" : ""} selected</p>

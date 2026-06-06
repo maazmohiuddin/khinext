@@ -48,13 +48,16 @@ export async function POST(req: Request) {
 
   const svc = createServiceClient();
 
-  // All emails ever successfully delivered
-  const { data: allRecords } = await svc
-    .from("email_send_records")
-    .select("email")
-    .eq("delivery_status", "sent");
+  // All contacts = delivered invitation emails UNION registered attendees
+  const [{ data: sentRecords }, { data: registrations }] = await Promise.all([
+    svc.from("email_send_records").select("email").eq("delivery_status", "sent"),
+    svc.from("registrations").select("email"),
+  ]);
 
-  const allEmails = Array.from(new Set((allRecords ?? []).map(r => r.email as string)));
+  const allEmails = Array.from(new Set([
+    ...(sentRecords ?? []).map(r => (r.email as string).toLowerCase()),
+    ...(registrations ?? []).map(r => (r.email as string).toLowerCase()),
+  ]));
 
   // Agenda blast log IDs
   const { data: agendaLogs } = await svc

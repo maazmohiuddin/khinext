@@ -267,9 +267,10 @@ export function AgendaBlast() {
           <div>
             <p className="text-sm font-semibold text-white">Agenda Blast</p>
             <p className="text-xs text-white/50 mt-0.5">
-              Send the Khinext &apos;26 event agenda to all previous invitees in spam-safe batches.
-              The system tracks who has already received it — recipients are{" "}
-              <strong className="text-white/70">never emailed twice</strong>, even across multiple sessions.
+              Send the Khinext &apos;26 event agenda to every contact in the system — both
+              registered attendees and invitation-mailer recipients — in spam-safe batches.
+              The pool is automatically de-duplicated and recipients are{" "}
+              <strong className="text-white/70">never emailed twice</strong>, even across sessions.
             </p>
           </div>
         </div>
@@ -300,9 +301,9 @@ export function AgendaBlast() {
               <div className="grid grid-cols-3 gap-3">
                 <StatCard
                   value={status.total}
-                  label="Total Invited"
+                  label="Total Contacts"
                   color="#316BFF"
-                  hint="All unique email addresses that have ever been successfully delivered an invitation."
+                  hint="All unique email addresses across registrations and invitation-mailer history (de-duplicated)."
                 />
                 <StatCard
                   value={status.sent}
@@ -477,7 +478,7 @@ export function AgendaBlast() {
             ) : (
               <div className="text-center py-4 space-y-1">
                 <p className="text-sm font-medium text-emerald-400">
-                  All {status.total} invitees have received the agenda.
+                  All {status.total} contacts have received the agenda.
                 </p>
                 <p className="text-xs text-white/35">
                   Check the history below to see open rates.
