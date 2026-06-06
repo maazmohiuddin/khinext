@@ -85,7 +85,7 @@ export async function POST(req: Request) {
       .select("email")
       .in("log_id", agendaLogIds)
       .eq("delivery_status", "sent");
-    agendaSentEmails = Array.from(new Set((agendaRecords ?? []).map(r => r.email as string)));
+    agendaSentEmails = Array.from(new Set((agendaRecords ?? []).map(r => (r.email as string).toLowerCase())));
   }
 
   const agendaSentSet = new Set(agendaSentEmails);
