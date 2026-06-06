@@ -29,6 +29,14 @@ interface BlastResult {
   message?: string;
 }
 
+interface SendRecord {
+  id: string;
+  email: string;
+  delivery_status: string;
+  open_count: number;
+  opened_at: string | null;
+}
+
 interface AgendaLog {
   id: string;
   sent_at: string;
@@ -37,6 +45,7 @@ interface AgendaLog {
   sent_count: number;
   failed_count: number;
   unique_openers: number;
+  records: SendRecord[];
 }
 
 // ── Helpers ────────────────────────────────────────────────────
@@ -150,6 +159,13 @@ export function AgendaBlast() {
   const [showRemaining, setShowRemaining] = useState(false);
   const [remainingSearch, setRemainingSearch] = useState("");
   const [historySearch, setHistorySearch] = useState("");
+  const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
+  const [historyRecordSearch, setHistoryRecordSearch] = useState("");
+
+  function toggleBatch(id: string) {
+    setExpandedLogId(prev => prev === id ? null : id);
+    setHistoryRecordSearch("");
+  }
 
   // ── Data loading ───────────────────────────────────────────
 
@@ -690,37 +706,121 @@ export function AgendaBlast() {
                 const openRate = log.sent_count > 0
                   ? `${Math.round((log.unique_openers / log.sent_count) * 100)}%`
                   : "—";
+                const isExpanded = expandedLogId === log.id;
+                const recs = (log.records ?? []) as SendRecord[];
+                const rq = historyRecordSearch.trim().toLowerCase();
+                const filteredRecs = rq
+                  ? recs.filter(r => r.email.toLowerCase().includes(rq))
+                  : recs;
+
                 return (
-                  <div key={log.id} className="kx-card !p-4 !rounded-xl flex flex-wrap items-center gap-4">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-white">{fmt(log.sent_at)}</p>
-                      <p className="text-[10px] text-white/35 mt-0.5">
-                        Batch · {log.total_count} targeted
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-5 flex-shrink-0">
-                      <div className="text-center">
-                        <p className="text-sm font-bold text-emerald-400">{log.sent_count}</p>
-                        <p className="text-[10px] text-white/30">Delivered</p>
-                      </div>
-                      <div className="text-center">
-                        <p
-                          className="text-sm font-bold"
-                          style={{ color: log.failed_count > 0 ? "#FF6B6B" : "rgba(255,255,255,0.2)" }}
-                        >
-                          {log.failed_count}
+                  <div key={log.id} className="kx-card !rounded-xl overflow-hidden">
+                    {/* Row header — click to expand */}
+                    <button
+                      onClick={() => toggleBatch(log.id)}
+                      className="w-full flex flex-wrap items-center gap-4 p-4 text-left hover:bg-white/[0.03] transition-colors"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-white">{fmt(log.sent_at)}</p>
+                        <p className="text-[10px] text-white/35 mt-0.5">
+                          Batch · {log.total_count} targeted
                         </p>
-                        <p className="text-[10px] text-white/30">Failed</p>
                       </div>
-                      <div className="text-center">
-                        <p className="text-sm font-bold text-blue-300">{log.unique_openers}</p>
-                        <p className="text-[10px] text-white/30">Opened</p>
+                      <div className="flex items-center gap-5 flex-shrink-0">
+                        <div className="text-center">
+                          <p className="text-sm font-bold text-emerald-400">{log.sent_count}</p>
+                          <p className="text-[10px] text-white/30">Delivered</p>
+                        </div>
+                        <div className="text-center">
+                          <p
+                            className="text-sm font-bold"
+                            style={{ color: log.failed_count > 0 ? "#FF6B6B" : "rgba(255,255,255,0.2)" }}
+                          >
+                            {log.failed_count}
+                          </p>
+                          <p className="text-[10px] text-white/30">Failed</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-bold text-blue-300">{log.unique_openers}</p>
+                          <p className="text-[10px] text-white/30">Opened</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-bold text-white/60">{openRate}</p>
+                          <p className="text-[10px] text-white/30">Open rate</p>
+                        </div>
+                        <div className="text-white/30">
+                          {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                        </div>
                       </div>
-                      <div className="text-center">
-                        <p className="text-sm font-bold text-white/60">{openRate}</p>
-                        <p className="text-[10px] text-white/30">Open rate</p>
+                    </button>
+
+                    {/* Expanded recipient list */}
+                    {isExpanded && (
+                      <div className="border-t border-white/[0.06] px-4 pb-4 pt-3 space-y-3">
+                        {/* Search bar */}
+                        {recs.length > 5 && (
+                          <div className="relative">
+                            <Search size={11} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+                            <input
+                              type="search"
+                              placeholder="Filter recipients…"
+                              value={historyRecordSearch}
+                              onChange={e => setHistoryRecordSearch(e.target.value)}
+                              className="kx-input w-full rounded-xl pl-8 pr-8 text-xs"
+                            />
+                            {historyRecordSearch && (
+                              <button
+                                onClick={() => setHistoryRecordSearch("")}
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors"
+                              >
+                                <X size={11} />
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {historyRecordSearch && (
+                          <p className="text-[11px] text-white/30 px-1">
+                            {filteredRecs.length} of {recs.length} match
+                          </p>
+                        )}
+
+                        {/* Recipient rows */}
+                        <div className="rounded-xl border border-white/[0.08] divide-y divide-white/[0.04] max-h-64 overflow-y-auto">
+                          {filteredRecs.length === 0 ? (
+                            <p className="px-4 py-3 text-xs text-white/30 text-center">
+                              {historyRecordSearch
+                                ? `No recipients match "${historyRecordSearch}"`
+                                : "No records for this batch."}
+                            </p>
+                          ) : (
+                            filteredRecs.map(rec => (
+                              <div key={rec.id} className="flex items-center justify-between gap-3 px-4 py-2">
+                                <p className="text-xs font-mono text-white/60 truncate min-w-0">{rec.email}</p>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  {rec.open_count > 0 && (
+                                    <span className="text-[10px] text-blue-300/80 font-medium">
+                                      opened{rec.open_count > 1 ? ` ×${rec.open_count}` : ""}
+                                    </span>
+                                  )}
+                                  <span
+                                    className={`text-[10px] font-medium px-1.5 py-0.5 rounded-md ${
+                                      rec.delivery_status === "sent"
+                                        ? "bg-emerald-500/10 text-emerald-400"
+                                        : rec.delivery_status === "failed"
+                                        ? "bg-red-500/10 text-red-400"
+                                        : "bg-white/5 text-white/30"
+                                    }`}
+                                  >
+                                    {rec.delivery_status}
+                                  </span>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 );
               })}
