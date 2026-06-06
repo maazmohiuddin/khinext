@@ -5,7 +5,7 @@ import {
   Mail, Send, CheckSquare, Square, RefreshCw, ArrowLeft,
   History, ChevronDown, ChevronUp, Edit3, Users,
   CheckCircle2, XCircle, AlertCircle, Loader2, Eye, EyeOff, Key, Trash2, Lock, CalendarDays,
-  ClipboardList, Filter,
+  ClipboardList, Filter, Search, X,
 } from "lucide-react";
 import type { RegistrationTrack } from "@/lib/types";
 import { TRACK_LABELS } from "@/lib/types";
@@ -13,6 +13,8 @@ import Link from "next/link";
 import {
   INVITATION_SUBJECT, VIP_INVITATION_SUBJECT, AGENDA_SUBJECT, DEFAULT_CTA_URL,
 } from "@/lib/email/invitation";
+import { AgendaBlast } from "@/components/admin/AgendaBlast";
+import { useToast, Toasts } from "@/components/admin/Toast";
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -40,7 +42,7 @@ interface EmailLog {
 }
 
 type Phase = "input" | "review" | "sending" | "done";
-type MainTab = "compose" | "history";
+type MainTab = "compose" | "history" | "agenda";
 interface EmailFields { subject: string; headline: string; bodyText: string; ctaLabel: string; ctaUrl: string; }
 
 // ── Helpers ────────────────────────────────────────────────────
@@ -384,11 +386,12 @@ function RegistrationsImporter({ onAdd }: { onAdd: (emails: string[]) => void })
 // ── Import from previous sends ─────────────────────────────────
 
 function PreviousSendsImporter({ onAdd }: { onAdd: (emails: string[]) => void }) {
-  const [open, setOpen]       = useState(false);
-  const [logs, setLogs]       = useState<EmailLog[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [open, setOpen]         = useState(false);
+  const [logs, setLogs]         = useState<EmailLog[]>([]);
+  const [loading, setLoading]   = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [picked, setPicked]   = useState<Set<string>>(new Set());
+  const [picked, setPicked]     = useState<Set<string>>(new Set());
+  const [search, setSearch]     = useState("");
 
   useEffect(() => {
     if (!open || logs.length > 0) return;
@@ -420,7 +423,28 @@ function PreviousSendsImporter({ onAdd }: { onAdd: (emails: string[]) => void })
     onAdd(Array.from(picked));
     setPicked(new Set());
     setOpen(false);
+    setSearch("");
   }
+
+  // Flat map: email → batches it appeared in (for search view)
+  const q = search.trim().toLowerCase();
+  const flatEmails = (() => {
+    const map = new Map<string, { subject: string; sent_at: string }[]>();
+    for (const log of logs) {
+      for (const rec of log.records as SendRecord[]) {
+        const batches = map.get(rec.email) ?? [];
+        batches.push({ subject: log.subject, sent_at: log.sent_at });
+        map.set(rec.email, batches);
+      }
+    }
+    return Array.from(map.entries())
+      .map(([email, batches]) => ({ email, batches }))
+      .sort((a, b) => a.email.localeCompare(b.email));
+  })();
+
+  const filteredFlat = q
+    ? flatEmails.filter(e => e.email.toLowerCase().includes(q))
+    : flatEmails;
 
   return (
     <div className="rounded-2xl border border-white/10 overflow-hidden">
@@ -444,47 +468,108 @@ function PreviousSendsImporter({ onAdd }: { onAdd: (emails: string[]) => void })
           )}
           {!loading && logs.length > 0 && (
             <>
-              <div className="divide-y divide-white/[0.04] max-h-64 overflow-y-auto">
-                {logs.map(log => {
-                  const emails  = emailsFor(log);
-                  const allOn   = emails.length > 0 && emails.every(e => picked.has(e));
-                  const someOn  = emails.some(e => picked.has(e));
-                  const isExp   = expanded === log.id;
-                  return (
-                    <div key={log.id}>
-                      <div className="flex items-center gap-3 px-5 py-3 hover:bg-white/[0.02] transition-colors">
+              {/* Search bar */}
+              <div className="px-5 py-3 border-b border-white/[0.06] bg-white/[0.01]">
+                <div className="relative">
+                  <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+                  <input
+                    type="search"
+                    placeholder="Search by email to check if already sent an invitation…"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="kx-input w-full rounded-xl pl-8 pr-8 text-xs"
+                  />
+                  {search && (
+                    <button
+                      onClick={() => setSearch("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+                {q && (
+                  <p className="text-[10px] text-white/30 mt-1.5 px-0.5">
+                    {filteredFlat.length} of {flatEmails.length} recipient{flatEmails.length !== 1 ? "s" : ""} match
+                  </p>
+                )}
+              </div>
+
+              {/* Search results — flat list showing which batch each email came from */}
+              {q ? (
+                <div className="divide-y divide-white/[0.04] max-h-64 overflow-y-auto">
+                  {filteredFlat.length === 0 ? (
+                    <p className="text-xs text-white/30 text-center py-6">
+                      No one matching &ldquo;{search}&rdquo; has been sent an invitation yet.
+                    </p>
+                  ) : (
+                    filteredFlat.map(({ email, batches }) => (
+                      <label key={email} className="flex items-start gap-3 px-5 py-3 cursor-pointer hover:bg-white/[0.02] transition-colors">
                         <input
                           type="checkbox"
-                          checked={allOn}
-                          ref={el => { if (el) el.indeterminate = someOn && !allOn; }}
-                          onChange={() => toggleLog(log)}
-                          className="accent-khi-blue w-4 h-4 flex-shrink-0"
+                          checked={picked.has(email)}
+                          onChange={() => toggleEmail(email)}
+                          className="accent-khi-blue w-3.5 h-3.5 flex-shrink-0 mt-0.5"
                         />
-                        <button
-                          onClick={() => setExpanded(e => e === log.id ? null : log.id)}
-                          className="flex-1 min-w-0 text-left flex items-center gap-2"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs font-semibold text-white/80 truncate">{log.subject}</p>
-                            <p className="text-[10px] text-white/35">{fmt(log.sent_at)} · {log.sent_count} sent</p>
-                          </div>
-                          {isExp ? <ChevronUp size={11} className="text-white/30 flex-shrink-0" /> : <ChevronDown size={11} className="text-white/30 flex-shrink-0" />}
-                        </button>
-                      </div>
-                      {isExp && (
-                        <div className="px-10 pb-3 bg-white/[0.01] space-y-0.5">
-                          {emails.map(email => (
-                            <label key={email} className="flex items-center gap-2 py-1 px-1 cursor-pointer hover:bg-white/[0.03] rounded">
-                              <input type="checkbox" checked={picked.has(email)} onChange={() => toggleEmail(email)} className="accent-khi-blue w-3.5 h-3.5 flex-shrink-0" />
-                              <span className="text-xs font-mono text-white/55">{email}</span>
-                            </label>
-                          ))}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-mono text-white/80 truncate">{email}</p>
+                          <p className="text-[10px] text-white/35 mt-0.5 truncate">
+                            {batches.length === 1
+                              ? `${batches[0].subject} · ${fmt(batches[0].sent_at)}`
+                              : `${batches.length} batches — ${batches.map(b => b.subject).join(", ")}`}
+                          </p>
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                      </label>
+                    ))
+                  )}
+                </div>
+              ) : (
+                /* Default batch tree view */
+                <div className="divide-y divide-white/[0.04] max-h-64 overflow-y-auto">
+                  {logs.map(log => {
+                    const emails = emailsFor(log);
+                    const allOn  = emails.length > 0 && emails.every(e => picked.has(e));
+                    const someOn = emails.some(e => picked.has(e));
+                    const isExp  = expanded === log.id;
+                    return (
+                      <div key={log.id}>
+                        <div className="flex items-center gap-3 px-5 py-3 hover:bg-white/[0.02] transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={allOn}
+                            ref={el => { if (el) el.indeterminate = someOn && !allOn; }}
+                            onChange={() => toggleLog(log)}
+                            className="accent-khi-blue w-4 h-4 flex-shrink-0"
+                          />
+                          <button
+                            onClick={() => setExpanded(e => e === log.id ? null : log.id)}
+                            className="flex-1 min-w-0 text-left flex items-center gap-2"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-semibold text-white/80 truncate">{log.subject}</p>
+                              <p className="text-[10px] text-white/35">{fmt(log.sent_at)} · {log.sent_count} sent</p>
+                            </div>
+                            {isExp
+                              ? <ChevronUp size={11} className="text-white/30 flex-shrink-0" />
+                              : <ChevronDown size={11} className="text-white/30 flex-shrink-0" />}
+                          </button>
+                        </div>
+                        {isExp && (
+                          <div className="px-10 pb-3 bg-white/[0.01] space-y-0.5">
+                            {emails.map(email => (
+                              <label key={email} className="flex items-center gap-2 py-1 px-1 cursor-pointer hover:bg-white/[0.03] rounded">
+                                <input type="checkbox" checked={picked.has(email)} onChange={() => toggleEmail(email)} className="accent-khi-blue w-3.5 h-3.5 flex-shrink-0" />
+                                <span className="text-xs font-mono text-white/55">{email}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
               {picked.size > 0 && (
                 <div className="px-5 py-3 border-t border-white/10 flex items-center justify-between gap-4">
                   <p className="text-xs text-white/50">{picked.size} email{picked.size !== 1 ? "s" : ""} selected</p>
@@ -590,101 +675,181 @@ function DeleteLogButton({ logId, onDeleted }: { logId: string; onDeleted: () =>
   );
 }
 
+// ── Agenda auto-fill constants ─────────────────────────────────
+
+const AGENDA_HEADLINE = "The agenda is live.";
+const AGENDA_BODY =
+  "The full schedule for Khinext '26 is here. Join us this Sunday, 7 June at PC Hotel, Karachi for 20 curated sessions — keynotes, panel discussions, fireside chats, live activities, and a closing networking reception — featuring Pakistan's leading voices in AI, technology, and innovation.\n\nScroll down for the complete programme.";
+
 // ── History Tab ────────────────────────────────────────────────
 
 function HistoryTab() {
   const [logs, setLogs] = useState<EmailLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const { toasts, add: toast } = useToast();
 
   useEffect(() => {
     fetch("/api/admin/bulk-email/history")
       .then(r => r.json())
       .then(d => { setLogs(d.logs ?? []); setLoading(false); })
-      .catch(() => setLoading(false));
+      .catch(() => { setLoading(false); toast("error", "Failed to load send history."); });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (loading) return <div className="flex items-center justify-center py-20 gap-2 text-white/30 text-sm"><Loader2 size={16} className="animate-spin" />Loading…</div>;
-  if (logs.length === 0) return (
-    <div className="kx-card !p-10 !rounded-2xl text-center text-white/30 text-sm">
-      No sends yet. History will appear here after your first batch.
+  const q = search.trim().toLowerCase();
+
+  const filtered = q
+    ? logs.filter(log => {
+        if (log.subject.toLowerCase().includes(q)) return true;
+        if (fmt(log.sent_at).toLowerCase().includes(q)) return true;
+        return log.records.some(r => r.email.toLowerCase().includes(q));
+      })
+    : logs;
+
+  function recordsForLog(log: EmailLog): typeof log.records {
+    if (!q) return log.records;
+    if (log.subject.toLowerCase().includes(q) || fmt(log.sent_at).toLowerCase().includes(q)) return log.records;
+    return log.records.filter(r => r.email.toLowerCase().includes(q));
+  }
+
+  if (loading) return (
+    <div className="flex items-center justify-center py-20 gap-2 text-white/30 text-sm">
+      <Loader2 size={16} className="animate-spin" />Loading history…
     </div>
   );
 
   return (
-    <div className="space-y-3">
-      {logs.map(log => (
-        <div key={log.id} className="kx-card !p-0 !rounded-2xl overflow-hidden">
-          {/* Log header row */}
-          <div className="flex flex-wrap items-center gap-4 px-5 py-4">
+    <>
+      <Toasts toasts={toasts} />
+
+      {/* Search bar */}
+      {logs.length > 0 && (
+        <div className="relative mb-5">
+          <Search size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+          <input
+            type="search"
+            placeholder="Search by subject line or recipient email…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="kx-input w-full rounded-xl pl-9 pr-9 text-sm"
+          />
+          {search && (
             <button
-              onClick={() => setExpanded(e => e === log.id ? null : log.id)}
-              className="flex-1 flex flex-wrap items-center gap-4 text-left min-w-0"
+              onClick={() => setSearch("")}
+              title="Clear search"
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors"
             >
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white truncate">{log.subject}</p>
-                <p className="text-xs text-white/40 mt-0.5">{fmt(log.sent_at)}</p>
-              </div>
-              <div className="flex items-center gap-4 flex-shrink-0 flex-wrap">
-                <div className="text-center">
-                  <p className="text-sm font-bold text-emerald-400">{log.sent_count}</p>
-                  <p className="text-[10px] text-white/30">Delivered</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-sm font-bold" style={{ color: log.failed_count > 0 ? "#FF6B6B" : "rgba(255,255,255,0.2)" }}>{log.failed_count}</p>
-                  <p className="text-[10px] text-white/30">Failed</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-sm font-bold text-blue-300">{log.unique_openers}</p>
-                  <p className="text-[10px] text-white/30">Opened</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-sm font-bold text-white/60">{openRate(log)}</p>
-                  <p className="text-[10px] text-white/30">Open rate</p>
-                </div>
-                {log.vip_tokens_sent > 0 && (
-                  <div className="text-center">
-                    <p className="text-sm font-bold text-amber-400">{log.vip_tokens_sent}</p>
-                    <p className="text-[10px] text-white/30">VIP tokens</p>
-                  </div>
-                )}
-                {expanded === log.id ? <ChevronUp size={14} className="text-white/30" /> : <ChevronDown size={14} className="text-white/30" />}
-              </div>
+              <X size={13} />
             </button>
-
-            {/* Delete button — outside the expand toggle */}
-            <DeleteLogButton
-              logId={log.id}
-              onDeleted={() => {
-                setLogs(prev => prev.filter(l => l.id !== log.id));
-                if (expanded === log.id) setExpanded(null);
-              }}
-            />
-          </div>
-
-          {/* Per-recipient records — each row is individually expandable */}
-          {expanded === log.id && log.records.length > 0 && (
-            <div className="border-t border-white/10">
-              <div className={`grid gap-2 px-5 py-2 bg-white/[0.02] text-[10px] uppercase tracking-widest text-white/30 font-semibold ${log.vip_tokens_sent > 0 ? "grid-cols-[1fr_80px_90px_90px_90px]" : "grid-cols-[1fr_80px_90px_90px]"}`}>
-                <span>Email</span><span>Domain</span><span>Delivery</span><span>Opens</span>
-                {log.vip_tokens_sent > 0 && <span>VIP Token</span>}
-              </div>
-              <div className="divide-y divide-white/[0.04] max-h-72 overflow-y-auto">
-                {log.records.map(rec => (
-                  <RecordRow key={rec.id} rec={rec as SendRecord} />
-                ))}
-              </div>
-            </div>
+          )}
+          {q && (
+            <p className="text-xs text-white/35 mt-2 px-1">
+              {filtered.length} of {logs.length} batch{logs.length !== 1 ? "es" : ""} match
+              {filtered.length === 0 && " — try a different term"}
+            </p>
           )}
         </div>
-      ))}
-    </div>
+      )}
+
+      {logs.length === 0 ? (
+        <div className="kx-card !p-10 !rounded-2xl text-center">
+          <p className="text-white/30 text-sm">No sends yet.</p>
+          <p className="text-white/20 text-xs mt-1">History will appear here after your first batch.</p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="kx-card !p-10 !rounded-2xl text-center">
+          <p className="text-white/30 text-sm">No results for &ldquo;{search}&rdquo;</p>
+          <p className="text-white/20 text-xs mt-1">Try searching a subject line or email address.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map(log => {
+            const visibleRecords = recordsForLog(log);
+            const emailMatchCount =
+              q && !log.subject.toLowerCase().includes(q) && !fmt(log.sent_at).toLowerCase().includes(q)
+                ? visibleRecords.length : null;
+
+            return (
+              <div key={log.id} className="kx-card !p-0 !rounded-2xl overflow-hidden">
+                {/* Log header row */}
+                <div className="flex flex-wrap items-center gap-4 px-5 py-4">
+                  <button
+                    onClick={() => setExpanded(e => e === log.id ? null : log.id)}
+                    className="flex-1 flex flex-wrap items-center gap-4 text-left min-w-0"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-white truncate">{log.subject}</p>
+                      <p className="text-xs text-white/40 mt-0.5">
+                        {fmt(log.sent_at)}
+                        {emailMatchCount !== null && (
+                          <span className="ml-2 text-khi-blue-soft">
+                            · {emailMatchCount} recipient{emailMatchCount !== 1 ? "s" : ""} match
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-4 flex-shrink-0 flex-wrap">
+                      <div className="text-center">
+                        <p className="text-sm font-bold text-emerald-400">{log.sent_count}</p>
+                        <p className="text-[10px] text-white/30">Delivered</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm font-bold" style={{ color: log.failed_count > 0 ? "#FF6B6B" : "rgba(255,255,255,0.2)" }}>{log.failed_count}</p>
+                        <p className="text-[10px] text-white/30">Failed</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm font-bold text-blue-300">{log.unique_openers}</p>
+                        <p className="text-[10px] text-white/30">Opened</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm font-bold text-white/60">{openRate(log)}</p>
+                        <p className="text-[10px] text-white/30">Open rate</p>
+                      </div>
+                      {log.vip_tokens_sent > 0 && (
+                        <div className="text-center">
+                          <p className="text-sm font-bold text-amber-400">{log.vip_tokens_sent}</p>
+                          <p className="text-[10px] text-white/30">VIP tokens</p>
+                        </div>
+                      )}
+                      {expanded === log.id
+                        ? <ChevronUp size={14} className="text-white/30" />
+                        : <ChevronDown size={14} className="text-white/30" />}
+                    </div>
+                  </button>
+
+                  <DeleteLogButton
+                    logId={log.id}
+                    onDeleted={() => {
+                      setLogs(prev => prev.filter(l => l.id !== log.id));
+                      if (expanded === log.id) setExpanded(null);
+                    }}
+                  />
+                </div>
+
+                {/* Per-recipient records */}
+                {expanded === log.id && visibleRecords.length > 0 && (
+                  <div className="border-t border-white/10">
+                    <div className={`grid gap-2 px-5 py-2 bg-white/[0.02] text-[10px] uppercase tracking-widest text-white/30 font-semibold ${log.vip_tokens_sent > 0 ? "grid-cols-[1fr_80px_90px_90px_90px]" : "grid-cols-[1fr_80px_90px_90px]"}`}>
+                      <span>Email</span><span>Domain</span><span>Delivery</span><span>Opens</span>
+                      {log.vip_tokens_sent > 0 && <span>VIP Token</span>}
+                    </div>
+                    <div className="divide-y divide-white/[0.04] max-h-72 overflow-y-auto">
+                      {visibleRecords.map(rec => (
+                        <RecordRow key={rec.id} rec={rec as SendRecord} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </>
   );
 }
-
-const AGENDA_HEADLINE = "The agenda is live.";
-const AGENDA_BODY =
-  "The full schedule for Khinext '26 is here. Join us this Sunday, 7 June at PC Hotel, Karachi for 20 curated sessions — keynotes, panel discussions, fireside chats, live activities, and a closing networking reception — featuring Pakistan's leading voices in AI, technology, and innovation.\n\nScroll down for the complete programme.";
 
 // ── Main Component ─────────────────────────────────────────────
 
@@ -745,9 +910,9 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
     } else {
       setFields(f => ({
         ...f,
-        subject:  f.subject  === AGENDA_SUBJECT  ? INVITATION_SUBJECT  : f.subject,
-        headline: f.headline === AGENDA_HEADLINE  ? "You are invited."  : f.headline,
-        bodyText: f.bodyText === AGENDA_BODY      ? ""                  : f.bodyText,
+        subject:  f.subject  === AGENDA_SUBJECT  ? INVITATION_SUBJECT : f.subject,
+        headline: f.headline === AGENDA_HEADLINE  ? "You are invited." : f.headline,
+        bodyText: f.bodyText === AGENDA_BODY      ? ""                 : f.bodyText,
       }));
     }
   }
@@ -843,7 +1008,11 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
 
       {/* Main tabs */}
       <div role="tablist" className="inline-flex gap-1 rounded-full bg-white/[0.04] border border-white/10 p-1 mb-8">
-        {([["compose", <Edit3 key="e" size={13} />, "Compose"], ["history", <History key="h" size={13} />, "History"]] as const).map(([t, icon, label]) => (
+        {([
+          ["compose", <Edit3 key="e" size={13} />, "Compose"],
+          ["history", <History key="h" size={13} />, "History"],
+          ["agenda", <CalendarDays key="a" size={13} />, "Agenda Blast"],
+        ] as const).map(([t, icon, label]) => (
           <button key={t} role="tab" aria-selected={mainTab === t} onClick={() => setMainTab(t)}
             className={`px-4 py-2 rounded-full text-xs font-medium flex items-center gap-1.5 transition-colors ${mainTab === t ? "bg-khi-blue text-white" : "text-white/60 hover:text-white"}`}>
             {icon}{label}
@@ -853,6 +1022,9 @@ export function BulkEmailer({ adminEmail }: { adminEmail: string }) {
 
       {/* ── HISTORY TAB ── */}
       {mainTab === "history" && <HistoryTab />}
+
+      {/* ── AGENDA BLAST TAB ── */}
+      {mainTab === "agenda" && <AgendaBlast />}
 
       {/* ── COMPOSE TAB ── */}
       {mainTab === "compose" && (

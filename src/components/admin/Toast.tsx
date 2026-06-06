@@ -1,7 +1,53 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { CheckCircle, XCircle, Info } from "lucide-react";
+
+// ── Multi-toast hook ────────────────────────────────────────────
+
+export interface ToastItem {
+  id: string;
+  type: "success" | "error" | "info";
+  message: string;
+}
+
+export function useToast() {
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const add = useCallback((type: ToastItem["type"], message: string) => {
+    const id = Math.random().toString(36).slice(2, 10);
+    setToasts(t => [...t, { id, type, message }]);
+    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 4500);
+  }, []);
+  return { toasts, add };
+}
+
+export function Toasts({ toasts }: { toasts: ToastItem[] }) {
+  if (!toasts.length) return null;
+  return (
+    <div className="fixed bottom-6 right-6 z-[200] flex flex-col-reverse gap-2 pointer-events-none">
+      {toasts.map(t => (
+        <div
+          key={t.id}
+          className={`flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-2xl text-sm font-medium border max-w-sm pointer-events-auto ${
+            t.type === "success"
+              ? "bg-[#0a1f16] border-emerald-500/30 text-emerald-300"
+              : t.type === "error"
+              ? "bg-[#1f0a0a] border-red-500/30 text-red-300"
+              : "bg-[#090f20] border-khi-blue/30 text-blue-300"
+          }`}
+        >
+          {t.type === "success" && <CheckCircle size={14} className="flex-shrink-0" />}
+          {t.type === "error"   && <XCircle     size={14} className="flex-shrink-0" />}
+          {t.type === "info"    && <Info        size={14} className="flex-shrink-0" />}
+          <span>{t.message}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Single centered animated toast ─────────────────────────────
 
 type ToastType = "success" | "error" | "info";
 
