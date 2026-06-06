@@ -36,6 +36,7 @@ export async function POST(req: Request) {
 
   let body: {
     batchSize?: unknown;
+    specificEmails?: unknown;
     headline?: unknown; bodyText?: unknown;
     ctaLabel?: unknown; ctaUrl?: unknown;
   };
@@ -45,6 +46,17 @@ export async function POST(req: Request) {
 
   const batchSize = typeof body.batchSize === "number" && body.batchSize > 0
     ? Math.min(Math.floor(body.batchSize), 500) : 100;
+
+  // Custom mode: caller supplies specific emails to send to
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const specificEmails: string[] | null = Array.isArray(body.specificEmails)
+    ? Array.from(new Set(
+        (body.specificEmails as unknown[])
+          .filter((e): e is string => typeof e === "string")
+          .map(e => e.trim().toLowerCase())
+          .filter(e => EMAIL_RE.test(e)),
+      ))
+    : null;
 
   const svc = createServiceClient();
 
@@ -78,15 +90,23 @@ export async function POST(req: Request) {
 
   const agendaSentSet = new Set(agendaSentEmails);
   const remaining = allEmails.filter(e => !agendaSentSet.has(e));
-  const batch = remaining.slice(0, batchSize);
+  const remainingSet = new Set(remaining);
+
+  // Custom mode: use the supplied list (still deduplicate against already-sent)
+  // Batch mode: pick the next N from the remaining pool in order
+  const batch = specificEmails
+    ? specificEmails.filter(e => !agendaSentSet.has(e))
+    : remaining.slice(0, batchSize);
 
   if (batch.length === 0) {
     return NextResponse.json({
       ok: true,
       total: 0, sent: 0, failed: 0,
       sentList: [], failedList: [],
-      remainingAfter: 0,
-      message: "All invitees have already received the agenda email.",
+      remainingAfter: remaining.length,
+      message: specificEmails
+        ? "All supplied emails have already received the agenda."
+        : "All contacts have already received the agenda email.",
     });
   }
 
@@ -179,6 +199,6 @@ export async function POST(req: Request) {
     failed: failedList.length,
     sentList,
     failedList,
-    remainingAfter: remaining.length - sentList.length,
+    remainingAfter: remaining.length - sentList.filter(e => remainingSet.has(e)).length,
   });
 }
