@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   CalendarDays, Send, RefreshCw, CheckCircle2,
   Loader2, ChevronDown, ChevronUp, History,
-  Search, X, Copy, Mail,
+  Search, X, Copy, Mail, List, PenLine,
 } from "lucide-react";
 import { AGENDA_SUBJECT } from "@/lib/email/invitation";
 import { useToast, Toasts } from "@/components/admin/Toast";
@@ -137,7 +137,9 @@ export function AgendaBlast() {
   const [status, setStatus] = useState<BlastStatus | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
 
+  const [sendMode, setSendMode] = useState<"batch" | "custom">("batch");
   const [batchSize, setBatchSize] = useState(200);
+  const [customInput, setCustomInput] = useState("");
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<BlastResult | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
@@ -187,15 +189,37 @@ export function AgendaBlast() {
 
   // ── Send ───────────────────────────────────────────────────
 
+  function parseEmails(raw: string): string[] {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const t of raw.split(/[\n,;]+/).map(s => s.trim().toLowerCase()).filter(Boolean)) {
+      if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t) && !seen.has(t)) {
+        seen.add(t);
+        out.push(t);
+      }
+    }
+    return out;
+  }
+
   async function handleSend() {
+    if (sendMode === "custom") {
+      const emails = parseEmails(customInput);
+      if (emails.length === 0) {
+        setSendError("Enter at least one valid email address.");
+        return;
+      }
+    }
     setSending(true);
     setSendError(null);
     setResult(null);
     try {
+      const payload = sendMode === "custom"
+        ? { specificEmails: parseEmails(customInput) }
+        : { batchSize };
       const res = await fetch("/api/admin/agenda-blast/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ batchSize }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -241,6 +265,9 @@ export function AgendaBlast() {
   const canSend = !sending && (status?.remaining ?? 0) > 0;
   const progress = status && status.total > 0
     ? Math.round((status.sent / status.total) * 100) : 0;
+
+  const parsedCustomEmails = parseEmails(customInput);
+  const canSendCustom = !sending && parsedCustomEmails.length > 0;
 
   const filteredRemaining = remainingSearch.trim()
     ? (status?.remainingEmails ?? []).filter(e =>
@@ -349,113 +376,198 @@ export function AgendaBlast() {
         {/* Send panel */}
         {status && (
           <div className="kx-card !p-5 !rounded-2xl space-y-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-white">Send Next Batch</p>
-              {status.remaining === 0 && (
-                <span className="flex items-center gap-1.5 text-xs text-emerald-400">
-                  <CheckCircle2 size={13} />All recipients reached
-                </span>
-              )}
+
+            {/* Header + mode toggle */}
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <p className="text-sm font-semibold text-white">Send Agenda</p>
+              <div className="flex items-center gap-0.5 rounded-xl border border-white/10 bg-white/[0.03] p-1">
+                <button
+                  onClick={() => { setSendMode("batch"); setSendError(null); }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    sendMode === "batch"
+                      ? "bg-white/[0.08] text-white"
+                      : "text-white/40 hover:text-white/70"
+                  }`}
+                >
+                  <List size={12} />
+                  Next Batch
+                </button>
+                <button
+                  onClick={() => { setSendMode("custom"); setSendError(null); }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    sendMode === "custom"
+                      ? "bg-white/[0.08] text-white"
+                      : "text-white/40 hover:text-white/70"
+                  }`}
+                >
+                  <PenLine size={12} />
+                  Custom List
+                </button>
+              </div>
             </div>
 
-            {status.remaining > 0 ? (
-              <>
-                {/* Batch size + count */}
-                <div className="flex flex-wrap items-end gap-4">
-                  <div>
-                    <label className="kx-label block mb-1.5 text-xs">
-                      Batch size
-                      <span className="ml-1 text-white/25 font-normal">(1 – 500)</span>
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={500}
-                      value={batchSize}
-                      onChange={e =>
-                        setBatchSize(Math.min(500, Math.max(1, Number(e.target.value) || 1)))
-                      }
-                      className="kx-input rounded-xl w-28 text-sm text-center"
-                    />
+            {/* ── Batch mode ── */}
+            {sendMode === "batch" && (
+              status.remaining > 0 ? (
+                <>
+                  <div className="flex flex-wrap items-end gap-4">
+                    <div>
+                      <label className="kx-label block mb-1.5 text-xs">
+                        Batch size
+                        <span className="ml-1 text-white/25 font-normal">(1 – 500)</span>
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={500}
+                        value={batchSize}
+                        onChange={e =>
+                          setBatchSize(Math.min(500, Math.max(1, Number(e.target.value) || 1)))
+                        }
+                        className="kx-input rounded-xl w-28 text-sm text-center"
+                      />
+                    </div>
+                    <div className="pb-1 space-y-1">
+                      <p className="text-xs text-white/50">
+                        Will send to{" "}
+                        <strong className="text-white">{effectiveBatch}</strong> of{" "}
+                        <strong className="text-white">{status.remaining}</strong> remaining
+                      </p>
+                      {batchSize > 200 && (
+                        <p className="text-[11px] text-amber-400/70">
+                          Tip: keep batches ≤ 200 for best deliverability.
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div className="pb-1 space-y-1">
-                    <p className="text-xs text-white/50">
-                      Will send to{" "}
-                      <strong className="text-white">{effectiveBatch}</strong> of{" "}
-                      <strong className="text-white">{status.remaining}</strong> remaining
-                    </p>
-                    {batchSize > 200 && (
-                      <p className="text-[11px] text-amber-400/70">
-                        Tip: keep batches ≤ 200 for best deliverability.
+
+                  <div>
+                    <button
+                      onClick={() => setShowRemaining(v => !v)}
+                      className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors"
+                    >
+                      {showRemaining ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                      {showRemaining ? "Hide" : "Preview"} remaining recipients ({status.remaining})
+                    </button>
+
+                    {showRemaining && (
+                      <div className="mt-3 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="relative flex-1">
+                            <Search size={11} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+                            <input
+                              type="search"
+                              placeholder="Filter by email…"
+                              value={remainingSearch}
+                              onChange={e => setRemainingSearch(e.target.value)}
+                              className="kx-input w-full rounded-xl pl-8 pr-8 text-xs"
+                            />
+                            {remainingSearch && (
+                              <button
+                                onClick={() => setRemainingSearch("")}
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors"
+                              >
+                                <X size={11} />
+                              </button>
+                            )}
+                          </div>
+                          <button
+                            onClick={copyRemaining}
+                            title="Copy all remaining emails to clipboard"
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/10 text-[11px] text-white/50 hover:text-white hover:border-white/25 transition-colors flex-shrink-0"
+                          >
+                            <Copy size={11} />Copy all
+                          </button>
+                        </div>
+
+                        {remainingSearch && (
+                          <p className="text-[11px] text-white/30 px-1">
+                            {filteredRemaining.length} of {status.remaining} match
+                          </p>
+                        )}
+
+                        <div className="rounded-xl border border-white/10 divide-y divide-white/[0.04] max-h-48 overflow-y-auto">
+                          {filteredRemaining.length === 0 ? (
+                            <p className="px-4 py-3 text-xs text-white/30 text-center">
+                              No emails match &ldquo;{remainingSearch}&rdquo;
+                            </p>
+                          ) : (
+                            filteredRemaining.map(email => (
+                              <p key={email} className="px-4 py-2 text-xs font-mono text-white/55">
+                                {email}
+                              </p>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {sendError && (
+                    <p role="alert" className="text-sm text-red-400">{sendError}</p>
+                  )}
+
+                  <button
+                    onClick={handleSend}
+                    disabled={!canSend}
+                    className="kx-btn kx-btn-primary w-full justify-center disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {sending
+                      ? <><Loader2 size={15} className="animate-spin" />Sending…</>
+                      : <><Send size={15} />Send Agenda to Next {effectiveBatch} Recipients</>}
+                  </button>
+
+                  <p className="text-[11px] text-white/25 text-center">
+                    After this batch,{" "}
+                    {Math.max(0, status.remaining - effectiveBatch)}{" "}
+                    recipient{status.remaining - effectiveBatch !== 1 ? "s" : ""} will remain.
+                  </p>
+                </>
+              ) : (
+                <div className="text-center py-4 space-y-1.5">
+                  <div className="flex items-center justify-center gap-1.5 text-emerald-400">
+                    <CheckCircle2 size={15} />
+                    <p className="text-sm font-medium">All {status.total} contacts reached</p>
+                  </div>
+                  <p className="text-xs text-white/35">
+                    Switch to <strong className="text-white/55">Custom List</strong> to send to specific addresses.
+                  </p>
+                </div>
+              )
+            )}
+
+            {/* ── Custom mode ── */}
+            {sendMode === "custom" && (
+              <>
+                <div>
+                  <label className="kx-label block mb-1.5 text-xs">
+                    Email addresses
+                    <span className="ml-1 text-white/25 font-normal">— comma, semicolon, or newline separated</span>
+                  </label>
+                  <textarea
+                    value={customInput}
+                    onChange={e => { setCustomInput(e.target.value); setSendError(null); }}
+                    placeholder={"alice@example.com, bob@example.com\nor one per line…"}
+                    rows={4}
+                    className="kx-input w-full rounded-xl text-xs font-mono resize-y"
+                  />
+                </div>
+
+                {customInput.trim() && (
+                  <div className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 text-xs">
+                    {parsedCustomEmails.length > 0 ? (
+                      <p className="text-white/55">
+                        <strong className="text-white">{parsedCustomEmails.length}</strong>{" "}
+                        valid address{parsedCustomEmails.length !== 1 ? "es" : ""} parsed
+                        — addresses already sent the agenda will be skipped automatically.
+                      </p>
+                    ) : (
+                      <p className="text-amber-400/70">
+                        No valid email addresses found — check formatting.
                       </p>
                     )}
                   </div>
-                </div>
-
-                {/* Remaining list (searchable) */}
-                <div>
-                  <button
-                    onClick={() => setShowRemaining(v => !v)}
-                    className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors"
-                  >
-                    {showRemaining ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-                    {showRemaining ? "Hide" : "Preview"} remaining recipients ({status.remaining})
-                  </button>
-
-                  {showRemaining && (
-                    <div className="mt-3 space-y-2">
-                      <div className="flex items-center gap-2">
-                        {/* Search */}
-                        <div className="relative flex-1">
-                          <Search size={11} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
-                          <input
-                            type="search"
-                            placeholder="Filter by email…"
-                            value={remainingSearch}
-                            onChange={e => setRemainingSearch(e.target.value)}
-                            className="kx-input w-full rounded-xl pl-8 pr-8 text-xs"
-                          />
-                          {remainingSearch && (
-                            <button
-                              onClick={() => setRemainingSearch("")}
-                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors"
-                            >
-                              <X size={11} />
-                            </button>
-                          )}
-                        </div>
-                        {/* Copy all */}
-                        <button
-                          onClick={copyRemaining}
-                          title="Copy all remaining emails to clipboard"
-                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/10 text-[11px] text-white/50 hover:text-white hover:border-white/25 transition-colors flex-shrink-0"
-                        >
-                          <Copy size={11} />Copy all
-                        </button>
-                      </div>
-
-                      {remainingSearch && (
-                        <p className="text-[11px] text-white/30 px-1">
-                          {filteredRemaining.length} of {status.remaining} match
-                        </p>
-                      )}
-
-                      <div className="rounded-xl border border-white/10 divide-y divide-white/[0.04] max-h-48 overflow-y-auto">
-                        {filteredRemaining.length === 0 ? (
-                          <p className="px-4 py-3 text-xs text-white/30 text-center">
-                            No emails match &ldquo;{remainingSearch}&rdquo;
-                          </p>
-                        ) : (
-                          filteredRemaining.map(email => (
-                            <p key={email} className="px-4 py-2 text-xs font-mono text-white/55">
-                              {email}
-                            </p>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                )}
 
                 {sendError && (
                   <p role="alert" className="text-sm text-red-400">{sendError}</p>
@@ -463,28 +575,20 @@ export function AgendaBlast() {
 
                 <button
                   onClick={handleSend}
-                  disabled={!canSend}
+                  disabled={!canSendCustom}
                   className="kx-btn kx-btn-primary w-full justify-center disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {sending
                     ? <><Loader2 size={15} className="animate-spin" />Sending…</>
-                    : <><Send size={15} />Send Agenda to Next {effectiveBatch} Recipients</>}
+                    : <><Send size={15} />Send Agenda to {parsedCustomEmails.length} Email{parsedCustomEmails.length !== 1 ? "s" : ""}</>}
                 </button>
 
                 <p className="text-[11px] text-white/25 text-center">
-                  After this batch, {Math.max(0, status.remaining - effectiveBatch)} recipient{status.remaining - effectiveBatch !== 1 ? "s" : ""} will remain.
+                  Addresses that have already received the agenda are automatically excluded.
                 </p>
               </>
-            ) : (
-              <div className="text-center py-4 space-y-1">
-                <p className="text-sm font-medium text-emerald-400">
-                  All {status.total} contacts have received the agenda.
-                </p>
-                <p className="text-xs text-white/35">
-                  Check the history below to see open rates.
-                </p>
-              </div>
             )}
+
           </div>
         )}
 
