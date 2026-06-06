@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   CalendarDays, Send, RefreshCw, CheckCircle2,
   Loader2, ChevronDown, ChevronUp, History,
-  Search, X, Copy, Mail, List, PenLine,
+  Search, X, Copy, Mail, List, PenLine, AtSign,
 } from "lucide-react";
 import { AGENDA_SUBJECT } from "@/lib/email/invitation";
 import { useToast, Toasts } from "@/components/admin/Toast";
@@ -146,9 +146,10 @@ export function AgendaBlast() {
   const [status, setStatus] = useState<BlastStatus | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
 
-  const [sendMode, setSendMode] = useState<"batch" | "custom">("batch");
+  const [sendMode, setSendMode] = useState<"batch" | "custom" | "single">("batch");
   const [batchSize, setBatchSize] = useState(200);
   const [customInput, setCustomInput] = useState("");
+  const [singleEmail, setSingleEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<BlastResult | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
@@ -217,11 +218,18 @@ export function AgendaBlast() {
     return out;
   }
 
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
   async function handleSend() {
     if (sendMode === "custom") {
-      const emails = parseEmails(customInput);
-      if (emails.length === 0) {
+      if (parseEmails(customInput).length === 0) {
         setSendError("Enter at least one valid email address.");
+        return;
+      }
+    }
+    if (sendMode === "single") {
+      if (!EMAIL_RE.test(singleEmail.trim())) {
+        setSendError("Enter a valid email address.");
         return;
       }
     }
@@ -231,6 +239,8 @@ export function AgendaBlast() {
     try {
       const payload = sendMode === "custom"
         ? { specificEmails: parseEmails(customInput) }
+        : sendMode === "single"
+        ? { specificEmails: [singleEmail.trim().toLowerCase()] }
         : { batchSize };
       const res = await fetch("/api/admin/agenda-blast/send", {
         method: "POST",
@@ -284,6 +294,7 @@ export function AgendaBlast() {
 
   const parsedCustomEmails = parseEmails(customInput);
   const canSendCustom = !sending && parsedCustomEmails.length > 0;
+  const canSendSingle = !sending && EMAIL_RE.test(singleEmail.trim());
 
   const filteredRemaining = remainingSearch.trim()
     ? (status?.remainingEmails ?? []).filter(e =>
@@ -419,6 +430,17 @@ export function AgendaBlast() {
                   <PenLine size={12} />
                   Custom List
                 </button>
+                <button
+                  onClick={() => { setSendMode("single"); setSendError(null); }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    sendMode === "single"
+                      ? "bg-white/[0.08] text-white"
+                      : "text-white/40 hover:text-white/70"
+                  }`}
+                >
+                  <AtSign size={12} />
+                  Single
+                </button>
               </div>
             </div>
 
@@ -550,6 +572,43 @@ export function AgendaBlast() {
                   </p>
                 </div>
               )
+            )}
+
+            {/* ── Single mode ── */}
+            {sendMode === "single" && (
+              <>
+                <div>
+                  <label className="kx-label block mb-1.5 text-xs">
+                    Recipient email address
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="someone@example.com"
+                    value={singleEmail}
+                    onChange={e => { setSingleEmail(e.target.value); setSendError(null); }}
+                    className="kx-input w-full rounded-xl text-sm"
+                    onKeyDown={e => { if (e.key === "Enter" && canSendSingle) handleSend(); }}
+                  />
+                </div>
+
+                {sendError && (
+                  <p role="alert" className="text-sm text-red-400">{sendError}</p>
+                )}
+
+                <button
+                  onClick={handleSend}
+                  disabled={!canSendSingle}
+                  className="kx-btn kx-btn-primary w-full justify-center disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {sending
+                    ? <><Loader2 size={15} className="animate-spin" />Sending…</>
+                    : <><Send size={15} />Send Agenda to This Address</>}
+                </button>
+
+                <p className="text-[11px] text-white/25 text-center">
+                  If this address has already received the agenda, the send will be skipped.
+                </p>
+              </>
             )}
 
             {/* ── Custom mode ── */}
