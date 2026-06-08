@@ -30,6 +30,7 @@ export function Footer() {
             <li><Link href="/ai-expo" className="text-white/45 hover:text-khi-blue-bright transition-colors">AI Expo</Link></li>
             <li><Link href="/gaming" className="text-white/45 hover:text-khi-blue-bright transition-colors">Gaming</Link></li>
             <li><Link href="/submit" className="text-white/45 hover:text-khi-blue-bright transition-colors">Submit</Link></li>
+            <li><Link href="/testimonials" className="text-white/45 hover:text-khi-blue-bright transition-colors">Testimonials</Link></li>
             <li><Link href="/register" className="text-white/45 hover:text-khi-blue-bright transition-colors">Register</Link></li>
             <li><Link href="/contact" className="text-white/45 hover:text-khi-blue-bright transition-colors">Contact</Link></li>
           </ul>

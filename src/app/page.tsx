@@ -3,9 +3,15 @@ import { EventDates } from "@/components/sections/EventDates";
 import { Stats } from "@/components/sections/Stats";
 import { Domains } from "@/components/sections/Domains";
 import { Partners } from "@/components/sections/Partners";
+import { Testimonials } from "@/components/sections/Testimonials";
 import { RegisterCTA } from "@/components/sections/RegisterCTA";
+import { getApprovedTestimonials } from "@/lib/testimonials";
 
-export default function HomePage() {
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const testimonials = await getApprovedTestimonials(24);
+
   return (
     <>
       <Hero />
@@ -15,6 +21,11 @@ export default function HomePage() {
       <div id="partners">
         <Partners />
       </div>
+      {testimonials.length > 0 && (
+        <div id="testimonials">
+          <Testimonials items={testimonials} />
+        </div>
+      )}
       <RegisterCTA />
     </>
   );

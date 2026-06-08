@@ -86,6 +86,50 @@ export interface InviteInfo {
   open_count: number;
 }
 
+// ── Testimonials ──────────────────────────────────────────
+export type TestimonialStatus = "pending" | "approved" | "rejected";
+
+/** Attendee verification tier, computed server-side against the attendee DB. */
+export type VerificationTier = "vip" | "attendee" | "community";
+
+/** Full row — admin only (includes PII like email). */
+export interface Testimonial {
+  id: string;
+  full_name: string;
+  email: string;
+  designation: string | null;
+  company: string | null;
+  body: string;
+  rating: number | null;
+  avatar_path: string | null;
+  status: TestimonialStatus;
+  verification: VerificationTier;
+  featured: boolean;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  created_at: string;
+}
+
+/** Public-safe subset shown on the website (no email, resolved avatar URL). */
+export interface PublicTestimonial {
+  id: string;
+  full_name: string;
+  designation: string | null;
+  company: string | null;
+  body: string;
+  rating: number | null;
+  avatar_url: string | null;
+  verification: VerificationTier;
+  featured: boolean;
+  created_at: string;
+}
+
+export const VERIFICATION_LABELS: Record<VerificationTier, string> = {
+  vip: "Verified VIP",
+  attendee: "Verified Attendee",
+  community: "Community Member",
+};
+
 export const DOMAINS = [
   { key: "health",    color: "#51FFD5", title: "AI in Health & Pharma",   desc: "AI-assisted diagnostics, drug discovery, telemedicine — built for low-bandwidth clinics in South Asia." },
   { key: "cities",    color: "#00EAEE", title: "Smart Cities",            desc: "Urban mobility, energy grids and civic infrastructure powered by real-time AI inference." },

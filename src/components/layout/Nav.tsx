@@ -20,6 +20,7 @@ const LINKS: NavLink[] = [
   },
   { label: "My Card",  href: "/card-generator" },
   { label: "Submit",   href: "/submit" },
+  { label: "Testimonials", href: "/testimonials" },
 ];
 
 export function Nav() {
@@ -206,6 +207,7 @@ export function Nav() {
               <motion.li variants={mobileItem} className="mt-1" />
               <MobileLink href="/card-generator" label="My Card" />
               <MobileLink href="/submit" label="Submit" />
+              <MobileLink href="/testimonials" label="Testimonials" />
               <motion.li variants={mobileItem} className="mt-4">
                 <Link href="/register" className="kx-btn-primary w-full justify-center">
                   Register Now

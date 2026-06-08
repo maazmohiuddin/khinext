@@ -1,19 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { LogOut, Mail, Inbox } from "lucide-react";
+import { LogOut, Mail, Inbox, MessageSquareQuote } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import type { CardShare, ContactMessage, InviteInfo, Registration, Submission, SubmissionStatus } from "@/lib/types";
+import type { CardShare, ContactMessage, InviteInfo, Registration, Submission, SubmissionStatus, Testimonial } from "@/lib/types";
 import { SubmissionsTable } from "./SubmissionsTable";
 import { RegistrationsTable } from "./RegistrationsTable";
 import { CardSharesTable } from "./CardSharesTable";
 import { AdminInbox } from "./AdminInbox";
+import { TestimonialsTable, type TestimonialPatch } from "./TestimonialsTable";
 import { Toast } from "./Toast";
 import { LiveBadge, type LiveStatus } from "./LiveBadge";
 
-type Tab = "submissions" | "registrations" | "cards" | "inbox";
+type Tab = "submissions" | "registrations" | "cards" | "inbox" | "testimonials";
 
 export function AdminDashboard({
   adminEmail,
@@ -21,6 +22,7 @@ export function AdminDashboard({
   initialRegistrations,
   initialCardShares,
   initialMessages,
+  initialTestimonials,
   invitedEmails,
 }: {
   adminEmail: string;
@@ -28,11 +30,13 @@ export function AdminDashboard({
   initialRegistrations: Registration[];
   initialCardShares: CardShare[];
   initialMessages: ContactMessage[];
+  initialTestimonials: Testimonial[];
   invitedEmails: Record<string, InviteInfo>;
 }) {
   const [submissions, setSubmissions] = useState<Submission[]>(initialSubmissions);
   const [registrations, setRegistrations] = useState<Registration[]>(initialRegistrations);
   const [cardShares, setCardShares] = useState<CardShare[]>(initialCardShares);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>(initialTestimonials);
   const [unreadCount, setUnreadCount] = useState(() => initialMessages.filter(m => m.status === "new").length);
   const [tab, setTab] = useState<Tab>("submissions");
   const [filter, setFilter] = useState<"all" | SubmissionStatus>("all");
@@ -84,6 +88,18 @@ export function AdminDashboard({
             return [next, ...curr];
           }
           if (payload.eventType === "DELETE") return curr.filter(c => c.id !== (payload.old as CardShare).id);
+          return curr;
+        });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "testimonials" }, payload => {
+        setTestimonials(curr => {
+          if (payload.eventType === "INSERT") {
+            const next = payload.new as Testimonial;
+            if (subscribedRef.current) showToast(`New testimonial · ${next.full_name}`);
+            return [next, ...curr];
+          }
+          if (payload.eventType === "UPDATE") return curr.map(t => t.id === (payload.new as Testimonial).id ? (payload.new as Testimonial) : t);
+          if (payload.eventType === "DELETE") return curr.filter(t => t.id !== (payload.old as Testimonial).id);
           return curr;
         });
       })
@@ -150,6 +166,38 @@ export function AdminDashboard({
     showToast(decision === "approved" ? "Submission approved ✓" : "Submission rejected.");
   }
 
+  const pendingTestimonials = useMemo(() => testimonials.filter(t => t.status === "pending").length, [testimonials]);
+
+  async function moderateTestimonial(id: string, patch: TestimonialPatch): Promise<boolean> {
+    const res = await fetch(`/api/admin/testimonials/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    if (!res.ok) {
+      const { error } = await res.json().catch(() => ({ error: "Unknown error" }));
+      showToast(`Failed: ${error}`);
+      return false;
+    }
+    const { testimonial } = await res.json();
+    setTestimonials(curr => curr.map(t => t.id === id ? (testimonial as Testimonial) : t));
+    if (patch.status) showToast(patch.status === "approved" ? "Testimonial approved ✓" : patch.status === "rejected" ? "Testimonial rejected." : "Testimonial updated.");
+    else if (typeof patch.featured === "boolean") showToast(patch.featured ? "Featured ✓" : "Removed from featured.");
+    else showToast("Testimonial updated ✓");
+    return true;
+  }
+
+  async function deleteTestimonial(id: string) {
+    const res = await fetch(`/api/admin/testimonials/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      const { error } = await res.json().catch(() => ({ error: "Unknown error" }));
+      showToast(`Failed: ${error}`);
+      return;
+    }
+    setTestimonials(curr => curr.filter(t => t.id !== id));
+    showToast("Testimonial deleted.");
+  }
+
   return (
     <div className="max-w-page mx-auto px-6 md:px-14 py-12 md:py-16">
       {/* Header */}
@@ -182,13 +230,14 @@ export function AdminDashboard({
       </header>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-8">
         {[
           { label: "Total Submissions", val: submissions.length,   color: "#316BFF" },
           { label: "Pending Review",    val: counts.pending,        color: "#FFD06B" },
           { label: "Approved",          val: counts.approved,       color: "#51FFD5" },
           { label: "Registrations",     val: registrations.length,  color: "rgba(255,255,255,0.7)" },
           { label: "Cards Generated",   val: cardShares.length,     color: "#BF00FF" },
+          { label: "Testimonials Pending", val: pendingTestimonials, color: "#FFD06B" },
         ].map(c => (
           <div key={c.label} className="kx-card !p-5">
             <div className="font-display text-3xl md:text-4xl font-extrabold leading-none -tracking-tight" style={{ color: c.color }}>
@@ -202,7 +251,7 @@ export function AdminDashboard({
       {/* Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div role="tablist" aria-label="Dashboard sections" className="inline-flex gap-1 rounded-full bg-white/[0.04] border border-white/10 p-1">
-          {(["submissions", "registrations", "cards", "inbox"] as const).map(t => (
+          {(["submissions", "registrations", "cards", "testimonials", "inbox"] as const).map(t => (
             <button
               key={t}
               role="tab"
@@ -218,6 +267,22 @@ export function AdminDashboard({
                 ? `Registrations (${registrations.length})`
                 : t === "cards"
                 ? `Cards (${cardShares.length})`
+                : t === "testimonials"
+                ? (
+                  <span className="flex items-center gap-1.5">
+                    <MessageSquareQuote size={11} />
+                    Testimonials
+                    {pendingTestimonials > 0 && (
+                      <motion.span
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold bg-[#FFD06B] text-khi-ink"
+                      >
+                        {pendingTestimonials}
+                      </motion.span>
+                    )}
+                  </span>
+                )
                 : (
                   <span className="flex items-center gap-1.5">
                     <Inbox size={11} />
@@ -268,6 +333,8 @@ export function AdminDashboard({
         <RegistrationsTable items={registrations} invitedEmails={invitedEmails} />
       ) : tab === "cards" ? (
         <CardSharesTable items={cardShares} />
+      ) : tab === "testimonials" ? (
+        <TestimonialsTable items={testimonials} onModerate={moderateTestimonial} onDelete={deleteTestimonial} />
       ) : (
         <AdminInbox initialMessages={initialMessages} />
       )}

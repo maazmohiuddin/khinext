@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { createServerSupabaseClient, createServiceClient } from "@/lib/supabase/server";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
 import { PageHero } from "@/components/ui/PageHero";
-import type { CardShare, ContactMessage, InviteInfo, Registration, Submission } from "@/lib/types";
+import type { CardShare, ContactMessage, InviteInfo, Registration, Submission, Testimonial } from "@/lib/types";
 
 export const metadata: Metadata = {
   title: "Admin Dashboard — Khinext '26",
@@ -37,11 +37,12 @@ export default async function AdminPage() {
   }
 
   const svc = createServiceClient();
-  const [subsRes, regsRes, cardsRes, msgsRes, inviteRes] = await Promise.all([
+  const [subsRes, regsRes, cardsRes, msgsRes, testiRes, inviteRes] = await Promise.all([
     supabase.from("submissions").select("*").order("created_at", { ascending: false }),
     supabase.from("registrations").select("*").order("created_at", { ascending: false }),
     svc.from("card_shares").select("id, slug, name, template, designation, created_at").order("created_at", { ascending: false }),
     svc.from("contact_messages").select("*").order("created_at", { ascending: false }),
+    svc.from("testimonials").select("*").order("created_at", { ascending: false }),
     svc.from("email_send_records").select("email, sent_at, open_count").eq("delivery_status", "sent").order("sent_at", { ascending: false }),
   ]);
 
@@ -49,6 +50,7 @@ export default async function AdminPage() {
   const registrations = (regsRes.data ?? []) as Registration[];
   const cardShares = (cardsRes.data ?? []) as CardShare[];
   const messages = (msgsRes.data ?? []) as ContactMessage[];
+  const testimonials = (testiRes.data ?? []) as Testimonial[];
 
   // Build email → InviteInfo map (most recent send + totals)
   const invitedEmails: Record<string, InviteInfo> = {};
@@ -69,6 +71,7 @@ export default async function AdminPage() {
       initialRegistrations={registrations}
       initialCardShares={cardShares}
       initialMessages={messages}
+      initialTestimonials={testimonials}
       invitedEmails={invitedEmails}
     />
   );
