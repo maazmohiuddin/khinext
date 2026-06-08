@@ -3,7 +3,7 @@ import { EventDates } from "@/components/sections/EventDates";
 import { Stats } from "@/components/sections/Stats";
 import { Domains } from "@/components/sections/Domains";
 import { Partners } from "@/components/sections/Partners";
-import { Testimonials } from "@/components/sections/Testimonials";
+import { TestimonialsSlider } from "@/components/sections/TestimonialsSlider";
 import { RegisterCTA } from "@/components/sections/RegisterCTA";
 import { getApprovedTestimonials } from "@/lib/testimonials";
 
@@ -23,7 +23,7 @@ export default async function HomePage() {
       </div>
       {testimonials.length > 0 && (
         <div id="testimonials">
-          <Testimonials items={testimonials} />
+          <TestimonialsSlider items={testimonials} />
         </div>
       )}
       <RegisterCTA />

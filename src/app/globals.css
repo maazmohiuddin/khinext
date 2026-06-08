@@ -111,6 +111,15 @@
     background: var(--khi-blue);
   }
 
+  /* Clamp long testimonial bodies so cards stay uniform height */
+  .kx-clamp {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 6;
+    line-clamp: 6;
+    overflow: hidden;
+  }
+
   /* Buttons */
   .kx-btn {
     @apply inline-flex items-center gap-2 rounded-full font-medium leading-none transition-all duration-200 ease-soft relative overflow-hidden;

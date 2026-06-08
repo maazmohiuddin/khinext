@@ -11,9 +11,12 @@ function fmtDate(iso: string) {
 export function TestimonialCard({
   t,
   featured = false,
+  clamp = false,
 }: {
   t: PublicTestimonial;
   featured?: boolean;
+  /** Truncate the body to a fixed number of lines so cards stay uniform height. */
+  clamp?: boolean;
 }) {
   const isVip = t.verification === "vip";
 
@@ -53,6 +56,7 @@ export function TestimonialCard({
         className={[
           "mt-4 text-white/80 leading-relaxed flex-1",
           featured ? "text-lg md:text-xl" : "text-[15px]",
+          clamp ? "kx-clamp" : "",
         ].join(" ")}
       >
         {t.body}
