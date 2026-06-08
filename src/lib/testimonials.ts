@@ -75,15 +75,25 @@ export function toPublicTestimonial(t: Testimonial): PublicTestimonial {
  * Returns an empty array on any error so pages render gracefully.
  */
 export async function getApprovedTestimonials(limit = 60): Promise<PublicTestimonial[]> {
-  const svc = createServiceClient();
-  const { data, error } = await svc
-    .from("testimonials")
-    .select("*")
-    .eq("status", "approved")
-    .order("featured", { ascending: false })
-    .order("created_at", { ascending: false })
-    .limit(limit);
+  try {
+    const svc = createServiceClient();
+    const { data, error } = await svc
+      .from("testimonials")
+      .select("*")
+      .eq("status", "approved")
+      .order("featured", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(limit);
 
-  if (error || !data) return [];
-  return (data as Testimonial[]).map(toPublicTestimonial);
+    if (error) {
+      console.error("[testimonials] query error:", error.message, error.code, error.hint);
+      return [];
+    }
+    console.log("[testimonials] fetched", data?.length ?? 0, "approved");
+    if (!data) return [];
+    return data.map(toPublicTestimonial);
+  } catch (e) {
+    console.error("[testimonials] unexpected error:", e);
+    return [];
+  }
 }
