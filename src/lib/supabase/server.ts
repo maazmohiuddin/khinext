@@ -37,6 +37,10 @@ export function createServiceClient() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
       auth: { persistSession: false, autoRefreshToken: false },
+      global: {
+        // Force Next.js not to cache Supabase responses at the fetch layer.
+        fetch: (url, init) => fetch(url, { ...init, cache: "no-store" }),
+      },
     },
   );
 }
