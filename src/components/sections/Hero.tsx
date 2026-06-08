@@ -55,10 +55,9 @@ export function Hero() {
         >
           <span
             aria-hidden="true"
-            className="w-[7px] h-[7px] rounded-full bg-khi-blue-bright animate-pulse-dot"
-            style={{ boxShadow: "0 0 12px #4579FF" }}
+            className="w-[7px] h-[7px] rounded-full bg-emerald-400/80"
           />
-          Karachi · 7 June 2026 · AI Expo + Gaming
+          7 June 2026 · Karachi · Event Concluded
         </motion.div>
 
         <motion.h1
@@ -81,7 +80,7 @@ export function Hero() {
           className="mt-5 text-[11px] md:text-sm uppercase text-white/45"
           style={{ letterSpacing: "0.36em" }}
         >
-          AI in everything · future starts here
+          AI in everything · it happened
         </motion.p>
 
         <motion.p
@@ -91,7 +90,7 @@ export function Hero() {
           className="mt-6 max-w-[560px] text-[15px] md:text-base text-white/55 leading-relaxed"
         >
           10,000+ attendees. 100+ speakers. 7 innovation domains.<br className="hidden md:inline" />
-          One day that will define South Asia's tech decade.
+          Thank you, Karachi — you made history.
         </motion.p>
 
         <motion.div
@@ -101,15 +100,15 @@ export function Hero() {
           className="mt-10 flex gap-3 flex-wrap justify-center"
         >
           <motion.div whileTap={{ scale: 0.96 }}>
-            <Link href="/register" className="kx-btn-primary animate-btn-glow">
-              Register Now
-              <ArrowRight size={16} aria-hidden="true" />
+            <Link href="#partners" className="kx-btn-primary animate-btn-glow">
+              <Sparkles size={15} aria-hidden="true" />
+              See Our Partners
             </Link>
           </motion.div>
           <motion.div whileTap={{ scale: 0.96 }}>
-            <Link href="/ai-expo" className="kx-btn-outline">
-              <Sparkles size={15} aria-hidden="true" />
-              Explore AI Expo
+            <Link href="/register" className="kx-btn-outline">
+              Khinext '27 — Notify Me
+              <ArrowRight size={16} aria-hidden="true" />
             </Link>
           </motion.div>
         </motion.div>

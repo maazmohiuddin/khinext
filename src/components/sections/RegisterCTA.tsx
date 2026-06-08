@@ -33,29 +33,24 @@ export function RegisterCTA() {
         whileInView="show"
         viewport={{ once: true, margin: "-80px" }}
       >
-        <motion.p variants={item} className="kx-eyebrow justify-center mb-5">The Stage Is Set</motion.p>
+        <motion.p variants={item} className="kx-eyebrow justify-center mb-5">See You At Khinext &apos;27</motion.p>
         <motion.h2
           id="cta-title"
           variants={item}
           className="font-display text-[clamp(38px,5.5vw,72px)] font-extrabold text-white"
           style={{ letterSpacing: "-0.045em", lineHeight: 1.02 }}
         >
-          Be part of<br />
-          <span className="kx-accent">history.</span>
+          Thank you,<br />
+          <span className="kx-accent">Karachi.</span>
         </motion.h2>
         <motion.p variants={item} className="mt-6 text-white/55 leading-relaxed max-w-[480px] mx-auto">
-          Khinext '26 is Pakistan's flagship AI summit — two days in Karachi that will set the direction for South Asia's next decade of technology.
+          Khinext &apos;26 has concluded. 10,000+ attendees, 100+ speakers, and 7 innovation domains — South Asia&apos;s most ambitious AI summit became reality. Khinext &apos;27 is next.
         </motion.p>
         <motion.div variants={item} className="mt-10 flex flex-wrap justify-center gap-3">
           <motion.div whileTap={{ scale: 0.97 }}>
             <Link href="/register" className="kx-btn-primary animate-btn-glow">
-              Register for Khinext '26
+              Get Notified for Khinext &apos;27
               <ArrowRight size={16} aria-hidden="true" />
-            </Link>
-          </motion.div>
-          <motion.div whileTap={{ scale: 0.97 }}>
-            <Link href="/submit" className="kx-btn-outline">
-              Submit AI Project
             </Link>
           </motion.div>
         </motion.div>
