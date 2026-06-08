@@ -4,69 +4,55 @@ import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
 import { Reveal } from "@/components/ui/Reveal";
 
-const STRATEGIC = [
-  { name: "TCN Executive Forum", src: "/partners/tcn.png", label: "Strategic Partner" },
-  { name: "JBS Works Better", src: "/partners/jbs.png", label: "Official Partner" },
-  { name: "TFS Events", src: "/partners/tfs.png", label: "Event Management Partner" },
-];
-
-const FEATURED = [
-  { name: "VIPER", src: "/partners/viper.png" },
-  { name: "Dreamworld", src: "/partners/dreamworld.png" },
-  { name: "Startup Pakistan", src: "/partners/image357.png" },
-  { name: "P@SHA", src: "/partners/isolation-mode.png" },
-  { name: "Pakola", src: "/partners/pakola.png" },
-];
-
-const SUPPORTING = [
-  { name: "LOUG", src: "/partners/loug.png" },
-  { name: "PAFLA", src: "/partners/pafla.png" },
-  { name: "THE BOTSS", src: "/partners/botss.png" },
-  { name: "CEO Today", src: "/partners/ceo-today.png" },
-  { name: "Server4Sale", src: "/partners/s4s.png" },
-  { name: "HKHM", src: "/partners/hkhm.png" },
+const PARTNERS = [
+  { name: "TFS Events",              src: "/partners/TFS Logo White.png" },
+  { name: "JBS Works Better",        src: "/partners/JBS Logo White.png" },
+  { name: "VIPER",                   src: "/partners/Viper Logo White.png" },
+  { name: "LOUG Executive Forum",    src: "/partners/LOUG Executive Forum Logo.png" },
+  { name: "LYZR",                    src: "/partners/LYZR Logo.png" },
+  { name: "GEN Pakistan",            src: "/partners/GEN Pakistan Logo.png" },
+  { name: "TRINT",                   src: "/partners/TRINT Logo.png" },
+  { name: "WHS",                     src: "/partners/WHS Logo.png" },
+  { name: "THE BOTSS",               src: "/partners/Bots Logo White.png" },
+  { name: "Broadway Pizza",          src: "/partners/Broadway Pizza Logo.png" },
+  { name: "CEO Today Magazine",      src: "/partners/CEO Today Magazine.png" },
+  { name: "DO Advertising",          src: "/partners/DO Advertising Logo White.png" },
+  { name: "Global Business Network", src: "/partners/Global Business Network Logo White.png" },
+  { name: "HKHM",                    src: "/partners/HKHM Logo Vectorized.png" },
+  { name: "IGLOO",                   src: "/partners/Igloo Logo.png" },
+  { name: "Istanbul",                src: "/partners/Istanbul Taste of Turkey Logo White.png" },
+  { name: "KFC",                     src: "/partners/KFC Logo.png" },
+  { name: "LOUG",                    src: "/partners/LOUG Logo White.png" },
+  { name: "Olymtech",                src: "/partners/Olymtech Logo.png" },
+  { name: "PAFLA",                   src: "/partners/PAFLA Logo.png" },
+  { name: "Padel Walay Loug",        src: "/partners/Padel Walay Loug Logo.png" },
+  { name: "Pakola",                  src: "/partners/Pakola Products Logo.png" },
+  { name: "Server4Sale",             src: "/partners/S4S Logo White.png" },
+  { name: "TEDx Clifton",            src: "/partners/TEDxClifton Logo.png" },
+  { name: "Partner",                 src: "/partners/At Symbol Red Logo White.png" },
+  { name: "Partner",                 src: "/partners/Dark Logo White.png" },
+  { name: "Partner",                 src: "/partners/Green E Bracket Logo White.png" },
+  { name: "Partner",                 src: "/partners/My Logo Green White.png" },
+  { name: "Partner",                 src: "/partners/Orange A Bubble Icon.png" },
+  { name: "Partner",                 src: "/partners/Pink Accent Logo White.png" },
+  { name: "Partner",                 src: "/partners/Pink Pixel Logo White.png" },
+  { name: "Partner",                 src: "/partners/White Logo 1.png" },
+  { name: "Partner",                 src: "/partners/White Logo 2.png" },
+  { name: "Partner",                 src: "/partners/White Logo 3.png" },
+  { name: "Partner",                 src: "/partners/White Logo 4.png" },
+  { name: "Partner",                 src: "/partners/White Logo 5.png" },
+  { name: "Partner",                 src: "/partners/White Logo 6.png" },
+  { name: "Partner",                 src: "/partners/White Logo 7.png" },
 ];
 
 const gridContainer = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.055 } },
+  show: { transition: { staggerChildren: 0.04 } },
 };
 const gridItem = {
   hidden: { opacity: 0, scale: 0.9 },
   show: { opacity: 1, scale: 1, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } },
 };
-
-function LogoCell({
-  name,
-  src,
-  size = "md",
-  label,
-}: {
-  name: string;
-  src: string;
-  size?: "lg" | "md" | "sm";
-  label?: string;
-}) {
-  const h = size === "lg" ? "h-[100px] md:h-[120px]" : size === "md" ? "h-[80px]" : "h-[64px]";
-  return (
-    <div className="flex flex-col items-center justify-center gap-2 px-4 py-5 group">
-      <div className={`relative w-full ${h}`}>
-        <Image
-          src={src}
-          alt={name}
-          fill
-          className="object-contain"
-          sizes="(max-width: 768px) 50vw, 25vw"
-        />
-      </div>
-      {label && (
-        <span className="text-[9px] uppercase font-semibold tracking-[0.2em] text-khi-blue-soft/70">
-          {label}
-        </span>
-      )}
-    </div>
-  );
-}
 
 export function Partners() {
   const reduced = useReducedMotion();
@@ -90,74 +76,40 @@ export function Partners() {
         </div>
       </Reveal>
 
-      {/* Strategic / Featured partners */}
       <motion.ul
-        className="mt-12 grid grid-cols-1 sm:grid-cols-3 border border-white/10 rounded-2xl overflow-hidden bg-white/[0.012]"
-        aria-label="Strategic partners"
+        className="mt-12 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 border border-white/10 rounded-2xl overflow-hidden bg-white/[0.012]"
+        aria-label="Khinext '26 partner logos"
         variants={reduced ? undefined : gridContainer}
         initial={reduced ? false : "hidden"}
         whileInView="show"
         viewport={{ once: true, margin: "-60px" }}
       >
-        {STRATEGIC.map((p, i) => (
-          <motion.li
-            key={p.name}
-            variants={reduced ? undefined : gridItem}
-            className={`min-h-[140px] hover:bg-khi-blue/[0.06] transition-colors duration-300 ${
-              i < STRATEGIC.length - 1 ? "border-b sm:border-b-0 sm:border-r border-white/10" : ""
-            }`}
-          >
-            <LogoCell name={p.name} src={p.src} size="lg" label={p.label} />
-          </motion.li>
-        ))}
-      </motion.ul>
-
-      {/* Featured partners */}
-      <motion.ul
-        className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 border border-white/10 rounded-2xl overflow-hidden bg-white/[0.012]"
-        aria-label="Featured partners"
-        variants={reduced ? undefined : gridContainer}
-        initial={reduced ? false : "hidden"}
-        whileInView="show"
-        viewport={{ once: true, margin: "-60px" }}
-      >
-        {FEATURED.map((p, i) => (
-          <motion.li
-            key={p.name}
-            variants={reduced ? undefined : gridItem}
-            className={`min-h-[120px] hover:bg-khi-blue/[0.06] transition-colors duration-300 ${
-              i % 5 !== 4 ? "lg:border-r border-white/10" : ""
-            } ${i % 3 !== 2 ? "sm:border-r lg:border-r-0 border-white/10" : ""} ${
-              i % 2 !== 1 ? "border-r sm:border-r-0 lg:border-r border-white/10" : ""
-            } ${i < FEATURED.length - 2 ? "border-b lg:border-b-0 border-white/10" : ""}`}
-          >
-            <LogoCell name={p.name} src={p.src} size="md" />
-          </motion.li>
-        ))}
-      </motion.ul>
-
-      {/* Supporting partners */}
-      <motion.ul
-        className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 border border-white/10 rounded-2xl overflow-hidden bg-white/[0.012]"
-        aria-label="Supporting partners"
-        variants={reduced ? undefined : gridContainer}
-        initial={reduced ? false : "hidden"}
-        whileInView="show"
-        viewport={{ once: true, margin: "-60px" }}
-      >
-        {SUPPORTING.map((p, i) => (
-          <motion.li
-            key={p.name}
-            variants={reduced ? undefined : gridItem}
-            className={`min-h-[100px] hover:bg-khi-blue/[0.06] transition-colors duration-300 ${
-              i % 6 !== 5 ? "lg:border-r border-white/10" : ""
-            } ${i % 3 !== 2 ? "sm:border-r lg:border-r-0 border-white/10" : ""} ${
-              i % 2 !== 1 ? "border-r sm:border-r-0 lg:border-r border-white/10" : ""
-            } ${i < SUPPORTING.length - 3 ? "border-b sm:border-b border-white/10" : ""}`}
-          >
-            <LogoCell name={p.name} src={p.src} size="sm" />
-          </motion.li>
-        ))}
+        {PARTNERS.map((p, i) => {
+          const cols = 5;
+          const isLastRow = i >= PARTNERS.length - (PARTNERS.length % cols || cols);
+          return (
+            <motion.li
+              key={`${p.src}-${i}`}
+              variants={reduced ? undefined : gridItem}
+              className={[
+                "flex items-center justify-center min-h-[110px] px-6 py-5",
+                "hover:bg-khi-blue/[0.06] transition-colors duration-300",
+                (i + 1) % cols !== 0 ? "border-r border-white/10" : "",
+                !isLastRow ? "border-b border-white/10" : "",
+              ].join(" ")}
+            >
+              <div className="relative w-full h-14">
+                <Image
+                  src={p.src}
+                  alt={p.name}
+                  fill
+                  className="object-contain"
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                />
+              </div>
+            </motion.li>
+          );
+        })}
       </motion.ul>
     </section>
   );
