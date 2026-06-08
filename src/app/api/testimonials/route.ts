@@ -43,18 +43,18 @@ export async function POST(req: Request) {
 
   const svc = createServiceClient();
 
-  // ── Prevent duplicate submissions (pending or already approved) ──
+  // ── Prevent duplicate submissions (only block once approved) ──
   const { data: existing } = await svc
     .from("testimonials")
     .select("id, status")
     .ilike("email", email)
-    .in("status", ["pending", "approved"])
+    .eq("status", "approved")
     .limit(1)
     .maybeSingle();
 
   if (existing) {
     return NextResponse.json(
-      { error: "You've already submitted feedback with this email. Thank you!" },
+      { error: "Your testimonial has already been published. Thank you!" },
       { status: 409 },
     );
   }
