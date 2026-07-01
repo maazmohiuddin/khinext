@@ -19,7 +19,9 @@ import {
   Zap,
   Eye,
   CheckCircle2,
+  Check,
 } from "lucide-react";
+import { CodeBlock } from "./CodeBlock";
 
 /* ─────────────────────────────────────────────────────────
    Motion helpers
@@ -232,6 +234,241 @@ const METRICS = [
   { value: "3", label: "Mail channels" },
   { value: "100%", label: "Typed in TS" },
 ];
+
+const REGISTER_CODE = `// register/RegisterForm.tsx — track-first signup
+const [form, setForm] = useState<FormState>({
+  track: "ai_expo_and_gaming",   // sensible default
+  role: "", email: "", fullName: "",
+});
+
+async function onSubmit(e) {
+  e.preventDefault();
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("registrations")
+    .insert({
+      full_name: form.fullName,
+      email: form.email.trim().toLowerCase(),
+      role: form.role,
+      track: form.track,          // routes the journey
+    });
+
+  // 23505 = unique violation -> already registered
+  if (error?.code === "23505") {
+    setError("This email is already registered.");
+  }
+}`;
+
+const REALTIME_CODE = `// admin/AdminDashboard.tsx — one channel, four tables
+useEffect(() => {
+  const supabase = createClient();
+  const channel = supabase
+    .channel("admin-realtime")
+    .on("postgres_changes",
+      { event: "*", table: "registrations" },
+      payload => {
+        if (payload.eventType === "INSERT") {
+          showToast(\`New registration\`);
+          setRegistrations(c => [payload.new, ...c]);
+        }
+      })
+    .subscribe(status => {
+      if (status === "SUBSCRIBED") setLiveStatus("live");
+    });
+
+  return () => supabase.removeChannel(channel);
+}, []);`;
+
+const VIP_CODE = `// api/vip/validate/route.ts — server-side gate
+const TOKEN_RE = /^[a-f0-9]{48}$/;
+
+export async function GET(req: Request) {
+  const token = new URL(req.url)
+    .searchParams.get("token") ?? "";
+  if (!TOKEN_RE.test(token)) {
+    return NextResponse.json({ valid: false });
+  }
+
+  const svc = createServiceClient();  // bypasses RLS
+  const { data } = await svc
+    .from("vip_invite_tokens")
+    .select("id, expires_at, redeemed_at")
+    .eq("token", token)
+    .single();
+
+  if (new Date(data.expires_at) < new Date()) {
+    return NextResponse.json({ valid: false });
+  }
+  return NextResponse.json({ valid: true });
+}`;
+
+const PAIRS = [
+  {
+    label: "SCREEN_01 · REGISTER",
+    title: "Track-first registration",
+    blurb: "The signup form defaults to a track and writes straight to Postgres. A unique-constraint code (23505) becomes a friendly 'already registered' message.",
+    file: "src/app/register/RegisterForm.tsx",
+    code: REGISTER_CODE,
+    preview: "register" as const,
+  },
+  {
+    label: "SCREEN_02 · ADMIN",
+    title: "Realtime activity feed",
+    blurb: "A single subscription fans out INSERT / UPDATE / DELETE across four tables into React state — new registrations appear instantly with a toast, no refresh.",
+    file: "src/components/admin/AdminDashboard.tsx",
+    code: REALTIME_CODE,
+    preview: "dashboard" as const,
+  },
+  {
+    label: "SCREEN_03 · VIP GATE",
+    title: "Server-side validation",
+    blurb: "VIP tokens are shape-checked, then verified and expiry-checked against the database with a service client — the browser never sees the logic.",
+    file: "src/app/api/vip/validate/route.ts",
+    code: VIP_CODE,
+    preview: "vip" as const,
+  },
+];
+
+/* ─────────────────────────────────────────────────────────
+   Screen preview mockups (ref: browser-framed screens)
+   ───────────────────────────────────────────────────────── */
+
+function BrowserFrame({ url, children }: { url: string; children: ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-khi-ink-soft overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
+      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/10 bg-white/[0.02]">
+        <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
+        <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
+        <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
+        <span className="ml-3 flex-1 text-center font-mono text-[10px] text-white/35 truncate">{url}</span>
+      </div>
+      <div className="p-5 md:p-6">{children}</div>
+    </div>
+  );
+}
+
+function RegisterPreview() {
+  return (
+    <BrowserFrame url="khinext.app/register">
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-3">
+          {["Full name", "Email"].map((l) => (
+            <div key={l}>
+              <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/30 mb-1">{l}</div>
+              <div className="h-8 rounded-lg bg-white/[0.04] border border-white/10" />
+            </div>
+          ))}
+        </div>
+        <div>
+          <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/30 mb-1.5">Track</div>
+          <div className="flex flex-wrap gap-2">
+            {[
+              ["AI Expo", false],
+              ["Gaming", false],
+              ["AI Expo + Gaming", true],
+              ["VIP / Sponsor", false],
+            ].map(([t, active]) => (
+              <span
+                key={t as string}
+                className={`text-[11px] rounded-full px-3 py-1.5 border ${
+                  active
+                    ? "bg-khi-blue/15 border-khi-blue/55 text-khi-blue-soft"
+                    : "bg-white/[0.03] border-white/10 text-white/45"
+                }`}
+              >
+                {t}
+              </span>
+            ))}
+          </div>
+        </div>
+        <div className="pt-2">
+          <div className="h-10 rounded-full bg-khi-blue text-white text-[12px] font-medium grid place-items-center shadow-[0_8px_24px_rgba(49,107,255,0.4)]">
+            Register for Khinext &apos;26
+          </div>
+        </div>
+      </div>
+    </BrowserFrame>
+  );
+}
+
+function DashboardPreview() {
+  const reduced = useReducedMotion();
+  return (
+    <BrowserFrame url="khinext.app/admin">
+      <div className="flex items-center justify-between mb-3">
+        <span className="font-display text-sm font-extrabold text-white">Khinext &apos;26</span>
+        <span className="inline-flex items-center gap-1.5 text-[10px] text-emerald-300/80">
+          <Radio size={10} className="animate-pulse" aria-hidden="true" /> Live
+        </span>
+      </div>
+      <div className="grid grid-cols-3 gap-2 mb-3">
+        {[
+          ["124", "Registrations", "#316BFF"],
+          ["38", "Submissions", "#51FFD5"],
+          ["61", "Cards", "#BF00FF"],
+        ].map(([v, l, c]) => (
+          <div key={l} className="rounded-lg bg-white/[0.03] border border-white/10 px-3 py-2.5">
+            <div className="font-display text-lg font-extrabold leading-none" style={{ color: c }}>
+              {v}
+            </div>
+            <div className="mt-1 text-[9px] text-white/40">{l}</div>
+          </div>
+        ))}
+      </div>
+      <div className="space-y-1.5">
+        {[
+          ["New registration · Ayesha K.", true],
+          ["New submission · Vision-AI", false],
+          ["New card · Bilal R.", false],
+        ].map(([t, fresh], i) => (
+          <motion.div
+            key={t as string}
+            className="flex items-center gap-2 rounded-lg bg-white/[0.03] border border-white/10 px-3 py-2 text-[11px] text-white/70"
+            initial={reduced ? false : { opacity: 0, x: -12 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.15 + i * 0.12, duration: 0.4, ease: EASE }}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${fresh ? "bg-khi-blue" : "bg-white/25"}`} />
+            {t}
+          </motion.div>
+        ))}
+      </div>
+    </BrowserFrame>
+  );
+}
+
+function VipPreview() {
+  return (
+    <BrowserFrame url="khinext.app/vip?token=…">
+      <div className="text-center py-4">
+        <div className="font-mono text-[10px] text-white/35 mb-4 truncate">GET /api/vip/validate?token=4f9a…c1</div>
+        <span className="inline-flex items-center gap-2 rounded-full bg-emerald-400/10 border border-emerald-400/30 px-4 py-2 text-sm text-emerald-300">
+          <ShieldCheck size={16} aria-hidden="true" />
+          Verified VIP
+        </span>
+        <div className="mt-5 flex flex-col gap-1.5 max-w-[220px] mx-auto text-left">
+          {[
+            ["Token shape", true],
+            ["Exists in DB", true],
+            ["Not expired", true],
+          ].map(([l, ok]) => (
+            <div key={l as string} className="flex items-center justify-between text-[11px]">
+              <span className="text-white/50">{l}</span>
+              <Check size={13} className={ok ? "text-emerald-300" : "text-white/30"} aria-hidden="true" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </BrowserFrame>
+  );
+}
+
+function ScreenPreview({ kind }: { kind: "register" | "dashboard" | "vip" }) {
+  if (kind === "register") return <RegisterPreview />;
+  if (kind === "dashboard") return <DashboardPreview />;
+  return <VipPreview />;
+}
 
 /* ─────────────────────────────────────────────────────────
    Flow-tree section (shared render for attendee + admin)
@@ -622,10 +859,45 @@ export function Showcase() {
         </div>
       </section>
 
-      {/* ── 05 · Realtime dashboard detail ───────────────── */}
+      {/* ── 05 · Under the hood — code & screens ─────────── */}
       <section className="kx-section">
         <SectionHead
           index="05"
+          eyebrow="Under the hood"
+          title={<>Real code, <span className="kx-accent">real screens.</span></>}
+          intro="Three representative slices — the actual source paired with the interface it drives. Every snippet is lifted from the codebase, lightly trimmed for reading."
+        />
+        <div className="space-y-16 md:space-y-24">
+          {PAIRS.map((p, i) => (
+            <div key={p.label} className="grid lg:grid-cols-2 gap-6 lg:gap-10 items-center">
+              {/* text + code */}
+              <div className={i % 2 === 1 ? "lg:order-2" : ""}>
+                <Rise>
+                  <span className="font-mono text-[11px] font-bold tracking-[0.16em] text-khi-blue">{p.label}</span>
+                  <h3 className="mt-2 font-display text-2xl md:text-3xl font-extrabold text-white -tracking-tight">
+                    {p.title}
+                  </h3>
+                  <p className="mt-3 mb-6 text-white/55 text-sm md:text-[15px] leading-relaxed max-w-[520px]">
+                    {p.blurb}
+                  </p>
+                </Rise>
+                <Rise delay={0.08}>
+                  <CodeBlock file={p.file} code={p.code} />
+                </Rise>
+              </div>
+              {/* screen preview */}
+              <Rise delay={0.12} className={i % 2 === 1 ? "lg:order-1" : ""}>
+                <ScreenPreview kind={p.preview} />
+              </Rise>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── 06 · Realtime dashboard detail ───────────────── */}
+      <section className="kx-section">
+        <SectionHead
+          index="06"
           eyebrow="The control room"
           title={<>A dashboard that&apos;s <span className="kx-accent">alive.</span></>}
           intro="The decisions above converge here. One Supabase channel, four tables, and the operator sees new activity the instant it happens — animated in, with a toast."
@@ -686,11 +958,11 @@ export function Showcase() {
         </div>
       </section>
 
-      {/* ── 06 · Communications engine ───────────────────── */}
+      {/* ── 07 · Communications engine ───────────────────── */}
       <section className="relative border-y border-white/10 bg-khi-ink-soft">
         <div className="kx-section">
           <SectionHead
-            index="06"
+            index="07"
             eyebrow="Communications engine"
             title={<>Email, <span className="kx-accent">built in.</span></>}
             intro="Rather than bolt on a third-party tool, the platform runs its own mail pipeline — outbound campaigns, deduped agenda blasts, and a genuine two-way inbox synced over IMAP and the Gmail API."
@@ -714,9 +986,9 @@ export function Showcase() {
         </div>
       </section>
 
-      {/* ── 07 · Metrics + capability checklist ──────────── */}
+      {/* ── 08 · Metrics + capability checklist ──────────── */}
       <section className="kx-section">
-        <SectionHead index="07" eyebrow="By the numbers" title={<>Scope at a <span className="kx-accent">glance.</span></>} />
+        <SectionHead index="08" eyebrow="By the numbers" title={<>Scope at a <span className="kx-accent">glance.</span></>} />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {METRICS.map((m, i) => (
             <Rise key={m.label} delay={i * 0.08}>
