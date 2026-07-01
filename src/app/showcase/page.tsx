@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import { Showcase } from "./Showcase";
 
 export const metadata: Metadata = {
-  title: "Khinext '26 — Case Study & Product Showcase",
+  title: "Khinext '26 — UX Case Study",
   description:
-    "A behind-the-scenes look at the Khinext '26 platform: public event flows, a realtime admin dashboard, and a full communications engine. Design, architecture, and the why behind every feature.",
+    "A technical UX case study of the Khinext '26 platform: idea → problem → decision, personas, task-flow architecture, and the what & why behind every design choice.",
   openGraph: {
-    title: "Khinext '26 — Case Study & Product Showcase",
+    title: "Khinext '26 — UX Case Study",
     description:
-      "Public event flows, a realtime admin dashboard, and a full communications engine — the design and engineering behind the Khinext '26 platform.",
+      "Idea → problem → decision, personas, task-flow diagrams and the reasoning behind a realtime event platform.",
     type: "article",
   },
 };
